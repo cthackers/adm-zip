@@ -1,6 +1,6 @@
 # ADM-ZIP for NodeJS
 
-Allows you to extract and create zip archives in memory or to/from disk
+ADM-ZIP is a pure JavaScript implementation for zip data compression for [NodeJS](http://nodejs.org/). 
 
 # Installation
 
@@ -8,9 +8,6 @@ With [npm](http://npmjs.org) do:
 
     $ npm install adm-zip
 	
-# Welcome
-ADM-ZIP is a pure JavaScript implementation for zip data compression for [NodeJS](http://nodejs.org/). 
-
 ## What is it good for?
 The library allows you to:
 
