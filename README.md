@@ -29,7 +29,7 @@ With [npm](http://npmjs.org) do:
 
 # API Documentation
 
-### constructor Zip(String path = "")
+### constructor Zip(String path = '')
 If a file is specified and the file exists on disk, the the file is read and can be extracted or modified
 If the file doesn't exist on disk, then when calling writeZip() method, if no argument will be specified, this path will be used
 
@@ -44,7 +44,7 @@ NOT YET IMPLEMENTED
 Adds the given comment to the zip
 NOT YET IMPLEMENTED
 
-### getComment() {
+### getComment()
 Returns the comment of the zip file
 NOT YET IMPLEMENTED
 
