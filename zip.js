@@ -1,4 +1,5 @@
-var fs = require("fs");
+var fs = require("fs"),
+    pth = require('path');
 
 var ZipConstants = {
     LOCSIG: 0x04034b50,	// "PK\003\004"
@@ -196,22 +197,26 @@ var Inflater = function(/*Buffer*/inbuf) {
     }
 };
 
-var ZipEntry = function(/*String*/name) {
-     var _name = name,
+var ZipEntry = function ZipEntry(/*String*/entryName) {
+     var _entryName = entryName,
          dostime = 0;
+
     return {
+        get entryName () {
+            return _entryName;
+        },
         get name () {
-            return _name;
+            return _entryName.split("/").pop();
         },
         get time () {
-            new Date(((dostime >> 25) & 0x7f) + 1980,((dostime >> 21) & 0x0f) - 1,(dostime >> 16) & 0x1f,(dostime >> 11) & 0x1f,(dostime >> 5) & 0x3f,(dostime & 0x1f) << 1).getTime();
+            return new Date(((dostime >> 25) & 0x7f) + 1980,((dostime >> 21) & 0x0f) - 1,(dostime >> 16) & 0x1f,(dostime >> 11) & 0x1f,(dostime >> 5) & 0x3f,(dostime & 0x1f) << 1).getTime();
         },
         set time(/*Number*/val) {
             var d = new Date(val);
             dostime = (d.getFullYear() - 1980 & 0x7f) << 25 | (d.getMonth() + 1) << 21 | d.getDay() << 16 | d.getHours() << 11 | d.getMinutes() << 5 | d.getSeconds() >> 1;
         },
         get isDirectory () {
-            return _name.charAt(_name.length - 1) == "/";
+            return _entryName.charAt(_entryName.length - 1) == "/";
         },
         size : 0,
         compressedSize : 0,
@@ -221,7 +226,23 @@ var ZipEntry = function(/*String*/name) {
         comment : '',
         flags : 0,
         version : 0,
-        offset : 0
+        offset : 0,
+
+        toString : function() {
+            return '{\n' +
+                '\t"entryName" : "' + _entryName + '",\n' +
+                '\t"name" : "' + this.name + '",\n' +
+                '\t"isDirectory" : ' + (this.isDirectory ? "true" : "false") + ",\n" +
+                '\t"mtime" : ' + new Date(this.time).toLocaleString() + ",\n" +
+                '\t"size" : ' + this.size + ",\n" +
+                '\t"compressedSize" : ' + this.compressedSize + ",\n" +
+                '\t"crc" : 0x' + this.crc.toString(16).toUpperCase() + ",\n" +
+                '\t"method" : ' + this.method + " (" + ({0:"store",8:"deflate"}[this.method] || 'unknown') +")" + ",\n" +
+                '\t"comment" : "' + this.comment + '"' + ",\n" +
+                '\t"flags" : ' + this.flags + ",\n" +
+                '\t"version" : ' + this.version + "\n" +
+                '}';
+        }
     }
 };
 
@@ -268,8 +289,8 @@ var ZipFile = function(/*Buffer*/buf) {
             index += tmpBuff.readUInt16LE(32);
             // now get the remaining fields for the entry
             entry.version = tmpBuff.readUInt16LE(ZipConstants.CENVER);
-            entry.flag = tmpBuff.readUInt16LE(8);
-            if ((entry.flag & 1) == 1) {
+            entry.flags = tmpBuff.readUInt16LE(8);
+            if ((entry.flags & 1) == 1) {
                 console.log("readEntries::Encrypted ZIP entry not supported");
                 throw new Error("readEntries::Encrypted ZIP entry not supported");
             }
@@ -280,7 +301,7 @@ var ZipFile = function(/*Buffer*/buf) {
             entry.size = tmpBuff.readUInt32LE(24);
             entry.offset = tmpBuff.readUInt32LE(42);
             entryList[i] = entry;
-            entryTable[entry.name] = entry;
+            entryTable[entry.entryName] = entry;
             delete(tmpBuff)
         }
     }
@@ -304,12 +325,12 @@ var ZipFile = function(/*Buffer*/buf) {
         get size () {
             return entryList.length;
         },
-        getEntry : function(/*String*/name) {
-            return entryTable[name];
+        getEntry : function(/*String*/entryName) {
+            return entryTable[entryName];
         },
         getInput : function(/*ZipEntry*/entry) {
             var index = entry.offset + 28;
-            index += entry.name.length + 2;
+            index += entry.entryName.length + 2;
             var tempBuff = new Buffer(entry.compressedSize);
             if (entry.compressedSize > 0) {
                 buf.copy(tempBuff, 0, index, index + entry.compressedSize);
@@ -330,6 +351,23 @@ var ZipFile = function(/*Buffer*/buf) {
     }
 };
 
+var Utils = (function() {
+
+
+    return {
+        makeDir : function(path) {
+
+        },
+
+        writeToFile : function(targetPath, content) {
+            var fd = fs.openSync(targetPath, 'w', 0666);
+            fs.writeSync(fd, content);
+            fs.closeSync(fd);
+        }
+    }
+
+})();
+
 exports.Zip = function(/*String*/inPath) {
 
     var _zip = undefined;
@@ -341,41 +379,56 @@ exports.Zip = function(/*String*/inPath) {
         } catch(e) {
             // file doesn't exist
         }
+    }
 
+    function getEntry(/*Object*/entry) {
+        if (entry && _zip) {
+            var item;
+            // If entry was given as a file name
+            if (typeof entry === "string")
+                item = _zip.getEntry(entry);
+            // if entry was given as a ZipEntry object
+            if (typeof entry === "object" && entry.entryName != undefined && entry.offset != undefined)
+                item =  _zip.getEntry(entry.entryName);
+
+            if (item) {
+                return item;
+            }
+        }
+        return null;
     }
 
     return {
-        getFile : function(/*String*/path) {
-            if (path && _zip) {
-                var entry = _zip.getEntry(path);
-                if (entry) {
-                    return _zip.getInput(entry)
-                }
-            }
-            return null;
+        readFile : function(/*Object*/entry) {
+            var item = getEntry(entry);
+            return item && _zip.getInput(item) || null;
         },
 
-        deleteFile : function(/*String*/path) {
-
-        },
-
-        addComment : function(/*String*/comment) {
+        deleteFile : function(/*String*/entry, /*Boolean*/writeZip) {
             throw Error("Not yet implemented!");
         },
 
-        getComment : function() {
+        addZipComment : function(/*String*/comment, /*Boolean*/writeZip) {
             throw Error("Not yet implemented!");
         },
 
-        updateFile : function(/*String*/path, /*Buffer*/content) {
+        getZipComment : function() {
             throw Error("Not yet implemented!");
         },
 
-        addFile : function(/*String*/path) {
+        addFileComment : function(/*Object*/entry, /*String*/comment, /*Boolean*/writeZip) {
+            throw Error("Not yet implemented!");
+        },
+
+        updateFile : function(/*Object*/entry, /*Buffer*/content, /*Boolean*/writeZip) {
+            throw Error("Not yet implemented!");
+        },
+
+        addLocalFile : function(/*String*/localPath, /*Boolean*/writeZip) {
              throw Error("Not yet implemented!");
         },
 
-        addFiles : function(/*Array*/paths) {
+        addFile : function(/*String*/entryName, /*Buffer*/content, /*Boolean*/writeZip) {
             throw Error("Not yet implemented!");
         },
 
@@ -387,15 +440,39 @@ exports.Zip = function(/*String*/inPath) {
             }
         },
 
-        extract : function(/*String*/path, /*Number*/rules) {
-            /*Possible values:
-            EXTR_OVERWRITE - Default. On collision, the existing file is overwritten
-            EXTR_SKIP - On collision, the existing file is skipped
-            */
-            throw Error("Not yet implemented!");
+        extractFileTo : function(/*String*/entry, /*String*/targetPath, /*Boolean*/overwrite) {
+            overwrite = overwrite || false;
+            var item = getEntry(entry);
+            if (!item) {
+                console.log("Given etrny doesn't exist");
+                return false;
+            }
+            var content = _zip.getInput(item);
+            if (!content) {
+                console.log("Could not extract the file");
+                return false;
+            }
+            if (pth.existsSync(targetPath) && !overwrite) {
+                console.log("target file already exists");
+                return false;
+            }
+            if (!pth.existsSync(pth.dirname(targetPath))) {
+                Utils.makeDir(pth.dirname(targetPath), function() {
+                    console.log("here")
+                    Utils.writeToFile(targetPath, content);
+                });
+            } else {
+                Utils.writeToFile(targetPath, content);
+            }
+            return true;
         },
 
-        writeZip : function(/*String*/outFilename) {
+        extractAllTo : function(/*String*/targetPath, /*Boolean*/overwrite) {
+            overwrite = overwrite || false;
+
+        },
+
+        writeZip : function(/*String*/targetFileName) {
             throw Error("Not yet implemented!");
         }
     }
