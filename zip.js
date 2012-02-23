@@ -419,6 +419,7 @@ exports.Zip = function(/*String*/inPath) {
         if (pth.existsSync(path)) {
             if (!overwrite)
                 return false; // cannot overwite
+
             var stat = fs.statSync(path);
             if (stat.isDirectory()) {
                 return false;
@@ -440,6 +441,7 @@ exports.Zip = function(/*String*/inPath) {
             fs.writeSync(fd, content, 0, content.length, 0);
             fs.closeSync(fd);
         }
+        return true;
     }
 
     return {
@@ -558,9 +560,25 @@ exports.Zip = function(/*String*/inPath) {
             return true;
         },
 
+        /**
+         * Extracts the entire archive to the givn location
+         *
+         * @param targetPath Target location
+         * @param overwrite If the file already exists at the target path, the file will be overwriten if this is true.
+         *                  Default is FALSE
+         */
         extractAllTo : function(/*String*/targetPath, /*Boolean*/overwrite) {
             overwrite = overwrite || false;
+            if (!_zip) {
+                throw "No zip file was loaded";
+            }
 
+            _zip.entries.forEach(function(entry) {
+                 if (entry.isDirectory) return;
+                var content = _zip.getInput(entry);
+                if (!content) throw "Could not extract the file";
+                writeFileTo(pth.resolve(targetPath, entry.entryName), content, overwrite);
+            })
         },
 
         writeZip : function(/*String*/targetFileName) {

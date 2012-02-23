@@ -29,15 +29,16 @@ There are no other nodeJS libraries that ADM-ZIP is dependent of
 	var file = new Zip("my_file.zip");
 	var zipEntries = file.getEntries(); // an array of ZipEntry records
 
-	zipEntries.forEach(function(entry) {
-	    console.log(entry); // outputs zip entry information (name, time, isDirectory, size, compressedSize, crc, method, comment, flags, version, offset)
+	zipEntries.forEach(function(zipEntry) {
+	    console.log(zipEntry.toString()); 
+		// outputs zip entries information
 	});
 	
 	// outputs the content of some_folder/my_file.txt
-	console.log(file.readFile("some_folder/my_file.txt").toString('utf8')); 
+	console.log(file.readAsText("some_folder/my_file.txt")); 
 	
 	// extracts the specified file to the specified location
-	file.extractFileTo("some_folder/my_file.txt", "/home/me/myfile.txt", true)
+	file.extractEntryTo("some_folder/my_file.txt", "/home/me/tempfolder", true)
 	
 	// extracts everything
 	file.extractAllTo("/home/me/zipcontent/", true);
