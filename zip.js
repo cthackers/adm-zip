@@ -344,6 +344,8 @@ var ZipFile = function(/*Buffer*/buf) {
 
 var Utils = (function() {
 
+    var crcTable = []; // cache crc table
+
     function mkdirSync(path) {
         var curesolvedPath = path.split('\\')[0];
         path.split('\\').forEach(function(name) {
@@ -363,7 +365,24 @@ var Utils = (function() {
     return {
         makeDir : function(path) {
             mkdirSync(path);
+        },
+
+        crc32 : function(buf) {
+            var crc = 0,
+                off = 0, len = buf.length, c1 = ~crc;
+            if (!crcTable.length) {
+                for (var n = 0; n < 256; n++) {
+                    var c = n;
+                    for (var k = 8; --k >= 0;)
+                        if((c & 1) != 0) c = 0xedb88320 ^ (c >>> 1); else c = c >>> 1;
+                    crcTable[n] = c;
+                }
+            }
+            while(--len >= 0) c1 = crcTable[(c1 ^ buf[off++]) & 0xff] ^ (c1 >>> 8);
+            crc = ~c1;
+            return crc & 0xffffffff;
         }
+
     }
 
 })();
