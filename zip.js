@@ -80,23 +80,25 @@ var Inflater = function(/*Buffer*/inbuf) {
     }
 
     function codes(buf) {
+        var i = 0;
         do {
             var symbol = decode(lencode);
             if(symbol < 0) return symbol;
             if(symbol < 256) {
-                buf.data += String.fromCharCode(symbol);
+                buf[i++] = symbol;
             }
             else if(symbol > 256) {
                 symbol -= 257;
-                if(symbol >= 29) throw "invalid literal/length or distance code in fixed or dynamic block";
+                if(symbol >= 29)
+                    throw "invalid literal/length or distance code in fixed or dynamic block";
                 var len = LENS[symbol] + bits(LEXT[symbol]);
                 symbol = decode(distcode);
                 if(symbol < 0) return symbol;
                 var dist = DISTS[symbol] + bits(DEXT[symbol]);
-                if(dist > buf.data.length)
-                    throw "distance is too far back in fixed or dynamic block";
+                /*if(dist > i)
+                    throw "distance is too far back in fixed or dynamic block";*/
                 while(len--)
-                    buf.data += buf.data.charAt(buf.data.length - dist);
+                    buf[i++] = buf[i - dist - 1];
             }
         } while (symbol != 256);
         return 0;
@@ -105,14 +107,14 @@ var Inflater = function(/*Buffer*/inbuf) {
     function stored(buf) {
         bitbuf = 0;
         bitcnt = 0;
-        if(incnt + 4 > inbuf.length()) throw 'available inflate data did not terminate';
+        if(incnt + 4 > inbuf.length) throw 'available inflate data did not terminate';
         var len = inbuf[incnt++];
         len |= inbuf[incnt++] << 8;
         if(inbuf[incnt++] != (~len & 0xff) || inbuf[incnt++] != ((~len >> 8) & 0xff))
             throw "stored block length did not match one's complement";
-        if(incnt + len > inbuf.length()) throw 'available inflate data did not terminate';
-        while(len--)
-            buf.data +=  inbuf[incnt++];
+        if(incnt + len > inbuf.length) throw 'available inflate data did not terminate';
+        var i = 0;
+        while(len--) buf[i++] +=  inbuf[incnt++];
     }
 
     function constructFixedTables() {
@@ -164,35 +166,25 @@ var Inflater = function(/*Buffer*/inbuf) {
     }
 
     return {
-        inflate : function() {
+        inflate : function(buf) {
             incnt = bitbuf = bitcnt = 0;
             var err = 0;
-            var buf = {"data":""};
             do {
                 var last = bits(1);
                 var type = bits(2);
-                if(type === 0)
-                    stored(buf); // uncompressed block
-                else if(type == 3)
-                    throw 'invalid block type (type == 3)';
+                if(type === 0) stored(buf); // uncompressed block
+                else if(type == 3) throw 'invalid block type (type == 3)';
                 else { // compressed block
                     lencode = {count:[], symbol:[]};
                     distcode = {count:[], symbol:[]};
-                    if(type == 1)
-                        constructFixedTables();
-                    else if(type == 2)
-                        err = constructDynamicTables();
-                    if(err !== 0)
-                        return err;
+                    if(type == 1) constructFixedTables();
+                    else if(type == 2) err = constructDynamicTables();
+                    if(err !== 0) return err;
                     err = codes(buf);
                 }
-                if(err !== 0)
-                    break;
+                if(err !== 0) break;
             } while (!last);
-            if (err) {
-                return err;
-            }
-            return new Buffer(buf.data);
+            return err;
         }
     }
 };
@@ -265,14 +257,12 @@ var ZipFile = function(/*Buffer*/buf) {
             index += ZipConstants.CENHDR;
 
             if (tmpBuff.readUInt32LE(0) != ZipConstants.CENSIG) {
-                console.log(i,"readEntries::Invalid CEN header (bad signature)", tmpBuff.toString());
-                //throw new Error("readEntries::Invalid CEN header (bad signature)");
+                throw "readEntries::Invalid CEN header (bad signature)";
             }
             // handle filename
             var len = tmpBuff.readUInt16LE(ZipConstants.CENNAM); // 28
             if (len === 0) {
-                console.log(i,"Missing entry name");
-                //throw new Error("Missing entry name");
+                throw "Missing entry name";
             }
 
             var entry = new ZipEntry(buf.toString('utf8', index, index + len));
@@ -291,8 +281,7 @@ var ZipFile = function(/*Buffer*/buf) {
             entry.version = tmpBuff.readUInt16LE(ZipConstants.CENVER);
             entry.flags = tmpBuff.readUInt16LE(8);
             if ((entry.flags & 1) == 1) {
-                console.log("readEntries::Encrypted ZIP entry not supported");
-                throw new Error("readEntries::Encrypted ZIP entry not supported");
+                throw "readEntries::Encrypted ZIP entry not supported";
             }
             entry.method = tmpBuff.readUInt16LE(10);
             entry.time = tmpBuff.readUInt32LE(12);
@@ -315,7 +304,7 @@ var ZipFile = function(/*Buffer*/buf) {
                 return i;
             }
         }
-        throw new Error("findEnd::Invalid zip");
+        throw "findEnd::Invalid zip";
     }
 
     return {
@@ -340,11 +329,13 @@ var ZipFile = function(/*Buffer*/buf) {
                     return tempBuff;
                     break;
                 case 8: // DEFALATED
-                    return new Inflater(tempBuff).inflate();
+                    var b2 = new Buffer(entry.size);
+                    b2.fill(0x00);
+                    new Inflater(tempBuff).inflate(b2);
+                    return b2;
                     break;
                 default:
-                    console.log("zipEntry::getInput::Invalid compression method");
-                    // throw new Error("zipEntry::getInput::Invalid compression method");
+                    throw "zipEntry::getInput::Invalid compression method";
                     break;
             }
         }
@@ -353,16 +344,25 @@ var ZipFile = function(/*Buffer*/buf) {
 
 var Utils = (function() {
 
+    function mkdirSync(path) {
+        var curesolvedPath = path.split('\\')[0];
+        path.split('\\').forEach(function(name) {
+            if (!name || name.substr(-1,1) == ":") return;
+            curesolvedPath += '\\' + name;
+            var stat;
+            try {
+                stat = fs.statSync(curesolvedPath);
+            } catch (e) {
+                fs.mkdirSync(curesolvedPath);
+            }
+            if (stat && stat.isFile())
+                throw 'There is a file in the way: ' + curesolvedPath;
+        });
+    }
 
     return {
         makeDir : function(path) {
-
-        },
-
-        writeToFile : function(targetPath, content) {
-            var fd = fs.openSync(targetPath, 'w', 0666);
-            fs.writeSync(fd, content);
-            fs.closeSync(fd);
+            mkdirSync(path);
         }
     }
 
@@ -398,40 +398,112 @@ exports.Zip = function(/*String*/inPath) {
         return null;
     }
 
+    function getEntryChildren(/*ZipEntry*/entry) {
+        if (entry && _zip && entry.isDirectory) {
+            var list = [],
+                name = entry.entryName;
+                len = name.length;
+
+            _zip.entries.forEach(function(zipEntry) {
+                if (zipEntry.entryName.substr(0, len) == name) {
+                    list.push(zipEntry);
+                }
+            });
+            return list;
+        }
+        return []
+    }
+
+
+    function writeFileTo(/*String*/path, /*Buffer*/content, /*Boolean*/overwrite) {
+        if (pth.existsSync(path)) {
+            if (!overwrite)
+                return false; // cannot overwite
+            var stat = fs.statSync(path);
+            if (stat.isDirectory()) {
+                return false;
+            }
+        }
+        var folder = pth.dirname(path);
+        if (!pth.existsSync(folder)) {
+            Utils.makeDir(folder);
+        }
+
+        var fd;
+        try {
+            fd = fs.openSync(path, 'w', 0666);
+        } catch(e) {
+            fs.chmodSync(path, 0666);
+            fd = fs.openSync(path, 'w', 0666);
+        }
+        if (fd) {
+            fs.writeSync(fd, content, 0, content.length, 0);
+            fs.closeSync(fd);
+        }
+    }
+
     return {
+        /**
+         * Extracts the given entry from the archive and returns the content as a Buffer object
+         * @param entry ZipEntry object or String with the full path of the entry
+         *
+         * @return Buffer or Null in case of error
+         */
         readFile : function(/*Object*/entry) {
             var item = getEntry(entry);
             return item && _zip.getInput(item) || null;
         },
+        /**
+         * Extracts the given entry from the archive and returns the content as plain text in the given encoding
+         * @param entry ZipEntry object or String with the full path of the entry
+         * @param encoding If no encoding is specified utf8 is used
+         *
+         * @return String
+         */
+        readAsText : function(/*Object*/entry, /*String - Optional*/encoding) {
+            var item = getEntry(entry);
+            if (item) {
+                var data = _zip.getInput(item);
+                if (data) {
+                    return data.toString(encoding || "utf8");
+                }
+            }
+            return "";
+        },
 
         deleteFile : function(/*String*/entry, /*Boolean*/writeZip) {
-            throw Error("Not yet implemented!");
+            throw "Not yet implemented!";
         },
 
         addZipComment : function(/*String*/comment, /*Boolean*/writeZip) {
-            throw Error("Not yet implemented!");
+            throw "Not yet implemented!";
         },
 
         getZipComment : function() {
-            throw Error("Not yet implemented!");
+            throw "Not yet implemented!";
         },
 
         addFileComment : function(/*Object*/entry, /*String*/comment, /*Boolean*/writeZip) {
-            throw Error("Not yet implemented!");
+            throw "Not yet implemented!";
         },
 
         updateFile : function(/*Object*/entry, /*Buffer*/content, /*Boolean*/writeZip) {
-            throw Error("Not yet implemented!");
+            throw "Not yet implemented!";
         },
 
         addLocalFile : function(/*String*/localPath, /*Boolean*/writeZip) {
-             throw Error("Not yet implemented!");
+             throw "Not yet implemented!";
         },
 
         addFile : function(/*String*/entryName, /*Buffer*/content, /*Boolean*/writeZip) {
-            throw Error("Not yet implemented!");
+            throw "Not yet implemented!";
         },
 
+        /**
+         * Returns an array of ZipEntry objects representing the files and folders inside the archive
+         *
+         * @return Array
+         */
         getEntries : function() {
             if (_zip) {
                return _zip.entries;
@@ -440,30 +512,49 @@ exports.Zip = function(/*String*/inPath) {
             }
         },
 
-        extractFileTo : function(/*String*/entry, /*String*/targetPath, /*Boolean*/overwrite) {
+        /**
+         * Extracts the given entry to the given targetPath
+         * If the entry is a directory inside the archive, the entire directory and it's subdirectories will be extracted
+         *
+         * @param entry ZipEntry object or String with the full path of the entry
+         * @param targetPath Target folder where to write the file
+         * @param maintainEntryPath If full path is true and the entry is inside a folder, the entry folder
+         *                          will be created in targetPath as well. Default is TRUE
+         * @param overwrite If the file already exists at the target path, the file will be overwriten if this is true.
+         *                  Default is FALSE
+         *
+         * @return Boolean
+         */
+        extractEntryTo : function(/*Object*/entry, /*String*/targetPath, /*Boolean*/maintainEntryPath, /*Boolean*/overwrite) {
             overwrite = overwrite || false;
+            maintainEntryPath = typeof maintainEntryPath == "undefned" ? true : maintainEntryPath;
+
             var item = getEntry(entry);
             if (!item) {
-                console.log("Given etrny doesn't exist");
-                return false;
+                throw "Given entry doesn't exist";
             }
+
+            var target = pth.resolve(targetPath, maintainEntryPath ? item.entryName : pth.basename(item.entryName));
+
+            if (item.isDirectory) {
+                target = pth.resolve(target, "..");
+                var children = getEntryChildren(item);
+                children.forEach(function(child) {
+                    if (child.isDirectory) return;
+                    var content = _zip.getInput(child);
+                    if (!content) throw "Could not extract the file";
+                    writeFileTo(pth.resolve(targetPath, maintainEntryPath ? child.entryName : child.entryName.substr(item.entryName.length)), content, overwrite);
+                })
+            }
+
             var content = _zip.getInput(item);
-            if (!content) {
-                console.log("Could not extract the file");
-                return false;
-            }
+            if (!content) throw "Could not extract the file";
+
             if (pth.existsSync(targetPath) && !overwrite) {
-                console.log("target file already exists");
-                return false;
+                throw "target file already exists";
             }
-            if (!pth.existsSync(pth.dirname(targetPath))) {
-                Utils.makeDir(pth.dirname(targetPath), function() {
-                    console.log("here")
-                    Utils.writeToFile(targetPath, content);
-                });
-            } else {
-                Utils.writeToFile(targetPath, content);
-            }
+            writeFileTo(target, content, overwrite);
+
             return true;
         },
 
@@ -473,7 +564,7 @@ exports.Zip = function(/*String*/inPath) {
         },
 
         writeZip : function(/*String*/targetFileName) {
-            throw Error("Not yet implemented!");
+            throw "Not yet implemented!";
         }
     }
 };
