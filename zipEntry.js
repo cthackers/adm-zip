@@ -1,13 +1,15 @@
 var ZipConstants = require("./zipConstants").ZipConstants,
-    ZipEntryHeader = require("./zipEntryHeader").ZipEntryHeader,
-    ZipFileHeader = require("./zipFileHeader").ZipFileHeader,
+    ZipEntryHeader = require("./headers/entryHeader.js").ZipEntryHeader,
+    ZipDataHeader = require("./headers/dataHeader.js").ZipDataHeader,
+    Inflater = require("./methods/inflater.js").Inflater,
+    Deflater = require("./methods/deflater.js").Deflater,
     ZipUtils = require("./zipUtils").ZipUtils;
 
 
 exports.ZipEntry = function ZipEntry() {
 
-    var _header = new ZipEntryHeader(),
-        _localFileHeader = new ZipFileHeader(),
+    var _entryHeader = new ZipEntryHeader(),
+        _dataHeader = new ZipDataHeader(),
 
         _entryName = "",
         _isDirectory = false,
@@ -21,23 +23,23 @@ exports.ZipEntry = function ZipEntry() {
             if (_compressedData == null) {
                 throw 'Noting to decompress'
             }
-            switch (_localFileHeader.method) {
+            switch (_dataHeader.method) {
                 case ZipConstants.STORED:
-                    _data = new Buffer(_localFileHeader.size);
-                    _compressedData.copy(_data, 0, _localFileHeader.fileHeaderSize);
-                    if (ZipUtils.crc32(_data) != _localFileHeader.crc) {
+                    _data = new Buffer(_dataHeader.size);
+                    _compressedData.copy(_data, 0, _dataHeader.fileHeaderSize);
+                    if (ZipUtils.crc32(_data) != _dataHeader.crc) {
                         throw 'CRC32 checksum failed'
                     }
                     break;
                 case ZipConstants.DEFLATED:
-                    _data = new Buffer(_header.size);
-                    new Inflater(_compressedData.slice(_localFileHeader.entryHeaderSize)).inflate(_data);
-                    if (ZipUtils.crc32(_data) != _localFileHeader.crc) {
+                    _data = new Buffer(_entryHeader.size);
+                    new Inflater(_compressedData.slice(_dataHeader.entryHeaderSize)).inflate(_data);
+                    if (ZipUtils.crc32(_data) != _dataHeader.crc) {
                         throw 'CRC32 checksum failed'
                     }
                     break;
                 default:
-                    throw "Invalid compression method on " + _entryName;
+                    throw "Invalid methods method on " + _entryName;
             }
         }
     }
@@ -51,15 +53,15 @@ exports.ZipEntry = function ZipEntry() {
                 _data = new Buffer(0);
             }
             // Local file header
-            _localFileHeader.version = 10;
-            _localFileHeader.flags = 0;
-            _localFileHeader.method = ZipConstants.STORED;
-            _localFileHeader.compressedSize = _data.length;
-            _localFileHeader.fileNameLength = _entryName.length;
-            _localFileHeader.extraLength = _extra && _extra.length || 0;
+            _dataHeader.version = 10;
+            _dataHeader.flags = 0;
+            _dataHeader.method = ZipConstants.STORED;
+            _dataHeader.compressedSize = _data.length;
+            _dataHeader.fileNameLength = _entryName.length;
+            _dataHeader.extraLength = _extra && _extra.length || 0;
 
             _compressedData = new Buffer(ZipConstants.LOCHDR + _entryName.length + _data.length);
-            _localFileHeader.toBinary().copy(_compressedData);
+            _dataHeader.toBinary().copy(_compressedData);
             _compressedData.write(_entryName, ZipConstants.LOCHDR);
             _data.copy(_compressedData, ZipConstants.LOCHDR + _entryName.length);
         }
@@ -71,22 +73,22 @@ exports.ZipEntry = function ZipEntry() {
             _compressedData = null;
             _entryName = val;
             _isDirectory = val.charAt(_entryName.length - 1) == "/";
-            _header.fileNameLength = val.length;
-            _localFileHeader.fileNameLenght = val.length;
+            _entryHeader.fileNameLength = val.length;
+            _dataHeader.fileNameLenght = val.length;
         },
 
         get extra () { return _extra; },
         set extra (val) {
             _compressedData = null;
             _extra = val; 
-            _header.extraLength = val.length;
-            _localFileHeader.extraLength = val.length;
+            _entryHeader.extraLength = val.length;
+            _dataHeader.extraLength = val.length;
         },
         
         get comment () { return _comment; },
         set comment (val) {
             _comment = val;
-            _header.commentLength = val.length;
+            _entryHeader.commentLength = val.length;
         },
         
         get name () { return _entryName.split("/").pop(); },
@@ -94,7 +96,7 @@ exports.ZipEntry = function ZipEntry() {
 
         set compressedData (value) {
             _compressedData = value;
-            _localFileHeader.loadFromBinary(_compressedData.slice(0, ZipConstants.LOCHDR));
+            _dataHeader.loadFromBinary(_compressedData.slice(0, ZipConstants.LOCHDR));
             _data = null;
         },
 
@@ -105,17 +107,17 @@ exports.ZipEntry = function ZipEntry() {
 
         set data (value) {
             _compressedData = null;
-            _localFileHeader.time = +new Date();
-            _header.size = _localFileHeader.size;
+            _dataHeader.time = +new Date();
+            _entryHeader.size = _dataHeader.size;
 
             if (!value || (value && !value.length)) {
-                _localFileHeader.compressedSize = value.length;
-                _header.compressedSize = _localFileHeader.compressedSize;
-                _localFileHeader.size = value.length;
-                _localFileHeader.crc = ZipUtils.crc32(value);
-                _header.crc = _localFileHeader.crc;
+                _dataHeader.compressedSize = value.length;
+                _entryHeader.compressedSize = _dataHeader.compressedSize;
+                _dataHeader.size = value.length;
+                _dataHeader.crc = ZipUtils.crc32(value);
+                _entryHeader.crc = _dataHeader.crc;
             }
-            _header.method = _localFileHeader.method;
+            _entryHeader.method = _dataHeader.method;
 
             _data = value;
         },
@@ -126,11 +128,11 @@ exports.ZipEntry = function ZipEntry() {
         },
 
         set header(/*Buffer*/data) {
-            _header.loadFromBinary(data);
+            _entryHeader.loadFromBinary(data);
         },
 
         get header() {
-            return _header;
+            return _entryHeader;
         },
 
         toString : function() {
@@ -139,7 +141,7 @@ exports.ZipEntry = function ZipEntry() {
                 '\t"name" : "' + _entryName.split("/").pop() + "\",\n" +
                 '\t"comment" : "' + _comment + "\",\n" +
                 '\t"isDirectory" : ' + _isDirectory + ",\n" +
-                '\t"header" : ' + _header.toString().replace(/\t/mg, "\t\t") + ",\n" +
+                '\t"header" : ' + _entryHeader.toString().replace(/\t/mg, "\t\t") + ",\n" +
                 '\t"compressedData" : <' + (_compressedData && _compressedData.length  + " bytes buffer" || "null") + ">\n" +
                 '\t"data" : <' + (_data && _data.length  + " bytes buffer" || "null") + ">\n" +
                 '}';

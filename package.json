@@ -4,7 +4,7 @@
     "description": "A Javascript implementation of zip for nodejs. Allows user to create or extract zip files both in memory or to/from disk",
     "keywords": [
         "zip",
-        "compression",
+        "methods",
         "archive",
         "unzip"
     ],
@@ -20,7 +20,7 @@
             "url": "http://github.com/kriskowal/zip/raw/master/LICENSE"
         }
     ],
-    "main": "zip.js",
+    "main": "adm-zip.js",
     "repository": {
         "type": "git",
         "url": "git://github.com/git@github.com:cthackers/adm-zip.git"

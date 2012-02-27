@@ -28,12 +28,12 @@ exports.ZipUtils = (function() {
         },
 
         crc32 : function(buf) {
+            var b = new Buffer(4);
             if (!crcTable.length) {
-                var b = new Buffer(4);
                 var tmp = [];
                 for (var n = 0; n < 256; n++) {
                     var c = n;
-                    for (var k = 8; --k >= 0;)
+                    for (var k = 8; --k >= 0;)  //
                         if ((c & 1) != 0)  { c = 0xedb88320 ^ (c >>> 1); } else { c = c >>> 1; }
                     if (c < 0) {
                         b.writeInt32LE(c, 0);
@@ -45,7 +45,8 @@ exports.ZipUtils = (function() {
             var crc = 0, off = 0, len = buf.length, c1 = ~crc;
             while(--len >= 0) c1 = crcTable[(c1 ^ buf[off++]) & 0xff] ^ (c1 >>> 8);
             crc = ~c1;
-            return crc & 0xffffffff;
+            b.writeInt32LE(crc & 0xffffffff, 0);
+            return b.readUInt32LE(0);
         },
 
         methodToString : function(/*Number*/method) {

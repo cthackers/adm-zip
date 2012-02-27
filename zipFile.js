@@ -1,6 +1,5 @@
-var Inflater = require('./inflater').Inflater;
-    Deflater = require("./deflater").Deflater;
-    ZipEntry = require("./zipEntry").ZipEntry;
+var ZipEntry = require("./zipEntry").ZipEntry,
+    ZipMainHeader = require("./headers/mainHeader").ZipMainHeader,
     ZipConstants = require("./zipConstants").ZipConstants;
 
 
@@ -8,15 +7,17 @@ exports.ZipFile = function(/*Buffer*/buf) {
     var entryList = [],
         entryTable = {},
         _comment = '',
-        index = 0;
+        endHeader = new ZipMainHeader();
 
-    readEntries();
+    if (buf) {
+        readMainHeader();
+    }
 
     function readEntries() {
         entryTable = {};
         var endLoc = findEnd();
         entryList = new Array(buf.readUInt16LE(endLoc + ZipConstants.ENDTOT));  // total number of entries
-        index = buf.readUInt32LE(endLoc + ZipConstants.ENDOFF);  // offset of first CEN header
+        var index = buf.readUInt32LE(endLoc + ZipConstants.ENDOFF);  // offset of first CEN header
 
         for(var i = 0; i < entryList.length; i++) {
 
@@ -44,38 +45,72 @@ exports.ZipFile = function(/*Buffer*/buf) {
         }
     }
 
-    function findEnd() {
+    function readMainHeader() {
         var i = buf.length - ZipConstants.ENDHDR, // END header size
-            n = Math.max(0, i - 0xFFFF); // 0xFFFF is the max zip file comment length
+            n = Math.max(0, i - 0xFFFF), // 0xFFFF is the max zip file comment length
+            endOffset = 0; // Start offset of the END header
+
         for (i; i >= n; i--) {
             if (buf[i] != 0x50) continue; // quick check that the byte is 'P'
             if (buf.readUInt32LE(i) == ZipConstants.ENDSIG) { // "PK\005\006"
-                return i;
+                endOffset = i;
+                break;
             }
         }
-        throw "findEnd::Invalid zip";
-    }
+        if (!endOffset)
+            throw "Invalid or unsupported zip format. No END header found";
 
+        endHeader.loadFromBinary(buf.slice(endOffset, endOffset + ZipConstants.ENDHDR));
+        if (endHeader.commentLength) {
+            _comment = buf.toString('utf8', endOffset + ZipConstants.ENDHDR);
+        }
+        endHeader.toString();
+    }
     return {
+        /**
+         * Returns an array of ZipEntry objects existent in the current opened archive
+         * @return Array
+         */
         get entries () {
             return entryList;
         },
-        get size () {
-            return entryList.length;
-        },
-        get comment () {
-            return _comment;
-        },
+
+        /**
+         * Archive comment
+         * @return {String}
+         */
+        get comment () { return _comment; },
         set comment(val) {
+            endHeader.commentLength = val.length;
             _comment = val;
         },
+
+        /**
+         * Returns a reference to the entry with the given name or null if entry is inexistent
+         *
+         * @param entryName
+         * @return ZipEntry
+         */
         getEntry : function(/*String*/entryName) {
-            return entryTable[entryName];
+            return entryTable[entryName] || null;
         },
+
+        /**
+         * Adds the given entry to the entry list
+         *
+         * @param entry
+         */
         setEntry : function(/*ZipEntry*/entry) {
             entryList.push(entry);
             entryTable[entry.entryName] = entry;
         },
+
+        /**
+         * Removes the entry with the given name from the entry list.
+         *
+         * If the entry is a directory, then all nested files and directories will be removed
+         * @param entryName
+         */
         deleteEntry : function(/*String*/entryName) {
             var entry = entryTable[entryName];
             if (entry && entry.isDirectory) {
@@ -86,9 +121,17 @@ exports.ZipFile = function(/*Buffer*/buf) {
                     }
                 })
             }
+            this.getEntryChildren()
             entryList.slice(entryList.indexOf(entry), 1);
             delete(entryTable[entryName]);
         },
+
+        /**
+         *  Iterates and returns all nested files and directories of the given entry
+         *
+         * @param entry
+         * @return Array
+         */
         getEntryChildren : function(/*ZipEntry*/entry) {
             if (entry.isDirectory) {
                 var list = [],
@@ -104,6 +147,12 @@ exports.ZipFile = function(/*Buffer*/buf) {
             }
             return []
         },
+
+        /**
+         * Returns the zip file
+         *
+         * @return Buffer
+         */
         toBuffer : function() {
             entryList.sort(function(a, b) {
                 var nameA = a.entryName.toLowerCase( );

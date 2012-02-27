@@ -5,7 +5,7 @@ exports.ZipConstants = {
     LOCVER : 4,	// version needed to extract
     LOCFLG : 6, // general purpose bit flag
     LOCHOW : 8, // compression method
-    LOCTIM : 10, // modification time
+    LOCTIM : 10, // modification time (2 bytes time, 2 bytes date)
     LOCCRC : 14, // uncompressed file crc-32 value
     LOCSIZ : 18, // compressed size
     LOCLEN : 22, // uncompressed size
@@ -26,14 +26,14 @@ exports.ZipConstants = {
     CENVER : 6, // version needed to extract
     CENFLG : 8, // encrypt, decrypt flags
     CENHOW : 10, // compression method
-    CENTIM : 12, // modification time
+    CENTIM : 12, // modification time (2 bytes time, 2 bytes date)
     CENCRC : 16, // uncompressed file crc-32 value
     CENSIZ : 20, // compressed size
     CENLEN : 24, // uncompressed size
     CENNAM : 28, // filename length
     CENEXT : 30, // extra field length
-    CENCOM : 32, // comment length
-    CENDSK : 34, // disk number start
+    CENCOM : 32, // file comment length
+    CENDSK : 34, // volume number start
     CENATT : 36, // internal file attributes
     CENATX : 38, // external file attributes
     CENOFF : 42, // LOC header offset
