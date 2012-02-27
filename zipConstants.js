@@ -1,7 +1,7 @@
 exports.ZipConstants = {
     /* The local file header */
-    LOCSIG : 0x04034b50, // "PK\003\004"
     LOCHDR : 30, // LOC header size
+    LOCSIG : 0x04034b50, // "PK\003\004"
     LOCVER : 4,	// version needed to extract
     LOCFLG : 6, // general purpose bit flag
     LOCHOW : 8, // compression method
@@ -20,8 +20,8 @@ exports.ZipConstants = {
     EXTLEN : 12, // uncompressed size
 
     /* The central directory file header */
-    CENSIG : 0x02014b50, // "PK\001\002"
     CENHDR : 46, // CEN header size
+    CENSIG : 0x02014b50, // "PK\001\002"
     CENVEM : 4, // version made by
     CENVER : 6, // version needed to extract
     CENFLG : 8, // encrypt, decrypt flags
@@ -39,8 +39,8 @@ exports.ZipConstants = {
     CENOFF : 42, // LOC header offset
 
     /* The entries in the end of central directory */
-    ENDSIG : 0x06054b50, // "PK\005\006"
     ENDHDR : 22, // END header size
+    ENDSIG : 0x06054b50, // "PK\005\006"
     ENDSUB : 8, // number of entries on this disk
     ENDTOT : 10, // total number of entries
     ENDSIZ : 12, // central directory size in bytes

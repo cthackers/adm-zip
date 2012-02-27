@@ -24,7 +24,7 @@ exports.Zip = function(/*String*/inPath) {
             if (typeof entry === "string")
                 item = _zip.getEntry(entry);
             // if entry was given as a ZipEntry object
-            if (typeof entry === "object" && entry.entryName != undefined && entry.offset != undefined)
+            if (typeof entry === "object" && entry.entryName != undefined && entry.header != undefined)
                 item =  _zip.getEntry(entry.entryName);
 
             if (item) {
@@ -43,7 +43,7 @@ exports.Zip = function(/*String*/inPath) {
          */
         readFile : function(/*Object*/entry) {
             var item = getEntry(entry);
-            return item && _zip.getInput(item) || null;
+            return item && entry.data || null;
         },
         /**
          * Extracts the given entry from the archive and returns the content as plain text in the given encoding
@@ -55,40 +55,89 @@ exports.Zip = function(/*String*/inPath) {
         readAsText : function(/*Object*/entry, /*String - Optional*/encoding) {
             var item = getEntry(entry);
             if (item) {
-                var data = _zip.getInput(item);
-                if (data) {
+                var data = entry.data;
+                if (data && data.length) {
                     return data.toString(encoding || "utf8");
                 }
             }
             return "";
         },
 
-        deleteFile : function(/*String*/entry, /*Boolean*/writeZip) {
-            throw "Not yet implemented!";
+        deleteFile : function(/*Object*/entry, /*Boolean*/writeZip) {
+            var item = getEntry(entry);
+            if (item) {
+                _zip.deleteEntry(item.entryName);
+                if (writeZip) {
+                    throw 'Not implemented'
+                }
+            }
         },
 
         addZipComment : function(/*String*/comment, /*Boolean*/writeZip) {
-            throw "Not yet implemented!";
+            _zip.comment = comment;
+            if (writeZip) {
+                throw 'Not implemented'
+            }
         },
 
         getZipComment : function() {
-            throw "Not yet implemented!";
+            return _zip.comment;
         },
 
-        addFileComment : function(/*Object*/entry, /*String*/comment, /*Boolean*/writeZip) {
-            throw "Not yet implemented!";
+        addZipEntryComment : function(/*Object*/entry,/*String*/comment, /*Boolean*/writeZip) {
+            var item = getEntry(entry);
+            if (item) {
+                item.comment = comment;
+                if (writeZip) {
+                    throw 'Not implemented';
+                }
+            }
+        },
+
+        getZipEntryComment : function(/*Object*/entry) {
+            var item = getEntry(entry);
+            if (item) {
+                return item.comment;
+            }
+            return ''
         },
 
         updateFile : function(/*Object*/entry, /*Buffer*/content, /*Boolean*/writeZip) {
-            throw "Not yet implemented!";
+            var item = getEntry(entry);
+            if (item) {
+                item.data = content;
+                if (writeZip) {
+                    throw 'Not implemented';
+                }
+            }
         },
 
         addLocalFile : function(/*String*/localPath, /*Boolean*/writeZip) {
-             throw "Not yet implemented!";
+             if (pth.existsSync(localPath)) {
+
+             } else {
+                 throw "File not found: " + localPath;
+             }
         },
 
-        addFile : function(/*String*/entryName, /*Buffer*/content, /*Boolean*/writeZip) {
-            throw "Not yet implemented!";
+        addLocalFolder : function(/*String*/localPath, /*Boolean*/writeZip) {
+            if (pth.existsSync(localPath)) {
+
+            } else {
+                throw "File not found: " + localPath;
+            }
+        },
+
+        addFile : function(/*String*/entryName, /*Buffer*/content, /*String*/comment, /*Number*/attr) {
+            var entry = new ZipEntry();
+            entry.entryName = entryName;
+            entry.comment = comment || "";
+            entry.attr = attr || 0666;
+            if (entry.isDirectory && content.length) {
+                throw 'A directory cannot have content';
+            }
+            entry.data = content;
+            _zip.setEntry(entry);
         },
 
         /**
@@ -102,6 +151,10 @@ exports.Zip = function(/*String*/inPath) {
             } else {
                 return [];
             }
+        },
+
+        getEntry : function(/*String*/name) {
+            return getEntry(name);
         },
 
         /**
@@ -133,13 +186,13 @@ exports.Zip = function(/*String*/inPath) {
                 var children = _zip.getEntryChildren(item);
                 children.forEach(function(child) {
                     if (child.isDirectory) return;
-                    var content = _zip.getInput(child);
+                    var content = child.data;
                     if (!content) throw "Could not extract the file";
                     ZipUtils.writeFileTo(pth.resolve(targetPath, maintainEntryPath ? child.entryName : child.entryName.substr(item.entryName.length)), content, overwrite);
                 })
             }
 
-            var content = _zip.getInput(item);
+            var content = item.data;
             if (!content) throw "Could not extract the file";
 
             if (pth.existsSync(targetPath) && !overwrite) {
@@ -165,14 +218,14 @@ exports.Zip = function(/*String*/inPath) {
 
             _zip.entries.forEach(function(entry) {
                  if (entry.isDirectory) return;
-                var content = _zip.getInput(entry);
+                var content = entry.data;
                 if (!content) throw "Could not extract the file";
                 ZipUtils.writeFileTo(pth.resolve(targetPath, entry.entryName), content, overwrite);
             })
         },
 
         writeZip : function(/*String*/targetFileName) {
-            throw "Not yet implemented!";
+            _zip.toBuffer();
         }
     }
 };

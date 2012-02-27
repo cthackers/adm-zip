@@ -1,8 +1,9 @@
-var ZipConstants = require("./zipConstants").ZipConstants;
+var ZipConstants = require("./zipConstants").ZipConstants,
+    ZipUtils = require("./zipUtils").ZipUtils
 
 exports.ZipEntryHeader = function ZipEntryHeader() {
     var _verMade = 0,
-        _version = 0,
+        _version = 10,
         _flags = 0,
         _method = 0,
         _time = 0,
@@ -13,8 +14,8 @@ exports.ZipEntryHeader = function ZipEntryHeader() {
         _extraLen = 0,
         _comLen = 0,
         _diskStart = 0,
-        _inattr = 0,
-        _attr = 0,
+        _inattr = 0666,
+        _attr = 0666,
         _offset = 0;
 
     return {
@@ -70,7 +71,6 @@ exports.ZipEntryHeader = function ZipEntryHeader() {
         },
 
         loadFromBinary : function(/*Buffer*/data) {
-
             if (data.length != ZipConstants.CENHDR || data.readUInt32LE(0) != ZipConstants.CENSIG) {
                 throw "readEntries::Invalid CEN header (bad signature)";
             }
@@ -94,26 +94,44 @@ exports.ZipEntryHeader = function ZipEntryHeader() {
 
         toBinary : function() {
             var data = new Buffer(ZipConstants.CENHDR);
-             data.writeUInt16LE(_verMade, ZipConstants.CENVEM);
-             data.writeUInt16LE(_version, ZipConstants.CENVER);
-             data.writeUInt16LE(_flags, ZipConstants.CENFLG);
-             data.writeUInt16LE(_method, ZipConstants.CENHOW);
-             data.writeUInt32LE(_time, ZipConstants.CENTIM);
-             data.writeUInt32LE(_crc, ZipConstants.CENCRC);
-             data.writeUInt32LE(_compressedSize, ZipConstants.CENSIZ);
-             data.writeUInt32LE(_size, ZipConstants.CENLEN);
-             data.writeUInt16LE(_fnameLen, ZipConstants.CENNAM);
-             data.writeUInt16LE(_extraLen, ZipConstants.CENEXT);
-             data.writeUInt16LE(_comLen, ZipConstants.CENCOM);
-             data.writeUInt16LE(_diskStart, ZipConstants.CENDSK);
-             data.writeUInt16LE(_inattr, ZipConstants.CENATT);
-             data.writeUInt16LE(_attr, ZipConstants.CENATX);
-             data.writeUInt32LE(_offset, ZipConstants.CENOFF);
-             return data;
+            data.writeUInt32LE(ZipConstants.CENSIG, 0);
+            data.writeUInt16LE(_verMade, ZipConstants.CENVEM);
+            data.writeUInt16LE(_version, ZipConstants.CENVER);
+            data.writeUInt16LE(_flags, ZipConstants.CENFLG);
+            data.writeUInt16LE(_method, ZipConstants.CENHOW);
+            data.writeInt32LE(_time, ZipConstants.CENTIM);
+            data.writeInt32LE(_crc, ZipConstants.CENCRC, true);
+            data.writeUInt32LE(_compressedSize, ZipConstants.CENSIZ);
+            data.writeUInt32LE(_size, ZipConstants.CENLEN);
+            data.writeUInt16LE(_fnameLen, ZipConstants.CENNAM);
+            data.writeUInt16LE(_extraLen, ZipConstants.CENEXT);
+            data.writeUInt16LE(_comLen, ZipConstants.CENCOM);
+            data.writeUInt16LE(_diskStart, ZipConstants.CENDSK);
+            data.writeUInt16LE(_inattr, ZipConstants.CENATT);
+            data.writeUInt16LE(_attr, ZipConstants.CENATX);
+            data.writeUInt32LE(_offset, ZipConstants.CENOFF);
+            return data;
         },
 
         toString : function() {
-            return ''; // @TODO: show this nicely formated
+            return '{\n' +
+                '\t"made" : ' + _verMade + ",\n" +
+                '\t"version" : ' + _version + ",\n" +
+                '\t"flags" : ' + _flags + ",\n" +
+                '\t"method" : ' + ZipUtils.methodToString(_method) + ",\n" +
+                '\t"time" : ' + _time + ",\n" +
+                '\t"crc" : 0x' + (_crc ^ -1).toString(16).toUpperCase() + ",\n" +
+                '\t"compressedSize" : ' + _compressedSize + " bytes,\n" +
+                '\t"size" : ' + _size + " bytes,\n" +
+                '\t"fileNameLength" : ' + _fnameLen + ",\n" +
+                '\t"extraLength" : ' + _extraLen + " bytes,\n" +
+                '\t"commentLength" : ' + _comLen + " bytes,\n" +
+                '\t"diskNumStart" : ' + _diskStart + ",\n" +
+                '\t"inAttr" : ' + _inattr + ",\n" +
+                '\t"attr" : ' + _attr + ",\n" +
+                '\t"offset" : ' + _offset + ",\n" +
+                '\t"entryHeaderSize" : ' + (ZipConstants.CENHDR + _fnameLen + _extraLen + _comLen) + " bytes\n" +
+                '}';
         }
     }
 };

@@ -7,6 +7,7 @@ var Inflater = require('./inflater').Inflater;
 exports.ZipFile = function(/*Buffer*/buf) {
     var entryList = [],
         entryTable = {},
+        _comment = '',
         index = 0;
 
     readEntries();
@@ -33,8 +34,10 @@ exports.ZipFile = function(/*Buffer*/buf) {
 
             index += entry.header.entryHeaderSize;
 
-            // read data
-            entry.compressedData = buf.slice(entry.header.offset, entry.header.offset + entry.header.compressedSize);
+            if (!entry.isDirectory) {
+                // read data
+                entry.compressedData = buf.slice(entry.header.offset, entry.header.offset + ZipConstants.LOCHDR + entry.header.compressedSize + entry.entryName.length);
+            }
 
             entryList[i] = entry;
             entryTable[entry.entryName] = entry;
@@ -60,8 +63,31 @@ exports.ZipFile = function(/*Buffer*/buf) {
         get size () {
             return entryList.length;
         },
+        get comment () {
+            return _comment;
+        },
+        set comment(val) {
+            _comment = val;
+        },
         getEntry : function(/*String*/entryName) {
             return entryTable[entryName];
+        },
+        setEntry : function(/*ZipEntry*/entry) {
+            entryList.push(entry);
+            entryTable[entry.entryName] = entry;
+        },
+        deleteEntry : function(/*String*/entryName) {
+            var entry = entryTable[entryName];
+            if (entry && entry.isDirectory) {
+                var _self = this;
+                this.getEntryChildren(entry).forEach(function(child) {
+                    if (child.entryName != entryName) {
+                        _self.deleteEntry(child.entryName)
+                    }
+                })
+            }
+            entryList.slice(entryList.indexOf(entry), 1);
+            delete(entryTable[entryName]);
         },
         getEntryChildren : function(/*ZipEntry*/entry) {
             if (entry.isDirectory) {
@@ -78,27 +104,30 @@ exports.ZipFile = function(/*Buffer*/buf) {
             }
             return []
         },
-        getInput : function(/*ZipEntry*/entry) {
-            var index = entry.offset + 28;
-            index += entry.entryName.length + 2;
-            var tempBuff = new Buffer(entry.compressedSize);
-            if (entry.compressedSize > 0) {
-                buf.copy(tempBuff, 0, index, index + entry.compressedSize);
-            }
-            switch(entry.method) {
-                case ZipConstants.STORED: // STORED
-                    return tempBuff;
-                    break;
-                case ZipConstants.DEFLATED: // DEFALATED
-                    var b2 = new Buffer(entry.size);
-                    b2.fill(0x00);
-                    new Inflater(tempBuff).inflate(b2);
-                    return b2;
-                    break;
-                default:
-                    throw "zipEntry::getInput::Invalid compression method";
-                    break;
-            }
+        toBuffer : function() {
+            entryList.sort(function(a, b) {
+                var nameA = a.entryName.toLowerCase( );
+                var nameB = b.entryName.toLowerCase( );
+                if (nameA < nameB) {return -1}
+                if (nameA > nameB) {return 1}
+                return 0;
+            });
+
+            var totalSize = 0, data = [], header = [], index = 0, dindex = 0;
+            entryList.forEach(function(e) {
+                data.push(e.compressedData);
+                if (!header.length) {
+                    console.log(e.header.toString())
+                }
+                header.push(e.header.toBinary());
+                dindex += e.header.entryHeaderSize;
+                totalSize += data[data.length - 1].length + e.header.entryHeaderSize;
+
+            });
+            console.log(data[0]);
+            console.log("----")
+            console.log(header[0])
+            console.log(totalSize)
         }
     }
 };

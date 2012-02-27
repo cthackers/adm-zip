@@ -1,5 +1,6 @@
 var fs = require("fs"),
-    pth = require('path');
+    pth = require('path'),
+    ZipConstants = require('./ZipConstants').ZipConstants;
 
 exports.ZipUtils = (function() {
 
@@ -27,22 +28,39 @@ exports.ZipUtils = (function() {
         },
 
         crc32 : function(buf) {
-            var crc = 0,
-                off = 0, len = buf.length, c1 = ~crc;
             if (!crcTable.length) {
+                var b = new Buffer(4);
+                var tmp = [];
                 for (var n = 0; n < 256; n++) {
                     var c = n;
                     for (var k = 8; --k >= 0;)
-                        if((c & 1) != 0) c = 0xedb88320 ^ (c >>> 1); else c = c >>> 1;
+                        if ((c & 1) != 0)  { c = 0xedb88320 ^ (c >>> 1); } else { c = c >>> 1; }
+                    if (c < 0) {
+                        b.writeInt32LE(c, 0);
+                        c = b.readUInt32LE(0);
+                    }
                     crcTable[n] = c;
                 }
             }
+            var crc = 0, off = 0, len = buf.length, c1 = ~crc;
             while(--len >= 0) c1 = crcTable[(c1 ^ buf[off++]) & 0xff] ^ (c1 >>> 8);
             crc = ~c1;
             return crc & 0xffffffff;
         },
 
-        writeFileTo : function(/*String*/path, /*Buffer*/content, /*Boolean*/overwrite) {
+        methodToString : function(/*Number*/method) {
+            switch (method) {
+                case ZipConstants.STORED:
+                    return 'STORED (' + method + ')';
+                case ZipConstants.DEFLATED:
+                    return 'DEFATED (' + method + ')';
+                default:
+                    return 'UNSUPPORTED (' + method + ')'
+            }
+
+        },
+
+        writeFileTo : function(/*String*/path, /*Buffer*/content, /*Boolean*/overwrite, /*Number*/attr) {
             if (pth.existsSync(path)) {
                 if (!overwrite)
                     return false; // cannot overwite
@@ -68,6 +86,7 @@ exports.ZipUtils = (function() {
                 fs.writeSync(fd, content, 0, content.length, 0);
                 fs.closeSync(fd);
             }
+            fs.chmodSync(path, attr || 0666);
             return true;
         }
 
