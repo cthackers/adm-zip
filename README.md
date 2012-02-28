@@ -23,25 +23,38 @@ There are no other nodeJS libraries that ADM-ZIP is dependent of
 ## Basic decompression
 ```javascript
 
-	var Zip = require('adm-zip').Zip;
+	var AdmZip = require('adm-zip');
 
 	// reading archives
-	var file = new Zip("my_file.zip");
-	var zipEntries = file.getEntries(); // an array of ZipEntry records
+	var zip = new AdmZip("./my_file.zip");
+	var zipEntries = zip.getEntries(); // an array of ZipEntry records
 
 	zipEntries.forEach(function(zipEntry) {
-	    console.log(zipEntry.toString()); 
-		// outputs zip entries information
+	    console.log(zipEntry.toString()); // outputs zip entries information
+		if (zipEntry.entryName == "my_file.txt") {
+		     console.log(zipEntry.data.toString('utf8')); 
+		}
 	});
-	
 	// outputs the content of some_folder/my_file.txt
-	console.log(file.readAsText("some_folder/my_file.txt")); 
-	
+	console.log(zip.readAsText("some_folder/my_file.txt")); 
 	// extracts the specified file to the specified location
-	file.extractEntryTo("some_folder/my_file.txt", "/home/me/tempfolder", true)
-	
+	zip.extractEntryTo(/*entry name*/"some_folder/my_file.txt", /*target path*/"/home/me/tempfolder", /*overwrite*/true)
 	// extracts everything
-	file.extractAllTo("/home/me/zipcontent/", true);
+	zip.extractAllTo(/*target path*/"/home/me/zipcontent/", /*overwrite*/true);
+	
+	
+	// creating archives
+	var zip = new AdmZip();
+	
+	// add file directly
+	zip.addFile("test.txt", new Buffer("inner content of the file"), "entry comment goes here");
+	// add local file
+	zip.addLocalFile("/home/me/some_picture.png");
+	// get everything as a buffer
+	var willSendthis = zip.toBuffer();
+	// or write everything to disk
+	zip.writeZip(/*target file name*/"/home/me/files.zip");
+	
 	
 	// ... more examples in the wiki
 ```
