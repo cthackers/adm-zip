@@ -20,7 +20,7 @@ There are no other nodeJS libraries that ADM-ZIP is dependent of
 
 # Examples
 
-## Basic decompression
+## Basic usage
 ```javascript
 
 	var AdmZip = require('adm-zip');

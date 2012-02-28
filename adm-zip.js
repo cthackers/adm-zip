@@ -165,7 +165,7 @@ module.exports = function(/*String*/inPath) {
          *
          * @param entry ZipEntry object or String with the full path of the entry
          * @param targetPath Target folder where to write the file
-         * @param maintainEntryPath If full path is true and the entry is inside a folder, the entry folder
+         * @param maintainEntryPath If maintainEntryPath is true and the entry is inside a folder, the entry folder
          *                          will be created in targetPath as well. Default is TRUE
          * @param overwrite If the file already exists at the target path, the file will be overwriten if this is true.
          *                  Default is FALSE
@@ -206,7 +206,7 @@ module.exports = function(/*String*/inPath) {
         },
 
         /**
-         * Extracts the entire archive to the givn location
+         * Extracts the entire archive to the given location
          *
          * @param targetPath Target location
          * @param overwrite If the file already exists at the target path, the file will be overwriten if this is true.
