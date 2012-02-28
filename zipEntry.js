@@ -33,7 +33,7 @@ exports.ZipEntry = function ZipEntry() {
                     break;
                 case ZipConstants.DEFLATED:
                     _data = new Buffer(_entryHeader.size);
-                    new Inflater(_compressedData.slice(_dataHeader.entryHeaderSize)).inflate(_data);
+                    new Inflater(_compressedData.slice(_dataHeader.fileHeaderSize)).inflate(_data);
                     if (ZipUtils.crc32(_data) != _dataHeader.crc) {
                         throw 'CRC32 checksum failed'
                     }

@@ -15,9 +15,8 @@ exports.ZipFile = function(/*Buffer*/buf) {
 
     function readEntries() {
         entryTable = {};
-        var endLoc = findEnd();
-        entryList = new Array(buf.readUInt16LE(endLoc + ZipConstants.ENDTOT));  // total number of entries
-        var index = buf.readUInt32LE(endLoc + ZipConstants.ENDOFF);  // offset of first CEN header
+        entryList = new Array(endHeader.diskEntries);  // total number of entries
+        var index = endHeader.offset;  // offset of first CEN header
 
         for(var i = 0; i < entryList.length; i++) {
 
@@ -64,8 +63,10 @@ exports.ZipFile = function(/*Buffer*/buf) {
         if (endHeader.commentLength) {
             _comment = buf.toString('utf8', endOffset + ZipConstants.ENDHDR);
         }
-        endHeader.toString();
+
+        readEntries();
     }
+
     return {
         /**
          * Returns an array of ZipEntry objects existent in the current opened archive
