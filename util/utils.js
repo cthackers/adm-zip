@@ -1,10 +1,11 @@
 var fs = require("fs"),
-    pth = require('path'),
-    ZipConstants = require('./ZipConstants').ZipConstants;
+    pth = require('path');
 
-exports.ZipUtils = (function() {
+module.exports = (function() {
 
     var crcTable = []; // cache crc table
+    var Constants = require('./constants'),
+        Errors = require('./errors');
 
     function mkdirSync(path) {
         var curesolvedPath = path.split('\\')[0];
@@ -18,7 +19,7 @@ exports.ZipUtils = (function() {
                 fs.mkdirSync(curesolvedPath);
             }
             if (stat && stat.isFile())
-                throw 'There is a file in the way: ' + curesolvedPath;
+                throw Errors.FILE_IN_THE_WAY.replace("%s", curesolvedPath);
         });
     }
 
@@ -51,9 +52,9 @@ exports.ZipUtils = (function() {
 
         methodToString : function(/*Number*/method) {
             switch (method) {
-                case ZipConstants.STORED:
+                case Constants.STORED:
                     return 'STORED (' + method + ')';
-                case ZipConstants.DEFLATED:
+                case Constants.DEFLATED:
                     return 'DEFATED (' + method + ')';
                 default:
                     return 'UNSUPPORTED (' + method + ')'
@@ -73,7 +74,7 @@ exports.ZipUtils = (function() {
             }
             var folder = pth.dirname(path);
             if (!pth.existsSync(folder)) {
-                exports.ZipUtils.makeDir(folder);
+                exports.Utils.makeDir(folder);
             }
 
             var fd;
@@ -89,8 +90,9 @@ exports.ZipUtils = (function() {
             }
             fs.chmodSync(path, attr || 0666);
             return true;
-        }
-
+        },
+        Constants : Constants,
+        Errors : Errors
     }
 
 })();

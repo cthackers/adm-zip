@@ -1,4 +1,4 @@
-exports.Deflater = function(/*Buffer*/inbuf) {
+module.exports = function(/*Buffer*/inbuf) {
 
     return {
         deflate : function(/*Buffer*/outputBuffer) {

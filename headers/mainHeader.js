@@ -1,7 +1,8 @@
-/* The entries in the end of central directory */
-var ZipConstants = require("../zipConstants").ZipConstants;
+var Utils = require("../util"),
+    Constants = Utils.Constants;
 
-exports.ZipMainHeader = function ZipMainHeader() {
+/* The entries in the end of central directory */
+module.exports = function () {
     var _volumeEntries = 0,
         _totalEntries = 0,
         _size = 0,
@@ -10,10 +11,10 @@ exports.ZipMainHeader = function ZipMainHeader() {
 
     return {
         get diskEntries () { return _volumeEntries },
-        set diskEntries (/*Number*/val) { _volumeEntries = val; },
+        set diskEntries (/*Number*/val) { _volumeEntries = _totalEntries = val; },
 
         get totalEntries () { return _totalEntries },
-        set totalEntries (/*Number*/val) { _totalEntries = val; },
+        set totalEntries (/*Number*/val) { _totalEntries = _volumeEntries = val; },
 
         get size () { return _size },
         set size (/*Number*/val) { _size = val; },
@@ -24,40 +25,44 @@ exports.ZipMainHeader = function ZipMainHeader() {
         get commentLength () { return _commentLength },
         set commentLength (/*Number*/val) { _commentLength = val; },
 
+        get mainHeaderSize () {
+            return Constants.ENDHDR + _commentLength;
+        },
+
         loadFromBinary : function(/*Buffer*/data) {
             // data should be 22 bytes and start with "PK 05 06"
-            if (data.length != ZipConstants.ENDHDR || data.readUInt32LE(0) != ZipConstants.ENDSIG)
-                throw "Invalid END header (bad signature)";
+            if (data.length != Constants.ENDHDR || data.readUInt32LE(0) != Constants.ENDSIG)
+                throw Utils.Errors.INVALID_END;
 
             // number of entries on this volume
-            _volumeEntries = data.readUInt16LE(ZipConstants.ENDSUB);
+            _volumeEntries = data.readUInt16LE(Constants.ENDSUB);
             // total number of entries
-            _totalEntries = data.readUInt16LE(ZipConstants.ENDTOT);
+            _totalEntries = data.readUInt16LE(Constants.ENDTOT);
             // central directory size in bytes
-            _size = data.readUInt32LE(ZipConstants.ENDSIZ);
+            _size = data.readUInt32LE(Constants.ENDSIZ);
             // offset of first CEN header
-            _offset = data.readUInt32LE(ZipConstants.ENDOFF);
+            _offset = data.readUInt32LE(Constants.ENDOFF);
             // zip file comment length
-            _commentLength = data.readUInt16LE(ZipConstants.ENDCOM);
+            _commentLength = data.readUInt16LE(Constants.ENDCOM);
         },
 
         toBinary : function() {
-           var b = new Buffer(ZipConstants.ENDHDR + _commentLength);
+           var b = new Buffer(Constants.ENDHDR + _commentLength);
             // "PK 05 06" signature
-            b.writeUInt32LE(ZipConstants.ENDSIG, 0);
+            b.writeUInt32LE(Constants.ENDSIG, 0);
             b.writeUInt32LE(0, 4);
             // number of entries on this volume
-            b.writeUInt16LE(ZipConstants.ENDSUB);
+            b.writeUInt16LE(_volumeEntries, Constants.ENDSUB);
             // total number of entries
-            b.writeUInt16LE(ZipConstants.ENDTOT);
+            b.writeUInt16LE(_totalEntries, Constants.ENDTOT);
             // central directory size in bytes
-            b.writeUInt32LE(ZipConstants.ENDSIZ);
+            b.writeUInt32LE(_size, Constants.ENDSIZ);
             // offset of first CEN header
-            b.writeUInt32LE(ZipConstants.ENDOFF);
+            b.writeUInt32LE(_offset, Constants.ENDOFF);
             // zip file comment length
-            b.writeUInt16LE(ZipConstants.ENDCOM);
+            b.writeUInt16LE(_commentLength, Constants.ENDCOM);
             // fill comment memory with spaces so no garbage is left there
-            b.fill(" ", ZipConstants.ENDHDR);
+            b.fill(" ", Constants.ENDHDR);
 
             return b;
         },

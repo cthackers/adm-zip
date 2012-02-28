@@ -1,13 +1,12 @@
-var ZipEntry = require("./zipEntry").ZipEntry,
-    ZipMainHeader = require("./headers/mainHeader").ZipMainHeader,
-    ZipConstants = require("./zipConstants").ZipConstants;
+var ZipEntry = require("./zipEntry"),
+    Headers = require("./headers");
+    Utils = require("./util");
 
-
-exports.ZipFile = function(/*Buffer*/buf) {
+module.exports = function(/*Buffer*/buf) {
     var entryList = [],
         entryTable = {},
         _comment = '',
-        endHeader = new ZipMainHeader();
+        endHeader = new Headers.MainHeader();
 
     if (buf) {
         readMainHeader();
@@ -17,13 +16,12 @@ exports.ZipFile = function(/*Buffer*/buf) {
         entryTable = {};
         entryList = new Array(endHeader.diskEntries);  // total number of entries
         var index = endHeader.offset;  // offset of first CEN header
-
         for(var i = 0; i < entryList.length; i++) {
 
             var tmp = index,
                 entry = new ZipEntry();
 
-            entry.header = buf.slice(tmp, tmp += ZipConstants.CENHDR);
+            entry.header = buf.slice(tmp, tmp += Utils.Constants.CENHDR);
             entry.entryName = buf.toString('utf8', tmp, tmp += entry.header.fileNameLength);
 
             if (entry.header.extraLength)
@@ -36,7 +34,7 @@ exports.ZipFile = function(/*Buffer*/buf) {
 
             if (!entry.isDirectory) {
                 // read data
-                entry.compressedData = buf.slice(entry.header.offset, entry.header.offset + ZipConstants.LOCHDR + entry.header.compressedSize + entry.entryName.length);
+                entry.compressedData = buf.slice(entry.header.offset, entry.header.offset + Utils.Constants.LOCHDR + entry.header.compressedSize + entry.entryName.length);
             }
 
             entryList[i] = entry;
@@ -45,25 +43,24 @@ exports.ZipFile = function(/*Buffer*/buf) {
     }
 
     function readMainHeader() {
-        var i = buf.length - ZipConstants.ENDHDR, // END header size
+        var i = buf.length - Utils.Constants.ENDHDR, // END header size
             n = Math.max(0, i - 0xFFFF), // 0xFFFF is the max zip file comment length
             endOffset = 0; // Start offset of the END header
 
         for (i; i >= n; i--) {
             if (buf[i] != 0x50) continue; // quick check that the byte is 'P'
-            if (buf.readUInt32LE(i) == ZipConstants.ENDSIG) { // "PK\005\006"
+            if (buf.readUInt32LE(i) == Utils.Constants.ENDSIG) { // "PK\005\006"
                 endOffset = i;
                 break;
             }
         }
         if (!endOffset)
-            throw "Invalid or unsupported zip format. No END header found";
+            throw Utils.Errors.INVALID_FORMAT;
 
-        endHeader.loadFromBinary(buf.slice(endOffset, endOffset + ZipConstants.ENDHDR));
+        endHeader.loadFromBinary(buf.slice(endOffset, endOffset + Utils.Constants.ENDHDR));
         if (endHeader.commentLength) {
-            _comment = buf.toString('utf8', endOffset + ZipConstants.ENDHDR);
+            _comment = buf.toString('utf8', endOffset + Utils.Constants.ENDHDR);
         }
-
         readEntries();
     }
 
@@ -104,6 +101,7 @@ exports.ZipFile = function(/*Buffer*/buf) {
         setEntry : function(/*ZipEntry*/entry) {
             entryList.push(entry);
             entryTable[entry.entryName] = entry;
+            endHeader.totalEntries = entryList.length;
         },
 
         /**
@@ -122,9 +120,9 @@ exports.ZipFile = function(/*Buffer*/buf) {
                     }
                 })
             }
-            this.getEntryChildren()
             entryList.slice(entryList.indexOf(entry), 1);
             delete(entryTable[entryName]);
+            endHeader.totalEntries = entryList.length;
         },
 
         /**
@@ -163,21 +161,53 @@ exports.ZipFile = function(/*Buffer*/buf) {
                 return 0;
             });
 
-            var totalSize = 0, data = [], header = [], index = 0, dindex = 0;
-            entryList.forEach(function(e) {
-                data.push(e.compressedData);
-                if (!header.length) {
-                    console.log(e.header.toString())
-                }
-                header.push(e.header.toBinary());
-                dindex += e.header.entryHeaderSize;
-                totalSize += data[data.length - 1].length + e.header.entryHeaderSize;
+            var totalSize = 0,
+                data = [],
+                header = [],
+                dindex = 0;
 
+            endHeader.size = 0;
+            endHeader.offset = 0;
+
+            entryList.forEach(function(entry) {
+                entry.header.offset = dindex;
+                var compressedData = entry.compressedData;
+                dindex += compressedData.length;
+                data.push(compressedData);
+
+                var headerData = entry.packHeader();
+                header.push(headerData);
+                endHeader.size += headerData.length;
+                totalSize += compressedData.length + headerData.length;
             });
-            console.log(data[0]);
-            console.log("----")
-            console.log(header[0])
-            console.log(totalSize)
+
+            totalSize += endHeader.mainHeaderSize;
+            // point to end of data and begining of central directory first record
+            endHeader.offset = dindex;
+
+            dindex = 0;
+            var outBuffer = new Buffer(totalSize);
+            data.forEach(function(content) {
+                content.copy(outBuffer, dindex); // write data
+                dindex += content.length;
+            });
+            header.forEach(function(content) {
+                content.copy(outBuffer, dindex); // write data
+                dindex += content.length;
+            });
+
+            var mainHeader = endHeader.toBinary();
+            if (_comment) {
+                mainHeader.write(_comment, Utils.Constants.ENDHDR);
+            }
+
+            mainHeader.copy(outBuffer, dindex);
+
+            delete(data);
+            delete(header);
+            delete(mainHeader);
+
+            return outBuffer
         }
     }
 };

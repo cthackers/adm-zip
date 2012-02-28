@@ -1,8 +1,8 @@
-/* The local file header */
-var ZipConstants = require("../zipConstants.js").ZipConstants,
-    ZipUtils = require("../zipUtils.js").ZipUtils;
+var Utils = require("../util"),
+    Constants = Utils.Constants;
 
-exports.ZipDataHeader = function ZipDataHeader() {
+/* The local file header */
+module.exports = function () {
     var _version = 0,
         _flags = 0,
         _method = 0,
@@ -61,57 +61,57 @@ exports.ZipDataHeader = function ZipDataHeader() {
         get encripted () { return (_flags & 1) == 1 },
 
         get fileHeaderSize () {
-            return ZipConstants.LOCHDR + _fnameLen + _extraLen;
+            return Constants.LOCHDR + _fnameLen + _extraLen;
         },
 
         loadFromBinary : function(/*Buffer*/data) {
             // 30 bytes and should start with "PK\003\004"
-            if (data.length != ZipConstants.LOCHDR || data.readUInt32LE(0) != ZipConstants.LOCSIG) {
-                throw "Invalid LOC header (bad signature)";
+            if (data.length != Constants.LOCHDR || data.readUInt32LE(0) != Constants.LOCSIG) {
+                throw Utils.Errors.INVALID_LOC;
             }
             // version needed to extract
-            _version = data.readUInt16LE(ZipConstants.LOCVER);
+            _version = data.readUInt16LE(Constants.LOCVER);
             // general purpose bit flag
-            _flags = data.readUInt16LE(ZipConstants.LOCFLG);
+            _flags = data.readUInt16LE(Constants.LOCFLG);
             // compression method
-            _method = data.readUInt16LE(ZipConstants.LOCHOW);
+            _method = data.readUInt16LE(Constants.LOCHOW);
             // modification time (2 bytes time, 2 bytes date)
-            _time = data.readUInt32LE(ZipConstants.LOCTIM);
+            _time = data.readUInt32LE(Constants.LOCTIM);
             // uncompressed file crc-32 value
-            _crc = data.readUInt32LE(ZipConstants.LOCCRC);
+            _crc = data.readUInt32LE(Constants.LOCCRC);
             // compressed size
-            _compressedSize = data.readUInt32LE(ZipConstants.LOCSIZ);
+            _compressedSize = data.readUInt32LE(Constants.LOCSIZ);
             // uncompressed size
-            _size = data.readUInt32LE(ZipConstants.LOCLEN);
+            _size = data.readUInt32LE(Constants.LOCLEN);
             // filename length
-            _fnameLen = data.readUInt16LE(ZipConstants.LOCNAM);
+            _fnameLen = data.readUInt16LE(Constants.LOCNAM);
             // extra field length
-            _extraLen = data.readUInt16LE(ZipConstants.LOCEXT);
+            _extraLen = data.readUInt16LE(Constants.LOCEXT);
         },
 
         toBinary : function() {
             // LOC header size (30 bytes)
-            var data = new Buffer(ZipConstants.LOCHDR);
+            var data = new Buffer(Constants.LOCHDR);
             // "PK\003\004"
-            data.writeUInt32LE(ZipConstants.LOCSIG, 0);
+            data.writeUInt32LE(Constants.LOCSIG, 0);
             // version needed to extract
-            data.writeUInt16LE(_version, ZipConstants.LOCVER);
+            data.writeUInt16LE(_version, Constants.LOCVER);
             // general purpose bit flag
-            data.writeUInt16LE(_flags, ZipConstants.LOCFLG);
+            data.writeUInt16LE(_flags, Constants.LOCFLG);
             // compression method
-            data.writeUInt16LE(_method, ZipConstants.LOCHOW);
+            data.writeUInt16LE(_method, Constants.LOCHOW);
             // modification time (2 bytes time, 2 bytes date)
-            data.writeUInt32LE(_time, ZipConstants.LOCTIM);
+            data.writeUInt32LE(_time, Constants.LOCTIM);
             // uncompressed file crc-32 value
-            data.writeUInt32LE(_crc, ZipConstants.LOCCRC);
+            data.writeUInt32LE(_crc, Constants.LOCCRC);
             // compressed size
-            data.writeUInt32LE(_compressedSize, ZipConstants.LOCSIZ);
+            data.writeUInt32LE(_compressedSize, Constants.LOCSIZ);
             // uncompressed size
-            data.writeUInt32LE(_size, ZipConstants.LOCLEN);
+            data.writeUInt32LE(_size, Constants.LOCLEN);
             // filename length
-            data.writeUInt16LE(_fnameLen, ZipConstants.LOCNAM);
+            data.writeUInt16LE(_fnameLen, Constants.LOCNAM);
             // extra field length
-            data.writeUInt16LE(_extraLen, ZipConstants.LOCEXT);
+            data.writeUInt16LE(_extraLen, Constants.LOCEXT);
             return data;
         },
 
@@ -119,14 +119,14 @@ exports.ZipDataHeader = function ZipDataHeader() {
             return '{\n' +
                 '\t"version" : ' + _version + ",\n" +
                 '\t"flags" : ' + _flags + ",\n" +
-                '\t"method" : ' + ZipUtils.methodToString(_method) + ",\n" +
+                '\t"method" : ' + Utils.methodToString(_method) + ",\n" +
                 '\t"time" : ' + _time + ",\n" +
                 '\t"crc" : 0x' + _crc.toString(16).toUpperCase() + ",\n" +
                 '\t"compressedSize" : ' + _compressedSize + " bytes,\n" +
                 '\t"size" : ' + _size + " bytes,\n" +
                 '\t"fnameLen" : ' + _fnameLen + ",\n" +
                 '\t"extraLen" : ' + _extraLen + " bytes,\n" +
-                '\t"fileHeaderSize" : ' + (ZipConstants.LOCHDR + _fnameLen + _extraLen) + " bytes\n" +
+                '\t"fileHeaderSize" : ' + (Constants.LOCHDR + _fnameLen + _extraLen) + " bytes\n" +
                 '}';
         }
     }

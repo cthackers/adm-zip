@@ -1,8 +1,8 @@
-/* The central directory file header */
-var ZipConstants = require("../zipConstants.js").ZipConstants,
-    ZipUtils = require("../zipUtils.js").ZipUtils
+var Utils = require("../util"),
+    Constants = Utils.Constants;
 
-exports.ZipEntryHeader = function ZipEntryHeader() {
+/* The central directory file header */
+module.exports = function () {
     var _verMade = 0,
         _version = 10,
         _flags = 0,
@@ -15,8 +15,8 @@ exports.ZipEntryHeader = function ZipEntryHeader() {
         _extraLen = 0,
         _comLen = 0,
         _diskStart = 0,
-        _inattr = 0666,
-        _attr = 0666,
+        _inattr = 438,
+        _attr = 438,
         _offset = 0;
 
     return {
@@ -32,8 +32,23 @@ exports.ZipEntryHeader = function ZipEntryHeader() {
         get method () { return _method; },
         set method (val) { _method = val; },
 
-        get time () { return _time; },
-        set time (val) { _time = val },
+        get time () { return new Date(
+            ((_time >> 25) & 0x7f) + 1980,
+            ((_time >> 21) & 0x0f) - 1,
+            (_time >> 16) & 0x1f,
+            (_time >> 11) & 0x1f,
+            (_time >> 5) & 0x3f,
+            (_time & 0x1f) << 1
+        );
+        },
+        set time (val) { val = new Date(val);
+            _time = (val.getFullYear() - 1980 & 0x7f) << 25
+                | (val.getMonth() + 1) << 21
+                | val.getDay() << 16
+                | val.getHours() << 11
+                | val.getMinutes() << 5
+                | val.getSeconds() >> 1;
+        },
 
         get crc () { return _crc; },
         set crc (val) { _crc = val; },
@@ -45,7 +60,7 @@ exports.ZipEntryHeader = function ZipEntryHeader() {
         set size (val) { _size = val; },
 
         get fileNameLength () { return _fnameLen; },
-        set fileNameLenght (val) { _fnameLen = val; },
+        set fileNameLength (val) { _fnameLen = val; },
 
         get extraLength () { return _extraLen },
         set extraLength (val) { _extraLen = val; },
@@ -68,81 +83,83 @@ exports.ZipEntryHeader = function ZipEntryHeader() {
         get encripted () { return (_flags & 1) == 1 },
 
         get entryHeaderSize () {
-            return ZipConstants.CENHDR + _fnameLen + _extraLen + _comLen;
+            return Constants.CENHDR + _fnameLen + _extraLen + _comLen;
         },
 
         loadFromBinary : function(/*Buffer*/data) {
             // data should be 46 bytes and start with "PK 01 02"
-            if (data.length != ZipConstants.CENHDR || data.readUInt32LE(0) != ZipConstants.CENSIG) {
-                throw "Invalid CEN header (bad signature)";
+            if (data.length != Constants.CENHDR || data.readUInt32LE(0) != Constants.CENSIG) {
+                throw Utils.Errors.INVALID_CEN;
             }
             // version made by
-            _verMade = data.readUInt16LE(ZipConstants.CENVEM);
+            _verMade = data.readUInt16LE(Constants.CENVEM);
             // version needed to extract
-            _version = data.readUInt16LE(ZipConstants.CENVER);
+            _version = data.readUInt16LE(Constants.CENVER);
             // encrypt, decrypt flags
-            _flags = data.readUInt16LE(ZipConstants.CENFLG);
+            _flags = data.readUInt16LE(Constants.CENFLG);
             // compression method
-            _method = data.readUInt16LE(ZipConstants.CENHOW);
+            _method = data.readUInt16LE(Constants.CENHOW);
             // modification time (2 bytes time, 2 bytes date)
-            _time = data.readUInt32LE(ZipConstants.CENTIM);
+            _time = data.readUInt32LE(Constants.CENTIM);
             // uncompressed file crc-32 value
-            _crc = data.readUInt32LE(ZipConstants.CENCRC);
+            _crc = data.readUInt32LE(Constants.CENCRC);
             // compressed size
-            _compressedSize = data.readUInt32LE(ZipConstants.CENSIZ);
+            _compressedSize = data.readUInt32LE(Constants.CENSIZ);
             // uncompressed size
-            _size = data.readUInt32LE(ZipConstants.CENLEN);
+            _size = data.readUInt32LE(Constants.CENLEN);
             // filename length
-            _fnameLen = data.readUInt16LE(ZipConstants.CENNAM);
+            _fnameLen = data.readUInt16LE(Constants.CENNAM);
             // extra field length
-            _extraLen = data.readUInt16LE(ZipConstants.CENEXT);
+            _extraLen = data.readUInt16LE(Constants.CENEXT);
             // file comment length
-            _comLen = data.readUInt16LE(ZipConstants.CENCOM);
+            _comLen = data.readUInt16LE(Constants.CENCOM);
             // volume number start
-            _diskStart = data.readUInt16LE(ZipConstants.CENDSK);
+            _diskStart = data.readUInt16LE(Constants.CENDSK);
             // internal file attributes
-            _inattr = data.readUInt16LE(ZipConstants.CENATT);
+            _inattr = data.readUInt16LE(Constants.CENATT);
             // external file attributes
-            _attr = data.readUInt16LE(ZipConstants.CENATX);
+            _attr = data.readUInt32LE(Constants.CENATX);
             // LOC header offset
-            _offset = data.readUInt32LE(ZipConstants.CENOFF);
+            _offset = data.readUInt32LE(Constants.CENOFF);
         },
 
         toBinary : function() {
             // CEN header size (46 bytes)
-            var data = new Buffer(ZipConstants.CENHDR);
+            var data = new Buffer(Constants.CENHDR + _fnameLen + _extraLen + _comLen);
             // "PK\001\002"
-            data.writeUInt32LE(ZipConstants.CENSIG, 0);
+            data.writeUInt32LE(Constants.CENSIG, 0);
             // version made by
-            data.writeUInt16LE(_verMade, ZipConstants.CENVEM);
+            data.writeUInt16LE(_verMade, Constants.CENVEM);
             // version needed to extract
-            data.writeUInt16LE(_version, ZipConstants.CENVER);
+            data.writeUInt16LE(_version, Constants.CENVER);
             // encrypt, decrypt flags
-            data.writeUInt16LE(_flags, ZipConstants.CENFLG);
+            data.writeUInt16LE(_flags, Constants.CENFLG);
             // compression method
-            data.writeUInt16LE(_method, ZipConstants.CENHOW);
+            data.writeUInt16LE(_method, Constants.CENHOW);
             // modification time (2 bytes time, 2 bytes date)
-            data.writeUInt32LE(_time, ZipConstants.CENTIM);
+            data.writeUInt32LE(_time, Constants.CENTIM);
             // uncompressed file crc-32 value
-            data.writeInt32LE(_crc, ZipConstants.CENCRC, true);
+            data.writeInt32LE(_crc, Constants.CENCRC, true);
             // compressed size
-            data.writeUInt32LE(_compressedSize, ZipConstants.CENSIZ);
+            data.writeUInt32LE(_compressedSize, Constants.CENSIZ);
             // uncompressed size
-            data.writeUInt32LE(_size, ZipConstants.CENLEN);
+            data.writeUInt32LE(_size, Constants.CENLEN);
             // filename length
-            data.writeUInt16LE(_fnameLen, ZipConstants.CENNAM);
+            data.writeUInt16LE(_fnameLen, Constants.CENNAM);
             // extra field length
-            data.writeUInt16LE(_extraLen, ZipConstants.CENEXT);
+            data.writeUInt16LE(_extraLen, Constants.CENEXT);
             // file comment length
-            data.writeUInt16LE(_comLen, ZipConstants.CENCOM);
+            data.writeUInt16LE(_comLen, Constants.CENCOM);
             // volume number start
-            data.writeUInt16LE(_diskStart, ZipConstants.CENDSK);
+            data.writeUInt16LE(_diskStart, Constants.CENDSK);
             // internal file attributes
-            data.writeUInt16LE(_inattr, ZipConstants.CENATT);
+            data.writeUInt16LE(_inattr, Constants.CENATT);
             // external file attributes
-            data.writeUInt16LE(_attr, ZipConstants.CENATX);
+            data.writeUInt32LE(_attr, Constants.CENATX);
             // LOC header offset
-            data.writeUInt32LE(_offset, ZipConstants.CENOFF);
+            data.writeUInt32LE(_offset, Constants.CENOFF);
+            // fill all with
+            data.fill(0x00, Constants.CENHDR);
             return data;
         },
 
@@ -151,7 +168,7 @@ exports.ZipEntryHeader = function ZipEntryHeader() {
                 '\t"made" : ' + _verMade + ",\n" +
                 '\t"version" : ' + _version + ",\n" +
                 '\t"flags" : ' + _flags + ",\n" +
-                '\t"method" : ' + ZipUtils.methodToString(_method) + ",\n" +
+                '\t"method" : ' + Utils.methodToString(_method) + ",\n" +
                 '\t"time" : ' + _time + ",\n" +
                 '\t"crc" : 0x' + _crc.toString(16).toUpperCase() + ",\n" +
                 '\t"compressedSize" : ' + _compressedSize + " bytes,\n" +
@@ -163,7 +180,7 @@ exports.ZipEntryHeader = function ZipEntryHeader() {
                 '\t"inAttr" : ' + _inattr + ",\n" +
                 '\t"attr" : ' + _attr + ",\n" +
                 '\t"offset" : ' + _offset + ",\n" +
-                '\t"entryHeaderSize" : ' + (ZipConstants.CENHDR + _fnameLen + _extraLen + _comLen) + " bytes\n" +
+                '\t"entryHeaderSize" : ' + (Constants.CENHDR + _fnameLen + _extraLen + _comLen) + " bytes\n" +
                 '}';
         }
     }
