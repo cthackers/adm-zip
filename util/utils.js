@@ -7,25 +7,46 @@ module.exports = (function() {
     var Constants = require('./constants'),
         Errors = require('./errors');
 
-    function mkdirSync(path) {
-        var curesolvedPath = path.split('\\')[0];
+    function mkdirSync(/*String*/path) {
+        var resolvedPath = path.split('\\')[0];
         path.split('\\').forEach(function(name) {
             if (!name || name.substr(-1,1) == ":") return;
-            curesolvedPath += '\\' + name;
+            resolvedPath += '\\' + name;
             var stat;
             try {
-                stat = fs.statSync(curesolvedPath);
+                stat = fs.statSync(resolvedPath);
             } catch (e) {
-                fs.mkdirSync(curesolvedPath);
+                fs.mkdirSync(resolvedPath);
             }
             if (stat && stat.isFile())
-                throw Errors.FILE_IN_THE_WAY.replace("%s", curesolvedPath);
+                throw Errors.FILE_IN_THE_WAY.replace("%s", resolvedPath);
         });
     }
 
+    function findSync(/*String*/root, /*RegExp*/pattern, /*Boolean*/recoursive) {
+        if (typeof pattern === 'boolean') {
+            recoursive = pattern;
+            pattern = undefined;
+        }
+        var files = [];
+        fs.readdirSync(root).forEach(function(file) {
+            var path = pth.join(root, file);
+            if (fs.statSync(path).isDirectory() && recoursive)
+                files = files.concat(findSync(path, pattern, recoursive));
+            if (!pattern || pattern.test(path))
+                files.push(path);
+
+        });
+        return files;
+    }
+
     return {
-        makeDir : function(path) {
+        makeDir : function(/*String*/path) {
             mkdirSync(path);
+        },
+
+        findFiles : function(/*String*/root) {
+
         },
 
         crc32 : function(buf) {

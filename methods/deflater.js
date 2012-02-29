@@ -1,3 +1,5 @@
+var zlib = require('zlib');
+
 module.exports = function(/*Buffer*/inbuf) {
 
     return {

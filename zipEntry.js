@@ -12,9 +12,10 @@ module.exports = function () {
         _extra = null,
         _compressedData = null,
         _data = null,
-        _comment = "";
+        _comment = "",
+        _needDeflate = false;
 
-    function decompress() {
+    function decompress(/*Boolean*/async, /*Function*/callback) {
         if (_data == null)   {
             if (_compressedData == null) {
                 throw 'Noting to decompress';
@@ -29,19 +30,34 @@ module.exports = function () {
                     break;
                 case Utils.Constants.DEFLATED:
                     _data = new Buffer(_entryHeader.size);
-                    new Methods.Inflater(_compressedData.slice(_dataHeader.fileHeaderSize)).inflate(_data);
-                    if (Utils.crc32(_data) != _dataHeader.crc) {
-                        throw Utils.Errors.BAD_CRC
+                    var inflater = new Methods.Inflater(_compressedData.slice(_dataHeader.fileHeaderSize));
+                    if (!async) {
+                        inflater.inflate(_data);
+                        if (Utils.crc32(_data) != _dataHeader.crc) {
+                            throw Utils.Errors.BAD_CRC
+                        }
+                    } else {
+                        inflater.inflateAsync(function(data) {
+                            data.copy(_data, 0);
+                            if (Utils.crc32(_data) != _dataHeader.crc) {
+                                throw Utils.Errors.BAD_CRC
+                            }
+                            callback(_data);
+                        })
                     }
                     break;
                 default:
                     throw Utils.Errors.UNKNOWN_METHOD;
             }
+        } else {
+            if (async && callback) {
+                callback(_data);
+            }
         }
     }
 
-    function compress() {
-        if (_compressedData == null) {
+    function compress(/*Boolean*/async, /*Function*/callback) {
+        if (_compressedData == null || _needDeflate) {
             if (_data == null && !_isDirectory) {
                 throw Utils.Errors.NO_DATA
             }
@@ -60,13 +76,14 @@ module.exports = function () {
             _dataHeader.toBinary().copy(_compressedData);
             _compressedData.write(_entryName, Utils.Constants.LOCHDR);
             _data.copy(_compressedData, Utils.Constants.LOCHDR + _entryName.length);
+            _needDeflate = false;
         }
     }
 
     return {
         get entryName () { return _entryName; },
         set entryName (val) {
-            _compressedData = null;
+            _needDeflate = true;
             _entryName = val;
             _isDirectory = val.charAt(_entryName.length - 1) == "/";
             _entryHeader.fileNameLength = val.length;
@@ -75,7 +92,7 @@ module.exports = function () {
 
         get extra () { return _extra; },
         set extra (val) {
-            _compressedData = null;
+            _needDeflate = true;
             _extra = val; 
             _entryHeader.extraLength = val.length;
             _dataHeader.extraLength = val.length;
@@ -97,14 +114,17 @@ module.exports = function () {
         },
 
         get compressedData () {
-            compress();
+            compress(false, null);
             return _compressedData
         },
-
+        getCompressedData : function(/*Function*/callback) {
+            compress(true, callback)
+        },
         set data (value) {
             if (typeof value == "string") {
                 value = new Buffer(value);
             }
+            _needDeflate = true;
             _compressedData = null;
             _dataHeader.time = +new Date();
             _entryHeader.size = _dataHeader.size;
@@ -123,8 +143,15 @@ module.exports = function () {
         },
 
         get data() {
-            decompress();
+            decompress(false, null);
             return _data
+        },
+        /**
+         * Decompress data async
+         * @param callback
+         */
+        getData : function(/*Function*/callback) {
+            decompress(true, callback)
         },
 
         set header(/*Buffer*/data) {

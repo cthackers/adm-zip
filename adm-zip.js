@@ -6,10 +6,13 @@ var ZipEntry = require("./zipEntry"),
     Utils = require("./util");
 
 module.exports = function(/*String*/inPath) {
-    var _zip = undefined;
+    var _zip = undefined,
+        _filename = "";
 
     if (inPath && typeof inPath === "string") { // load zip file
         if (pth.existsSync(inPath)) {
+            _filename = inPath;
+            console.log(require("util").inspect(process.memoryUsage()));
             _zip = new ZipFile(fs.readFileSync(inPath));
         } else {
            throw Utils.Errors.INVALID_FILENAME;
@@ -35,6 +38,10 @@ module.exports = function(/*String*/inPath) {
         return null;
     }
 
+    process.on('uncaughtException', function (err) {
+        console.log('Caught exception: ' + err);
+    });
+
     return {
         /**
          * Extracts the given entry from the archive and returns the content as a Buffer object
@@ -44,54 +51,80 @@ module.exports = function(/*String*/inPath) {
          */
         readFile : function(/*Object*/entry) {
             var item = getEntry(entry);
-            return item && entry.data || null;
+            return item && item.data || null;
+        },
+        /**
+         * Asyncronous readFile
+         * @param entry ZipEntry object or String with the full path of the entry
+         * @param callback
+         *
+         * @return Buffer or Null in case of error
+         */
+        readFileAsync : function(/*Object*/entry, /*Function*/callback) {
+            var item = getEntry(entry);
+            if (item) {
+                item.getData(callback);
+            } else {
+                callback(null)
+            }
         },
         /**
          * Extracts the given entry from the archive and returns the content as plain text in the given encoding
          * @param entry ZipEntry object or String with the full path of the entry
-         * @param encoding If no encoding is specified utf8 is used
+         * @param encoding Optional. If no encoding is specified utf8 is used
          *
          * @return String
          */
         readAsText : function(/*Object*/entry, /*String - Optional*/encoding) {
             var item = getEntry(entry);
             if (item) {
-                var data = entry.data;
+                var data = item.data;
                 if (data && data.length) {
                     return data.toString(encoding || "utf8");
                 }
             }
             return "";
         },
-
-        deleteFile : function(/*Object*/entry, /*Boolean*/writeZip) {
+        /**
+         * Asyncronous readAsText
+         * @param entry ZipEntry object or String with the full path of the entry
+         * @param callback
+         * @param encoding Optional. If no encoding is specified utf8 is used
+         *
+         * @return String
+         */
+        readAsTextAsync : function(/*Object*/entry, /*Function*/callback, /*String - Optional*/encoding) {
             var item = getEntry(entry);
             if (item) {
-                _zip.deleteEntry(item.entryName);
-                if (writeZip) {
-                    throw Utils.Errors.NOT_IMPLEMENTED
-                }
+                item.getData(function(data) {
+                    if (data && data.length) {
+                        callback(data.toString(encoding || "utf8"));
+                    }
+                })
+            } else {
+                callback("");
             }
         },
 
-        addZipComment : function(/*String*/comment, /*Boolean*/writeZip) {
-            _zip.comment = comment;
-            if (writeZip) {
-                throw Utils.Errors.NOT_IMPLEMENTED
+        deleteFile : function(/*Object*/entry) {
+            var item = getEntry(entry);
+            if (item) {
+                _zip.deleteEntry(item.entryName);
             }
+        },
+
+        addZipComment : function(/*String*/comment) {
+            _zip.comment = comment;
         },
 
         getZipComment : function() {
             return _zip.comment;
         },
 
-        addZipEntryComment : function(/*Object*/entry,/*String*/comment, /*Boolean*/writeZip) {
+        addZipEntryComment : function(/*Object*/entry,/*String*/comment) {
             var item = getEntry(entry);
             if (item) {
                 item.comment = comment;
-                if (writeZip) {
-                    throw Utils.Errors.NOT_IMPLEMENTED;
-                }
             }
         },
 
@@ -103,27 +136,24 @@ module.exports = function(/*String*/inPath) {
             return ''
         },
 
-        updateFile : function(/*Object*/entry, /*Buffer*/content, /*Boolean*/writeZip) {
+        updateFile : function(/*Object*/entry, /*Buffer*/content) {
             var item = getEntry(entry);
             if (item) {
                 item.data = content;
-                if (writeZip) {
-                    throw Utils.Errors.NOT_IMPLEMENTED;
-                }
             }
         },
 
-        addLocalFile : function(/*String*/localPath, /*Boolean*/writeZip) {
+        addLocalFile : function(/*String*/localPath) {
              if (pth.existsSync(localPath)) {
-
+                  // do stuff
              } else {
                  throw Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath);
              }
         },
 
-        addLocalFolder : function(/*String*/localPath, /*Boolean*/writeZip) {
+        addLocalFolder : function(/*String*/localPath) {
             if (pth.existsSync(localPath)) {
-
+                // do stuff
             } else {
                 throw Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath);
             }
@@ -227,6 +257,7 @@ module.exports = function(/*String*/inPath) {
         },
 
         writeZip : function(/*String*/targetFileName) {
+            if (!targetFileName) return;
             var zipData = _zip.toBuffer();
             if (zipData) {
                 Utils.writeFileTo(targetFileName, zipData, true);

@@ -1,5 +1,4 @@
-module.exports = function(/*Buffer*/inbuf) {
-
+function JSInflater(/*inbuff*/inbuf) {
     var Errors = require("../util").Errors;
 
     var MAXBITS = 15, MAXLCODES = 286, MAXDCODES = 30, MAXCODES = 316, FIXLCODES = 288,
@@ -165,6 +164,24 @@ module.exports = function(/*Buffer*/inbuf) {
                 if(err !== 0) break;
             } while (!last);
             return err;
+        }
+    }
+}
+
+module.exports = function(/*Buffer*/inbuf) {
+
+    var zlib = require("zlib");
+
+    return {
+        inflateAsync : function(/*Function*/callback) {
+            var tmp = zlib.createInflateRaw();
+            tmp.on('data', function(data) {
+                callback(data);
+            });
+            tmp.end(inbuf)
+        },
+        inflate : function(/*Buffer*/outputBuffer) {
+            return  new JSInflater(inbuf).inflate(outputBuffer)
         }
     }
 };
