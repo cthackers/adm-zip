@@ -57,7 +57,8 @@ module.exports = function () {
     }
 
     function compress(/*Boolean*/async, /*Function*/callback) {
-        if (_compressedData == null || _needDeflate) {
+        if ( _needDeflate) _compressedData = null;
+        if (_compressedData == null) {
             if (_data == null && !_isDirectory) {
                 throw Utils.Errors.NO_DATA
             }
@@ -67,16 +68,39 @@ module.exports = function () {
             // Local file header
             _dataHeader.version = 10;
             _dataHeader.flags = 0;
-            _dataHeader.method = Utils.Constants.STORED;
+            _dataHeader.time = _entryHeader.time;
             _dataHeader.compressedSize = _data.length;
             _dataHeader.fileNameLength = _entryName.length;
             _dataHeader.extraLength = _extra && _extra.length || 0;
 
-            _compressedData = new Buffer(Utils.Constants.LOCHDR + _entryName.length + _data.length);
-            _dataHeader.toBinary().copy(_compressedData);
-            _compressedData.write(_entryName, Utils.Constants.LOCHDR);
-            _data.copy(_compressedData, Utils.Constants.LOCHDR + _entryName.length);
-            _needDeflate = false;
+            switch (_dataHeader.method) {
+                case Utils.Constants.STORED:
+                    _dataHeader.method = Utils.Constants.STORED;
+                    _compressedData = new Buffer(Utils.Constants.LOCHDR + _entryName.length + _data.length);
+                    _dataHeader.toBinary().copy(_compressedData);
+                    _compressedData.write(_entryName, Utils.Constants.LOCHDR);
+                    _data.copy(_compressedData, Utils.Constants.LOCHDR + _entryName.length);
+                    _needDeflate = false;
+                    break;
+                default:
+                case Utils.Constants.DEFLATED:
+                    _dataHeader.method = Utils.Constants.DEFLATED;
+                    _data = new Buffer(_entryHeader.size);
+                    var deflater = new Methods.Deflater(_data);
+                    if (!async) {
+                        deflater.deflate(_compressedData);
+                    } else {
+                        deflater.deflateAsync(function(data) {
+                            _compressedData = new Buffer(data);
+                            callback(_compressedData);
+                        })
+                    }
+                    break;
+            }
+        } else {
+            if (async && callback) {
+                callback(_compressedData);
+            }
         }
     }
 
@@ -114,6 +138,7 @@ module.exports = function () {
         },
 
         get compressedData () {
+            // only returns deflated if set deflated. Otherwise it returns as stored. for now
             compress(false, null);
             return _compressedData
         },

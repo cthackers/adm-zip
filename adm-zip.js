@@ -196,8 +196,30 @@ module.exports = function(/*String*/inPath) {
          * @param localPath
          */
         addLocalFolder : function(/*String*/localPath) {
+            if (localPath.charAt(localPath.length - 1) != "/")
+                localPath += "/";
+
             if (pth.existsSync(localPath)) {
-                // do stuff
+                var items = Utils.findFiles(localPath);
+                if (items.length) {
+                    items.forEach(function(path) {
+                        var entry = new ZipEntry();
+                        entry.entryName = path.replace(localPath, "");
+                        var stats = fs.statSync(path);
+                        if (stats.isDirectory()) {
+                            entry.data = "";
+                            entry.header.inAttr = stats.mode;
+                            entry.header.attr = stats.mode
+                        } else {
+                            entry.data = fs.readFileSync(path);
+                            entry.header.inAttr = stats.mode;
+                            entry.header.attr = stats.mode
+                        }
+                        entry.attr = stats.mode;
+                        entry.header.time = stats.mtime;
+                        _zip.setEntry(entry);
+                    });
+                }
             } else {
                 throw Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath);
             }

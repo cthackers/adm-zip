@@ -31,10 +31,13 @@ module.exports = (function() {
         var files = [];
         fs.readdirSync(root).forEach(function(file) {
             var path = pth.join(root, file);
+
             if (fs.statSync(path).isDirectory() && recoursive)
                 files = files.concat(findSync(path, pattern, recoursive));
-            if (!pattern || pattern.test(path))
-                files.push(path);
+
+            if (!pattern || pattern.test(path)) {
+                files.push(path.replace(/\\/g, "/") + (fs.statSync(path).isDirectory() ? "/" : ""));
+            }
 
         });
         return files;
@@ -43,10 +46,6 @@ module.exports = (function() {
     return {
         makeDir : function(/*String*/path) {
             mkdirSync(path);
-        },
-
-        findFiles : function(/*String*/root) {
-
         },
 
         crc32 : function(buf) {
@@ -112,8 +111,12 @@ module.exports = (function() {
             fs.chmodSync(path, attr || 0666);
             return true;
         },
+
+        findFiles : function(/*String*/path) {
+            return findSync(path, true);
+        },
+
         Constants : Constants,
         Errors : Errors
     }
-
 })();
