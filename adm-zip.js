@@ -54,7 +54,7 @@ module.exports = function(/*String*/inPath) {
             return item && item.data || null;
         },
         /**
-         * Asyncronous readFile
+         * Asynchronous readFile
          * @param entry ZipEntry object or String with the full path of the entry
          * @param callback
          *
@@ -86,7 +86,7 @@ module.exports = function(/*String*/inPath) {
             return "";
         },
         /**
-         * Asyncronous readAsText
+         * Asynchronous readAsText
          * @param entry ZipEntry object or String with the full path of the entry
          * @param callback
          * @param encoding Optional. If no encoding is specified utf8 is used
@@ -106,6 +106,11 @@ module.exports = function(/*String*/inPath) {
             }
         },
 
+        /**
+         * Remove the entry from the file or the entry and all it's nested directories and files if the given entry is a directory
+         *
+         * @param entry
+         */
         deleteFile : function(/*Object*/entry) {
             var item = getEntry(entry);
             if (item) {
@@ -113,14 +118,31 @@ module.exports = function(/*String*/inPath) {
             }
         },
 
+        /**
+         * Adds a comment to the zip. The zip must be rewritten after adding the comment.
+         *
+         * @param comment
+         */
         addZipComment : function(/*String*/comment) {
             _zip.comment = comment;
         },
 
+        /**
+         * Returns the zip comment
+         *
+         * @return String
+         */
         getZipComment : function() {
-            return _zip.comment;
+            return _zip.comment || '';
         },
 
+        /**
+         * Adds a comment to a specified zipEntry. The zip must be rewritten after adding the comment
+         * The comment cannot exceed 65535 characters in length
+         *
+         * @param entry
+         * @param comment
+         */
         addZipEntryComment : function(/*Object*/entry,/*String*/comment) {
             var item = getEntry(entry);
             if (item) {
@@ -128,14 +150,26 @@ module.exports = function(/*String*/inPath) {
             }
         },
 
+        /**
+         * Returns the comment of the specified entry
+         *
+         * @param entry
+         * @return String
+         */
         getZipEntryComment : function(/*Object*/entry) {
             var item = getEntry(entry);
             if (item) {
-                return item.comment;
+                return item.comment || '';
             }
             return ''
         },
 
+        /**
+         * Updates the content of an existing entry inside the archive. The zip must be rewritten after updating the content
+         *
+         * @param entry
+         * @param content
+         */
         updateFile : function(/*Object*/entry, /*Buffer*/content) {
             var item = getEntry(entry);
             if (item) {
@@ -143,6 +177,11 @@ module.exports = function(/*String*/inPath) {
             }
         },
 
+        /**
+         * Adds a file from the disk to the archive
+         *
+         * @param localPath
+         */
         addLocalFile : function(/*String*/localPath) {
              if (pth.existsSync(localPath)) {
                   // do stuff
@@ -151,6 +190,11 @@ module.exports = function(/*String*/inPath) {
              }
         },
 
+        /**
+         * Adds a local directory and all its nested files and directories to the archive
+         *
+         * @param localPath
+         */
         addLocalFolder : function(/*String*/localPath) {
             if (pth.existsSync(localPath)) {
                 // do stuff
@@ -159,6 +203,16 @@ module.exports = function(/*String*/inPath) {
             }
         },
 
+        /**
+         * Allows you to programmatically create a entry (file or directory) in the zip file.
+         * If you want to create a directory the entryName must end in / and a null buffer should be provided.
+         * Comment and attributes are optional
+         *
+         * @param entryName
+         * @param content
+         * @param comment
+         * @param attr
+         */
         addFile : function(/*String*/entryName, /*Buffer*/content, /*String*/comment, /*Number*/attr) {
             var entry = new ZipEntry();
             entry.entryName = entryName;
@@ -185,6 +239,12 @@ module.exports = function(/*String*/inPath) {
             }
         },
 
+        /**
+         * Returns a ZipEntry object representing the file or folder specified by ``name``.
+         *
+         * @param name
+         * @return ZipEntry
+         */
         getEntry : function(/*String*/name) {
             return getEntry(name);
         },
@@ -256,6 +316,11 @@ module.exports = function(/*String*/inPath) {
             })
         },
 
+        /**
+         * Writes the newly created zip file to disk at the specified location or if a zip was opened and no ``targetFileName`` is provided, it will overwrite the opened zip
+         *
+         * @param targetFileName
+         */
         writeZip : function(/*String*/targetFileName) {
             if (!targetFileName) return;
             var zipData = _zip.toBuffer();
@@ -264,6 +329,11 @@ module.exports = function(/*String*/inPath) {
             }
         },
 
+        /**
+         * Returns the content of the entire zip file as a Buffer object
+         *
+         * @return Buffer
+         */
         toBuffer : function() {
             return _zip.toBuffer()
         }
