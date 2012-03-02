@@ -3,7 +3,7 @@ var Utils = require("../util"),
 
 /* The central directory file header */
 module.exports = function () {
-    var _verMade = 0,
+    var _verMade = 0x0A,
         _version = 10,
         _flags = 0,
         _method = 0,

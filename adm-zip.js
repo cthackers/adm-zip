@@ -38,9 +38,9 @@ module.exports = function(/*String*/inPath) {
         return null;
     }
 
-    process.on('uncaughtException', function (err) {
-        console.log('Caught exception: ' + err);
-    });
+    //process.on('uncaughtException', function (err) {
+    //    console.log('Caught exception: ' + err);
+    //});
 
     return {
         /**
@@ -344,6 +344,9 @@ module.exports = function(/*String*/inPath) {
          * @param targetFileName
          */
         writeZip : function(/*String*/targetFileName) {
+            if (!targetFileName && _filename) {
+                targetFileName = _filename;
+            }
             if (!targetFileName) return;
             var zipData = _zip.toBuffer();
             if (zipData) {

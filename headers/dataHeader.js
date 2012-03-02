@@ -3,7 +3,7 @@ var Utils = require("../util"),
 
 /* The local file header */
 module.exports = function () {
-    var _version = 0,
+    var _version = 0x0A,
         _flags = 0,
         _method = 0,
         _time = 0,
@@ -15,7 +15,7 @@ module.exports = function () {
 
     return {
         get version () { return _version; },
-        set version (val) { _version = val },
+        set version (val) { _version = 0x0A },
 
         get flags () { return _flags },
         set flags (val) { _flags = val; },

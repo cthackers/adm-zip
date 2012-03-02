@@ -203,10 +203,6 @@ module.exports = function(/*Buffer*/buf) {
 
             mainHeader.copy(outBuffer, dindex);
 
-            delete(data);
-            delete(header);
-            delete(mainHeader);
-
             return outBuffer
         }
     }
