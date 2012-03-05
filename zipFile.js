@@ -169,6 +169,8 @@ module.exports = function(/*Buffer*/buf) {
             endHeader.size = 0;
             endHeader.offset = 0;
 
+
+
             entryList.forEach(function(entry) {
                 entry.header.offset = dindex;
                 var compressedData = entry.compressedData;
