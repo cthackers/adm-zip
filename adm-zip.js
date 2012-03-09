@@ -51,7 +51,7 @@ module.exports = function(/*String*/inPath) {
          */
         readFile : function(/*Object*/entry) {
             var item = getEntry(entry);
-            return item && item.data || null;
+            return item && item.getData() || null;
         },
         /**
          * Asynchronous readFile
@@ -78,7 +78,7 @@ module.exports = function(/*String*/inPath) {
         readAsText : function(/*Object*/entry, /*String - Optional*/encoding) {
             var item = getEntry(entry);
             if (item) {
-                var data = item.data;
+                var data = item.getData();
                 if (data && data.length) {
                     return data.toString(encoding || "utf8");
                 }
@@ -173,7 +173,7 @@ module.exports = function(/*String*/inPath) {
         updateFile : function(/*Object*/entry, /*Buffer*/content) {
             var item = getEntry(entry);
             if (item) {
-                item.data = content;
+                item.setData(content);
             }
         },
 
@@ -207,11 +207,11 @@ module.exports = function(/*String*/inPath) {
                         entry.entryName = path.replace(localPath, "");
                         var stats = fs.statSync(path);
                         if (stats.isDirectory()) {
-                            entry.data = "";
+                            entry.setData("");
                             entry.header.inAttr = stats.mode;
                             entry.header.attr = stats.mode
                         } else {
-                            entry.data = fs.readFileSync(path);
+                            entry.setData(fs.readFileSync(path));
                             entry.header.inAttr = stats.mode;
                             entry.header.attr = stats.mode
                         }
@@ -243,7 +243,7 @@ module.exports = function(/*String*/inPath) {
             if (entry.isDirectory && content.length) {
                 throw Utils.Errors.DIRECTORY_CONTENT_ERROR;
             }
-            entry.data = content;
+            entry.setData(content);
             entry.header.time = new Date();
             _zip.setEntry(entry);
         },
@@ -300,13 +300,13 @@ module.exports = function(/*String*/inPath) {
                 var children = _zip.getEntryChildren(item);
                 children.forEach(function(child) {
                     if (child.isDirectory) return;
-                    var content = child.data;
+                    var content = child.getData();
                     if (!content) throw Utils.Errors.CANT_EXTRACT_FILE;
                     Utils.writeFileTo(pth.resolve(targetPath, maintainEntryPath ? child.entryName : child.entryName.substr(item.entryName.length)), content, overwrite);
                 })
             }
 
-            var content = item.data;
+            var content = item.getData();
             if (!content) throw Utils.Errors.CANT_EXTRACT_FILE;
 
             if (pth.existsSync(targetPath) && !overwrite) {
@@ -332,7 +332,7 @@ module.exports = function(/*String*/inPath) {
 
             _zip.entries.forEach(function(entry) {
                  if (entry.isDirectory) return;
-                var content = entry.data;
+                var content = entry.getData();
                 if (!content) throw Utils.Errors.CANT_EXTRACT_FILE;
                 Utils.writeFileTo(pth.resolve(targetPath, entry.entryName), content, overwrite);
             })

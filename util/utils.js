@@ -51,7 +51,6 @@ module.exports = (function() {
         crc32 : function(buf) {
             var b = new Buffer(4);
             if (!crcTable.length) {
-                var tmp = [];
                 for (var n = 0; n < 256; n++) {
                     var c = n;
                     for (var k = 8; --k >= 0;)  //
@@ -94,7 +93,7 @@ module.exports = (function() {
             }
             var folder = pth.dirname(path);
             if (!pth.existsSync(folder)) {
-                exports.Utils.makeDir(folder);
+                mkdirSync(folder);
             }
 
             var fd;

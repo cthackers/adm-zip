@@ -70,7 +70,7 @@ module.exports = function () {
             _dataHeader.time = _entryHeader.time;
             _dataHeader.compressedSize = _data.length;
             _dataHeader.fileNameLength = _entryName.length;
-
+            _dataHeader.method = 8;
             switch (_dataHeader.method) {
                 case Utils.Constants.STORED:
                     _dataHeader.method = Utils.Constants.STORED;
@@ -82,20 +82,27 @@ module.exports = function () {
                 default:
                 case Utils.Constants.DEFLATED:
                     _dataHeader.method = Utils.Constants.DEFLATED;
+                    _entryHeader.method = Utils.Constants.DEFLATED;
+
                     var deflater = new Methods.Deflater(_data);
                     if (!async) {
-                        _dataHeader.method = Utils.Constants.STORED;
-                        _entryHeader.method = Utils.Constants.STORED;
-                        _compressedData = new Buffer(Utils.Constants.LOCHDR + _entryName.length + _data.length);
+                        var deflated = deflater.deflate();
+                        _compressedData = new Buffer(deflated.length + Utils.Constants.LOCHDR + _entryName.length);
                         _dataHeader.toBinary().copy(_compressedData);
                         _compressedData.write(_entryName, Utils.Constants.LOCHDR);
-                        _data.copy(_compressedData, Utils.Constants.LOCHDR + _entryName.length);
+                        deflated.copy(_compressedData, Utils.Constants.LOCHDR + _entryName.length);
+
+                        deflated = null;
                     } else {
                         deflater.deflateAsync(function(data) {
-                            _compressedData = new Buffer(data);
+                            _compressedData = new Buffer(data.length + Utils.Constants.LOCHDR + _entryName.length);
+                            _dataHeader.toBinary().copy(_compressedData);
+                            _compressedData.write(_entryName, Utils.Constants.LOCHDR);
+                            data.copy(_compressedData, Utils.Constants.LOCHDR + _entryName.length);
                             callback(_compressedData);
                         })
                     }
+                    deflater = null;
                     break;
             }
             _needDeflate = false;
@@ -131,21 +138,21 @@ module.exports = function () {
         get name () { return _entryName.split("/").pop(); },
         get isDirectory () { return _isDirectory },
 
-        set compressedData (value) {
+        setCompressedData : function(value) {
             _compressedData = value;
             _dataHeader.loadFromBinary(_compressedData.slice(0, Utils.Constants.LOCHDR));
             _data = null;
         },
 
-        get compressedData () {
-            // only returns deflated if set deflated. Otherwise it returns as stored. for now
+        getCompressedData : function() {
             compress(false, null);
             return _compressedData
         },
-        getCompressedData : function(/*Function*/callback) {
+        getCompressedDataAsync : function(/*Function*/callback) {
             compress(true, callback)
         },
-        set data (value) {
+
+        setData : function(value) {
             if (typeof value == "string") {
                 value = new Buffer(value);
             }
@@ -167,15 +174,12 @@ module.exports = function () {
             _data = value;
         },
 
-        get data() {
+        getData : function() {
             decompress(false, null);
             return _data
         },
-        /**
-         * Decompress data async
-         * @param callback
-         */
-        getData : function(/*Function*/callback) {
+
+        getDataAsync : function(/*Function*/callback) {
             decompress(true, callback)
         },
 

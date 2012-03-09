@@ -34,7 +34,7 @@ module.exports = function(/*Buffer*/buf) {
 
             if (!entry.isDirectory) {
                 // read data
-                entry.compressedData = buf.slice(entry.header.offset, entry.header.offset + Utils.Constants.LOCHDR + entry.header.compressedSize + entry.entryName.length);
+                entry.setCompressedData(buf.slice(entry.header.offset, entry.header.offset + Utils.Constants.LOCHDR + entry.header.compressedSize + entry.entryName.length));
             }
 
             entryList[i] = entry;
@@ -169,11 +169,9 @@ module.exports = function(/*Buffer*/buf) {
             endHeader.size = 0;
             endHeader.offset = 0;
 
-
-
             entryList.forEach(function(entry) {
                 entry.header.offset = dindex;
-                var compressedData = entry.compressedData;
+                var compressedData = entry.getCompressedData();
                 dindex += compressedData.length;
                 data.push(compressedData);
 
