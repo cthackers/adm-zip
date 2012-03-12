@@ -16,8 +16,15 @@ module.exports = function () {
         _needDeflate = false;
 
     function decompress(/*Boolean*/async, /*Function*/callback) {
-        if (_data == null)   {
+       // if (_data == null)   {
+        if (true) {
             if (_compressedData == null) {
+                if (_isDirectory) {
+                    if (async && callback) {
+                        callback(new Buffer());
+                    }
+                    return;
+                }
                 throw 'Noting to decompress';
             }
             switch (_dataHeader.method) {
@@ -29,15 +36,18 @@ module.exports = function () {
                     }
                     break;
                 case Utils.Constants.DEFLATED:
-                    _data = new Buffer(_entryHeader.size);
                     var inflater = new Methods.Inflater(_compressedData.slice(_dataHeader.fileHeaderSize));
                     if (!async) {
+                        _data = new Buffer(_entryHeader.size);
+                        _data.fill(0);
                         inflater.inflate(_data);
                         if (Utils.crc32(_data) != _dataHeader.crc) {
-                            throw Utils.Errors.BAD_CRC
+                            throw Utils.Errors.BAD_CRC + " " + _entryName
                         }
                     } else {
                         inflater.inflateAsync(function(data) {
+                            _data = new Buffer(_entryHeader.size);
+                            _data.fill(0);
                             data.copy(_data, 0);
                             if (Utils.crc32(_data) != _dataHeader.crc) {
                                 throw Utils.Errors.BAD_CRC
@@ -128,13 +138,13 @@ module.exports = function () {
             _extra = val;
             _entryHeader.extraLength = val.length;
         },
-        
+
         get comment () { return _comment; },
         set comment (val) {
             _comment = val;
             _entryHeader.commentLength = val.length;
         },
-        
+
         get name () { return _entryName.split("/").pop(); },
         get isDirectory () { return _isDirectory },
 

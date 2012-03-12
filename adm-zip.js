@@ -12,7 +12,6 @@ module.exports = function(/*String*/inPath) {
     if (inPath && typeof inPath === "string") { // load zip file
         if (pth.existsSync(inPath)) {
             _filename = inPath;
-            console.log(require("util").inspect(process.memoryUsage()));
             _zip = new ZipFile(fs.readFileSync(inPath));
         } else {
            throw Utils.Errors.INVALID_FILENAME;
@@ -301,9 +300,12 @@ module.exports = function(/*String*/inPath) {
                 children.forEach(function(child) {
                     if (child.isDirectory) return;
                     var content = child.getData();
-                    if (!content) throw Utils.Errors.CANT_EXTRACT_FILE;
+                    if (!content) {
+                        throw Utils.Errors.CANT_EXTRACT_FILE;
+                    }
                     Utils.writeFileTo(pth.resolve(targetPath, maintainEntryPath ? child.entryName : child.entryName.substr(item.entryName.length)), content, overwrite);
-                })
+                });
+                return true;
             }
 
             var content = item.getData();
@@ -331,9 +333,11 @@ module.exports = function(/*String*/inPath) {
             }
 
             _zip.entries.forEach(function(entry) {
-                 if (entry.isDirectory) return;
+                if (entry.isDirectory) return;
                 var content = entry.getData();
-                if (!content) throw Utils.Errors.CANT_EXTRACT_FILE;
+                if (!content) {
+                    throw Utils.Errors.CANT_EXTRACT_FILE + "2";
+                }
                 Utils.writeFileTo(pth.resolve(targetPath, entry.entryName), content, overwrite);
             })
         },
