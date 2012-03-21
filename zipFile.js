@@ -204,6 +204,10 @@ module.exports = function(/*Buffer*/buf) {
             mainHeader.copy(outBuffer, dindex);
 
             return outBuffer
+        },
+
+        toAsyncBuffer : function(/*Function*/callback) {
+
         }
     }
 };

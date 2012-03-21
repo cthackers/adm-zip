@@ -42,7 +42,7 @@ module.exports = function () {
                         _data.fill(0);
                         inflater.inflate(_data);
                         if (Utils.crc32(_data) != _dataHeader.crc) {
-                            throw Utils.Errors.BAD_CRC + " " + _entryName
+                            console.warn( Utils.Errors.BAD_CRC + " " + _entryName)
                         }
                     } else {
                         inflater.inflateAsync(function(data) {
@@ -73,6 +73,8 @@ module.exports = function () {
         if (_compressedData == null) {
             if (_isDirectory || !_data) {
                 _data = new Buffer(0);
+                _compressedData = new Buffer(0);
+                return;
             }
             // Local file header
             _dataHeader.version = 10;
@@ -98,6 +100,8 @@ module.exports = function () {
                     if (!async) {
                         var deflated = deflater.deflate();
                         _compressedData = new Buffer(deflated.length + Utils.Constants.LOCHDR + _entryName.length);
+                        _compressedData.fill(0);
+
                         _dataHeader.toBinary().copy(_compressedData);
                         _compressedData.write(_entryName, Utils.Constants.LOCHDR);
                         deflated.copy(_compressedData, Utils.Constants.LOCHDR + _entryName.length);
@@ -152,6 +156,7 @@ module.exports = function () {
             _compressedData = value;
             _dataHeader.loadFromBinary(_compressedData.slice(0, Utils.Constants.LOCHDR));
             _data = null;
+            _needDeflate = false;
         },
 
         getCompressedData : function() {
@@ -179,7 +184,7 @@ module.exports = function () {
                 _dataHeader.crc = Utils.crc32(value);
                 _entryHeader.crc = _dataHeader.crc;
             }
-            _entryHeader.method = _dataHeader.method;
+            //_entryHeader.method = _dataHeader.method;
 
             _data = value;
         },
@@ -208,7 +213,7 @@ module.exports = function () {
                 _extra.copy(header, Utils.Constants.CENHDR + _entryName.length)
             }
             if (_entryHeader.commentLength) {
-                header.write(_comment, Utils.Constants.CENHDR + _entryName.length + _entryHeader.extraLength)
+                header.write(_comment, Utils.Constants.CENHDR + _entryName.length + _entryHeader.extraLength, _comment.length, 'utf8');
             }
             return header;
         },

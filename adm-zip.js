@@ -62,7 +62,7 @@ module.exports = function(/*String*/inPath) {
         readFileAsync : function(/*Object*/entry, /*Function*/callback) {
             var item = getEntry(entry);
             if (item) {
-                item.getData(callback);
+                item.getDataAsync(callback);
             } else {
                 callback(null)
             }
@@ -95,9 +95,11 @@ module.exports = function(/*String*/inPath) {
         readAsTextAsync : function(/*Object*/entry, /*Function*/callback, /*String - Optional*/encoding) {
             var item = getEntry(entry);
             if (item) {
-                item.getData(function(data) {
+                item.getDataAsync(function(data) {
                     if (data && data.length) {
                         callback(data.toString(encoding || "utf8"));
+                    } else {
+                        callback("");
                     }
                 })
             } else {
@@ -110,7 +112,7 @@ module.exports = function(/*String*/inPath) {
          *
          * @param entry
          */
-        deleteFile : function(/*Object*/entry) {
+        deleteFile : function(/*Object*/entry) { // @TODO: test deleteFile
             var item = getEntry(entry);
             if (item) {
                 _zip.deleteEntry(item.entryName);
@@ -122,7 +124,7 @@ module.exports = function(/*String*/inPath) {
          *
          * @param comment
          */
-        addZipComment : function(/*String*/comment) {
+        addZipComment : function(/*String*/comment) { // @TODO: test addZipComment
             _zip.comment = comment;
         },
 
@@ -347,11 +349,19 @@ module.exports = function(/*String*/inPath) {
          *
          * @param targetFileName
          */
-        writeZip : function(/*String*/targetFileName) {
+        writeZip : function(/*String*/targetFileName, /*Function*/callback) {
+
+            if (arguments.length == 1) {
+                if (typeof targetFileName == "function")
+                    callback = targetFileName;
+                    targetFileName = "";
+            }
+
             if (!targetFileName && _filename) {
                 targetFileName = _filename;
             }
             if (!targetFileName) return;
+
             var zipData = _zip.toBuffer();
             if (zipData) {
                 Utils.writeFileTo(targetFileName, zipData, true);
@@ -363,8 +373,19 @@ module.exports = function(/*String*/inPath) {
          *
          * @return Buffer
          */
-        toBuffer : function() {
+        toBuffer : function(/*Function*/callback) {
+            this.valueOf = 2;
+            if (typeof callback == "function") {
+                _zip.toAsyncBuffer(callback);
+                return null;
+            }
             return _zip.toBuffer()
         }
+
+        /*get lastError () {
+            var x = function() { console.log("2", arguments); };
+            x.prototype = 2
+            return x; //
+        } */
     }
 };

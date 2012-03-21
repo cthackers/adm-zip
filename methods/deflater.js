@@ -1001,31 +1001,32 @@ function JSDeflater(/*inbuff*/inbuf) {
         deflatePos = 0;
         deflateStart(level);
 
-        var buff = new Array(1),
+        var buff = new Array(1024),
             pages = [],
             totalSize = 0,
             i;
 
+        for (i = 0; i < 1024; i++) buff[i] = 0;
+
         while((i = internalDeflate(buff, 0, buff.length)) > 0) {
-            var buf = new Buffer(buff);
+            var buf = new Buffer(buff.slice(0, i));
             pages.push(buf);
             totalSize += buff.length;
         }
         var result = new Buffer(totalSize),
             index = 0;
+
         for (i = 0; i < pages.length; i++) {
             pages[i].copy(result, index);
             index = index + pages[i].length
         }
-
-        cleanup();
 
         return result;
     }
 
     return {
         deflate : function() {
-            return deflate(inbuf, 9);
+            return deflate(inbuf, 8);
         }
     }
 }
