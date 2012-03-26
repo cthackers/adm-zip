@@ -352,9 +352,10 @@ module.exports = function(/*String*/inPath) {
         writeZip : function(/*String*/targetFileName, /*Function*/callback) {
 
             if (arguments.length == 1) {
-                if (typeof targetFileName == "function")
+                if (typeof targetFileName == "function") {
                     callback = targetFileName;
                     targetFileName = "";
+				}
             }
 
             if (!targetFileName && _filename) {
