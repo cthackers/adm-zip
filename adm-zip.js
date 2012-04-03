@@ -1,5 +1,6 @@
 var fs = require("fs"),
-    pth = require('path');
+    buffer = require("buffer"),
+    pth = require("path");
 
 var ZipEntry = require("./zipEntry"),
     ZipFile =  require("./zipFile"),
@@ -16,6 +17,8 @@ module.exports = function(/*String*/inPath) {
         } else {
            throw Utils.Errors.INVALID_FILENAME;
         }
+    } else if(inPath && Buffer.isBuffer(inPath)) { // load buffer
+        _zip = new ZipFile(inPath);
     } else { // create new zip file
         _zip = new ZipFile();
     }
