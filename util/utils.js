@@ -3,15 +3,18 @@ var fs = require("fs"),
 
 module.exports = (function() {
 
-    var crcTable = []; // cache crc table
-    var Constants = require('./constants'),
-        Errors = require('./errors');
+    var crcTable = [],
+        Constants = require('./constants'),
+        Errors = require('./errors'),
+
+        PATH_SEPARATOR = pth.normalize("/");
+
 
     function mkdirSync(/*String*/path) {
-        var resolvedPath = path.split('\\')[0];
-        path.split('\\').forEach(function(name) {
+        var resolvedPath = path.split(PATH_SEPARATOR)[0];
+        path.split(PATH_SEPARATOR).forEach(function(name) {
             if (!name || name.substr(-1,1) == ":") return;
-            resolvedPath += '\\' + name;
+            resolvedPath += PATH_SEPARATOR + name;
             var stat;
             try {
                 stat = fs.statSync(resolvedPath);
@@ -36,7 +39,7 @@ module.exports = (function() {
                 files = files.concat(findSync(path, pattern, recoursive));
 
             if (!pattern || pattern.test(path)) {
-                files.push(path.replace(/\\/g, "/") + (fs.statSync(path).isDirectory() ? "/" : ""));
+                files.push(pth.normalize(path) + (fs.statSync(path).isDirectory() ? PATH_SEPARATOR : ""));
             }
 
         });
@@ -113,6 +116,14 @@ module.exports = (function() {
 
         findFiles : function(/*String*/path) {
             return findSync(path, true);
+        },
+
+        getAttributes : function(/*String*/path) {
+
+        },
+
+        setAttributes : function(/*String*/path) {
+
         },
 
         Constants : Constants,
