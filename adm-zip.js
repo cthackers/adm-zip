@@ -11,7 +11,7 @@ module.exports = function(/*String*/inPath) {
         _filename = "";
 
     if (inPath && typeof inPath === "string") { // load zip file
-        if (pth.existsSync(inPath)) {
+        if (fs.existsSync(inPath)) {
             _filename = inPath;
             _zip = new ZipFile(fs.readFileSync(inPath));
         } else {
