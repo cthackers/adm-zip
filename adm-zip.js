@@ -2,6 +2,8 @@ var fs = require("fs"),
     buffer = require("buffer"),
     pth = require("path");
 
+fs.existsSync = fs.existsSync || pth.existsSync;
+
 var ZipEntry = require("./zipEntry"),
     ZipFile =  require("./zipFile"),
     Utils = require("./util");
@@ -187,7 +189,7 @@ module.exports = function(/*String*/inPath) {
          * @param localPath
          */
         addLocalFile : function(/*String*/localPath) {
-             if (pth.existsSync(localPath)) {
+             if (fs.existsSync(localPath)) {
                   // do stuff
              } else {
                  throw Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath);
@@ -203,7 +205,7 @@ module.exports = function(/*String*/inPath) {
             if (localPath.charAt(localPath.length - 1) != "/")
                 localPath += "/";
 
-            if (pth.existsSync(localPath)) {
+            if (fs.existsSync(localPath)) {
                 var items = Utils.findFiles(localPath);
                 if (items.length) {
                     items.forEach(function(path) {
@@ -316,7 +318,7 @@ module.exports = function(/*String*/inPath) {
             var content = item.getData();
             if (!content) throw Utils.Errors.CANT_EXTRACT_FILE;
 
-            if (pth.existsSync(targetPath) && !overwrite) {
+            if (fs.existsSync(targetPath) && !overwrite) {
                 throw Utils.Errors.CANT_OVERRIDE;
             }
             Utils.writeFileTo(target, content, overwrite);
@@ -358,7 +360,7 @@ module.exports = function(/*String*/inPath) {
                 if (typeof targetFileName == "function") {
                     callback = targetFileName;
                     targetFileName = "";
-				}
+                }
             }
 
             if (!targetFileName && _filename) {
