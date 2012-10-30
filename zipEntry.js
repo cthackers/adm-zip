@@ -21,19 +21,26 @@ module.exports = function () {
             if (_compressedData == null) {
                 if (_isDirectory) {
                     if (async && callback) {
-                        callback(new Buffer());
+                        callback(new Buffer(), "directory");//si added error.
                     }
                     return;
                 }
-                throw 'Noting to decompress';
+                //throw 'Noting to decompress';
+			    callback(new Buffer(), "Nothing to decompress");//si added error.
+            	
             }
             switch (_dataHeader.method) {
                 case Utils.Constants.STORED:
                     _data = new Buffer(_dataHeader.size);
                     _compressedData.copy(_data, 0, _dataHeader.fileHeaderSize);
                     if (Utils.crc32(_data) != _dataHeader.crc) {
-                        throw Utils.Errors.BAD_CRC
-                    }
+                        //throw Utils.Errors.BAD_CRC
+						callback(_data, Utils.Errors.BAD_CRC);//si added error
+						return Utils.Errors.BAD_CRC;
+                    } else {//si added otherwise did not seem to return data.
+						if (callback) callback(_data);
+						return 'ok';
+					}
                     break;
                 case Utils.Constants.DEFLATED:
                     var inflater = new Methods.Inflater(_compressedData.slice(_dataHeader.fileHeaderSize));
@@ -50,14 +57,20 @@ module.exports = function () {
                             _data.fill(0);
                             data.copy(_data, 0);
                             if (Utils.crc32(_data) != _dataHeader.crc) {
-                                throw Utils.Errors.BAD_CRC
-                            }
-                            callback(_data);
+                                //throw Utils.Errors.BAD_CRC
+								callback(_data,Utils.Errors.BAD_CRC);//avoid throw it would bring down node.
+								return Utils.Errors.BAD_CRC
+							} else {
+								callback(_data);
+								return 'ok';
+							}
                         })
                     }
                     break;
                 default:
-                    throw Utils.Errors.UNKNOWN_METHOD;
+                    //throw Utils.Errors.UNKNOWN_METHOD;
+					callback(new Buffer(),Utils.Errors.BAD_CRC);//avoid throw it would bring down node.
+                    return Utils.Errors.UNKNOWN_METHOD;        
             }
         } else {
             if (async && callback) {

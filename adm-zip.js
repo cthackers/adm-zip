@@ -11,7 +11,7 @@ module.exports = function(/*String*/inPath) {
         _filename = "";
 
     if (inPath && typeof inPath === "string") { // load zip file
-        if (pth.existsSync(inPath)) {
+        if (fs.existsSync(inPath)) {
             _filename = inPath;
             _zip = new ZipFile(fs.readFileSync(inPath));
         } else {
@@ -67,7 +67,7 @@ module.exports = function(/*String*/inPath) {
             if (item) {
                 item.getDataAsync(callback);
             } else {
-                callback(null)
+                callback(null,"getEntry failed for:"+entry)
             }
         },
         /**
@@ -187,7 +187,7 @@ module.exports = function(/*String*/inPath) {
          * @param localPath
          */
         addLocalFile : function(/*String*/localPath) {
-             if (pth.existsSync(localPath)) {
+            if (fs.existsSync(localPath)) {
                   // do stuff
              } else {
                  throw Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath);
@@ -200,18 +200,19 @@ module.exports = function(/*String*/inPath) {
          * @param localPath
          */
         addLocalFolder : function(/*String*/localPath) {
-            if (localPath.charAt(localPath.length - 1) != "/")
+            localPath = localPath.split("\\").join("/");//windows fix
+			if (localPath.charAt(localPath.length - 1) != "/")
                 localPath += "/";
-
-            if (pth.existsSync(localPath)) {
-                var items = Utils.findFiles(localPath);
+			
+			if (fs.existsSync(localPath)) {
+				var items = Utils.findFiles(localPath);
                 if (items.length) {
                     items.forEach(function(path) {
                         var entry = new ZipEntry();
-                        entry.entryName = path.replace(localPath, "");
-                        var stats = fs.statSync(path);
+                        entry.entryName = path.split("\\").join("/").replace(localPath, "");//windows fix
+						var stats = fs.statSync(path);
                         if (stats.isDirectory()) {
-                            entry.setData("");
+						    entry.setData("");
                             entry.header.inAttr = stats.mode;
                             entry.header.attr = stats.mode
                         } else {
@@ -316,7 +317,7 @@ module.exports = function(/*String*/inPath) {
             var content = item.getData();
             if (!content) throw Utils.Errors.CANT_EXTRACT_FILE;
 
-            if (pth.existsSync(targetPath) && !overwrite) {
+            if (fs.existsSync(targetPath) && !overwrite) {
                 throw Utils.Errors.CANT_OVERRIDE;
             }
             Utils.writeFileTo(target, content, overwrite);
