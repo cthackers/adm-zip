@@ -69,7 +69,7 @@ module.exports = function(/*String*/inPath) {
             if (item) {
                 item.getDataAsync(callback);
             } else {
-                callback(null)
+                callback(null,"getEntry failed for:" + entry)
             }
         },
         /**
@@ -202,6 +202,7 @@ module.exports = function(/*String*/inPath) {
          * @param localPath
          */
         addLocalFolder : function(/*String*/localPath) {
+			localPath = localPath.split("\\").join("/"); //windows fix
             if (localPath.charAt(localPath.length - 1) != "/")
                 localPath += "/";
 
@@ -210,7 +211,7 @@ module.exports = function(/*String*/inPath) {
                 if (items.length) {
                     items.forEach(function(path) {
                         var entry = new ZipEntry();
-                        entry.entryName = path.replace(localPath, "");
+						entry.entryName = path.split("\\").join("/").replace(localPath, ""); //windows fix
                         var stats = fs.statSync(path);
                         if (stats.isDirectory()) {
                             entry.setData("");
