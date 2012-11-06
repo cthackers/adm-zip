@@ -87,7 +87,7 @@ module.exports = (function() {
         },
 
         writeFileTo : function(/*String*/path, /*Buffer*/content, /*Boolean*/overwrite, /*Number*/attr) {
-            if (pth.existsSync(path)) {
+            if (fs.existsSync(path)) {
                 if (!overwrite)
                     return false; // cannot overwite
 
