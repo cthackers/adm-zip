@@ -1,6 +1,8 @@
 var fs = require("fs"),
     pth = require('path');
 
+fs.existsSync = fs.existsSync || pth.existsSync;
+	
 module.exports = (function() {
 
     var crcTable = [],
@@ -85,7 +87,7 @@ module.exports = (function() {
         },
 
         writeFileTo : function(/*String*/path, /*Buffer*/content, /*Boolean*/overwrite, /*Number*/attr) {
-            if (pth.existsSync(path)) {
+            if (fs.existsSync(path)) {
                 if (!overwrite)
                     return false; // cannot overwite
 
