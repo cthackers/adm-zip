@@ -1,6 +1,8 @@
 var fs = require("fs"),
     pth = require('path');
 
+fs.existsSync = fs.existsSync || pth.existsSync;
+	
 module.exports = (function() {
 
     var crcTable = [],
