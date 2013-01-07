@@ -34,7 +34,8 @@ module.exports = function(/*Buffer*/buf) {
 
             if (!entry.isDirectory) {
                 // read data
-                entry.setCompressedData(buf.slice(entry.header.offset, entry.header.offset + Utils.Constants.LOCHDR + entry.header.compressedSize + entry.entryName.length));
+                //entry.setCompressedData(buf.slice(entry.header.offset, entry.header.offset + Utils.Constants.LOCHDR + entry.header.compressedSize + entry.entryName.length));
+                entry.setCompressedData(buf.slice(entry.header.offset, entry.header.offset + Utils.Constants.LOCHDR + entry.header.compressedSize + entry.entryName.length + buf.readUInt16LE(entry.header.offset + Utils.Constants.LOCEXT)));
             }
 
             entryList[i] = entry;
