@@ -97,7 +97,7 @@ module.exports = (function() {
                 }
             }
             var folder = pth.dirname(path);
-            if (!pth.existsSync(folder)) {
+            if (!fs.existsSync(folder)) {
                 mkdirSync(folder);
             }
 

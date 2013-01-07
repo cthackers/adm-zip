@@ -21,7 +21,7 @@ module.exports = function(/*String*/path) {
         }
     }
 
-    if (_path && pth.existsSync(_path)) {
+    if (_path && fs.existsSync(_path)) {
         _stat = fs.statSync(_path);
         _obj.directory = _stat.isDirectory();
         _obj.mtime = _stat.mtime;
