@@ -293,7 +293,7 @@ module.exports = function(/*String*/inPath) {
          */
         extractEntryTo : function(/*Object*/entry, /*String*/targetPath, /*Boolean*/maintainEntryPath, /*Boolean*/overwrite) {
             overwrite = overwrite || false;
-            maintainEntryPath = typeof maintainEntryPath == "undefned" ? true : maintainEntryPath;
+            maintainEntryPath = typeof maintainEntryPath == "undefined" ? true : maintainEntryPath;
 
             var item = getEntry(entry);
             if (!item) {
