@@ -79,7 +79,7 @@ module.exports = (function() {
                 case Constants.STORED:
                     return 'STORED (' + method + ')';
                 case Constants.DEFLATED:
-                    return 'DEFATED (' + method + ')';
+                    return 'DEFLATED (' + method + ')';
                 default:
                     return 'UNSUPPORTED (' + method + ')'
             }
