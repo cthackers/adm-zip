@@ -190,7 +190,15 @@ module.exports = function(/*String*/inPath) {
          */
         addLocalFile : function(/*String*/localPath) {
              if (fs.existsSync(localPath)) {
-                  // do stuff
+                 var entry = new ZipEntry();
+                 entry.entryName = localPath.split("\\").join("/"); //windows fix
+                 var stats = fs.statSync(localPath);
+                 entry.setData(fs.readFileSync(localPath));
+                 entry.header.inAttr = stats.mode;
+                 entry.header.attr = stats.mode;
+                 entry.attr = stats.mode;
+                 entry.header.time = stats.mtime;
+                 _zip.setEntry(entry);
              } else {
                  throw Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath);
              }
@@ -233,7 +241,7 @@ module.exports = function(/*String*/inPath) {
         },
 
         /**
-         * Allows you to programmatically create a entry (file or directory) in the zip file.
+         * Allows you to create a entry (file or directory) in the zip file.
          * If you want to create a directory the entryName must end in / and a null buffer should be provided.
          * Comment and attributes are optional
          *
@@ -356,7 +364,6 @@ module.exports = function(/*String*/inPath) {
          * @param targetFileName
          */
         writeZip : function(/*String*/targetFileName, /*Function*/callback) {
-
             if (arguments.length == 1) {
                 if (typeof targetFileName == "function") {
                     callback = targetFileName;

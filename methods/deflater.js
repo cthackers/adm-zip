@@ -1011,7 +1011,7 @@ function JSDeflater(/*inbuff*/inbuf) {
         while((i = internalDeflate(buff, 0, buff.length)) > 0) {
             var buf = new Buffer(buff.slice(0, i));
             pages.push(buf);
-            totalSize += buff.length;
+            totalSize += buf.length;
         }
         var result = new Buffer(totalSize),
             index = 0;
