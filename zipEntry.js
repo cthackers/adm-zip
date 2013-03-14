@@ -7,12 +7,12 @@ module.exports = function () {
     var _entryHeader = new Headers.EntryHeader(),
         _dataHeader = new Headers.DataHeader(),
 
-        _entryName = "",
+        _entryName = new Buffer(0),
         _isDirectory = false,
         _extra = null,
         _compressedData = null,
         _data = null,
-        _comment = "",
+        _comment = new Buffer(0),
         _needDeflate = false;
 
     function decompress(/*Boolean*/async, /*Function*/callback) {
@@ -48,7 +48,7 @@ module.exports = function () {
                         _data.fill(0);
                         inflater.inflate(_data);
                         if (Utils.crc32(_data) != _dataHeader.crc) {
-                            console.warn( Utils.Errors.BAD_CRC + " " + _entryName)
+                            console.warn( Utils.Errors.BAD_CRC + " " + _entryName.toString())
                         }
                     } else {
                         inflater.inflateAsync(function(data) {
@@ -100,7 +100,7 @@ module.exports = function () {
                     _dataHeader.method = Utils.Constants.STORED;
                     _compressedData = new Buffer(Utils.Constants.LOCHDR + _entryName.length + _data.length);
                     _dataHeader.toBinary().copy(_compressedData);
-                    _compressedData.write(_entryName, Utils.Constants.LOCHDR);
+                    _entryName.copy(_compressedData, Utils.Constants.LOCHDR);
                     _data.copy(_compressedData, Utils.Constants.LOCHDR + _entryName.length);
                     break;
                 default:
@@ -115,7 +115,7 @@ module.exports = function () {
                         _compressedData.fill(0);
 
                         _dataHeader.toBinary().copy(_compressedData);
-                        _compressedData.write(_entryName, Utils.Constants.LOCHDR);
+                        _entryName.copy(_compressedData, Utils.Constants.LOCHDR);
                         deflated.copy(_compressedData, Utils.Constants.LOCHDR + _entryName.length);
 
                         deflated = null;
@@ -123,7 +123,7 @@ module.exports = function () {
                         deflater.deflateAsync(function(data) {
                             _compressedData = new Buffer(data.length + Utils.Constants.LOCHDR + _entryName.length);
                             _dataHeader.toBinary().copy(_compressedData);
-                            _compressedData.write(_entryName, Utils.Constants.LOCHDR);
+                            _entryName.copy(_compressedData, Utils.Constants.LOCHDR);
                             data.copy(_compressedData, Utils.Constants.LOCHDR + _entryName.length);
                             callback(_compressedData);
                         })
@@ -140,13 +140,20 @@ module.exports = function () {
     }
 
     return {
-        get entryName () { return _entryName; },
+        get entryName () { return _entryName.toString(); },
+        get rawEntryName() {return _entryName;},
         set entryName (val) {
             _compressedData && (_needDeflate = true);
-            _entryName = val;
-            _isDirectory = val.charAt(_entryName.length - 1) == "/";
-            _entryHeader.fileNameLength = val.length;
-            _dataHeader.fileNameLenght = val.length;
+
+            if (typeof val == 'string') {
+                _entryName = new Buffer(val);
+            } else {
+                _entryName = val;
+            }
+            
+            _isDirectory = _entryName[_entryName.length - 1] == "/";
+            _entryHeader.fileNameLength = _entryName.length;
+            _dataHeader.fileNameLength = _entryName.length;
         },
 
         get extra () { return _extra; },
@@ -155,13 +162,17 @@ module.exports = function () {
             _entryHeader.extraLength = val.length;
         },
 
-        get comment () { return _comment; },
+        get comment () { return _comment.toString(); },
         set comment (val) {
-            _comment = val;
-            _entryHeader.commentLength = val.length;
+            if (typeof val == 'string') {
+                _comment = new Buffer(val);
+            } else {
+                _comment = val;
+            }
+            _entryHeader.commentLength = _comment.length;
         },
 
-        get name () { return _entryName.split("/").pop(); },
+        get name () { return _entryName.toString().split("/").pop(); },
         get isDirectory () { return _isDirectory },
 
         setCompressedData : function(value) {
@@ -220,21 +231,21 @@ module.exports = function () {
 
         packHeader : function() {
             var header = _entryHeader.toBinary();
-            header.write(_entryName, Utils.Constants.CENHDR);
+            _entryName.copy(header, Utils.Constants.CENHDR);
             if (_entryHeader.extraLength) {
                 _extra.copy(header, Utils.Constants.CENHDR + _entryName.length)
             }
             if (_entryHeader.commentLength) {
-                header.write(_comment, Utils.Constants.CENHDR + _entryName.length + _entryHeader.extraLength, _comment.length, 'utf8');
+                _comment.copy(header, Utils.Constants.CENHDR + _entryName.length + _entryHeader.extraLength, _comment.length);
             }
             return header;
         },
 
         toString : function() {
             return '{\n' +
-                '\t"entryName" : "' + _entryName + "\",\n" +
-                '\t"name" : "' + _entryName.split("/").pop() + "\",\n" +
-                '\t"comment" : "' + _comment + "\",\n" +
+                '\t"entryName" : "' + _entryName.toString() + "\",\n" +
+                '\t"name" : "' + _entryName.toString().split("/").pop() + "\",\n" +
+                '\t"comment" : "' + _comment.toString() + "\",\n" +
                 '\t"isDirectory" : ' + _isDirectory + ",\n" +
                 '\t"header" : ' + _entryHeader.toString().replace(/\t/mg, "\t\t") + ",\n" +
                 '\t"compressedData" : <' + (_compressedData && _compressedData.length  + " bytes buffer" || "null") + ">\n" +
