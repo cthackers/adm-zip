@@ -5,7 +5,7 @@ var ZipEntry = require("./zipEntry"),
 module.exports = function(/*Buffer*/buf) {
     var entryList = [],
         entryTable = {},
-        _comment = '',
+        _comment = new Buffer(0),
         endHeader = new Headers.MainHeader();
 
     if (buf) {
@@ -22,20 +22,20 @@ module.exports = function(/*Buffer*/buf) {
                 entry = new ZipEntry();
 
             entry.header = buf.slice(tmp, tmp += Utils.Constants.CENHDR);
-            entry.entryName = buf.toString('utf8', tmp, tmp += entry.header.fileNameLength);
+            entry.entryName = buf.slice(tmp, tmp += entry.header.fileNameLength);
 
             if (entry.header.extraLength)
                 entry.extra = buf.slice(tmp, tmp += entry.header.extraLength);
 
             if (entry.header.commentLength)
-                entry.comment = buf.toString('utf8', tmp, tmp + entry.header.commentLength);
+                entry.comment = buf.slice(tmp, tmp + entry.header.commentLength);
 
             index += entry.header.entryHeaderSize;
 
             if (!entry.isDirectory) {
                 // read data
                 //entry.setCompressedData(buf.slice(entry.header.offset, entry.header.offset + Utils.Constants.LOCHDR + entry.header.compressedSize + entry.entryName.length));
-                entry.setCompressedData(buf.slice(entry.header.offset, entry.header.offset + Utils.Constants.LOCHDR + entry.header.compressedSize + entry.entryName.length + buf.readUInt16LE(entry.header.offset + Utils.Constants.LOCEXT)));
+                entry.setCompressedData(buf.slice(entry.header.offset, entry.header.offset + Utils.Constants.LOCHDR + entry.header.compressedSize + entry.rawEntryName.length + buf.readUInt16LE(entry.header.offset + Utils.Constants.LOCEXT)));
             }
 
             entryList[i] = entry;
@@ -60,7 +60,7 @@ module.exports = function(/*Buffer*/buf) {
 
         endHeader.loadFromBinary(buf.slice(endOffset, endOffset + Utils.Constants.ENDHDR));
         if (endHeader.commentLength) {
-            _comment = buf.toString('utf8', endOffset + Utils.Constants.ENDHDR);
+            _comment = buf.slice(endOffset + Utils.Constants.ENDHDR);
         }
         readEntries();
     }
@@ -78,7 +78,7 @@ module.exports = function(/*Buffer*/buf) {
          * Archive comment
          * @return {String}
          */
-        get comment () { return _comment; },
+        get comment () { return _comment.toString(); },
         set comment(val) {
             endHeader.commentLength = val.length;
             _comment = val;
@@ -199,7 +199,7 @@ module.exports = function(/*Buffer*/buf) {
 
             var mainHeader = endHeader.toBinary();
             if (_comment) {
-                mainHeader.write(_comment, Utils.Constants.ENDHDR);
+                _comment.copy(mainHeader, Utils.Constants.ENDHDR);
             }
 
             mainHeader.copy(outBuffer, dindex);
