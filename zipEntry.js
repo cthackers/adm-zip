@@ -151,7 +151,7 @@ module.exports = function () {
                 _entryName = val;
             }
             
-            _isDirectory = _entryName[_entryName.length - 1] == "/";
+            _isDirectory = _entryName[_entryName.length - 1] == 47;
             _entryHeader.fileNameLength = _entryName.length;
             _dataHeader.fileNameLength = _entryName.length;
         },
