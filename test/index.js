@@ -1,3 +1,5 @@
-var Attr = require("../util").FileAttr;
-var x = new Attr("assets/attributes_test/new folder/hidden_readonly.txt");
-console.log(x.toString());
+var Attr = require("../util").FileAttr,
+    AdmZip = require("../adm-zip");
+
+var asd = new AdmZip("test/assets/bootstrap.zip");
+    asd.extractAllTo("./");

@@ -1,5 +1,4 @@
 var fs = require("fs"),
-    buffer = require("buffer"),
     pth = require("path");
 
 fs.existsSync = fs.existsSync || pth.existsSync;
@@ -8,21 +7,21 @@ var ZipEntry = require("./zipEntry"),
     ZipFile =  require("./zipFile"),
     Utils = require("./util");
 
-module.exports = function(/*String*/inPath) {
+module.exports = function(/*String*/input) {
     var _zip = undefined,
         _filename = "";
 
-    if (inPath && typeof inPath === "string") { // load zip file
-        if (fs.existsSync(inPath)) {
-            _filename = inPath;
-            _zip = new ZipFile(fs.readFileSync(inPath));
+    if (input && typeof input === "string") { // load zip file
+        if (fs.existsSync(input)) {
+            _filename = input;
+            _zip = new ZipFile(input, Utils.Constants.FILE);
         } else {
            throw Utils.Errors.INVALID_FILENAME;
         }
-    } else if(inPath && Buffer.isBuffer(inPath)) { // load buffer
-        _zip = new ZipFile(inPath);
+    } else if(input && Buffer.isBuffer(input)) { // load buffer
+        _zip = new ZipFile(input, Utils.Constants.BUFFER);
     } else { // create new zip file
-        _zip = new ZipFile();
+        _zip = new ZipFile(null, Utils.Constants.NONE);
     }
 
     function getEntry(/*Object*/entry) {
@@ -42,10 +41,6 @@ module.exports = function(/*String*/inPath) {
         return null;
     }
 
-    //process.on('uncaughtException', function (err) {
-    //    console.log('Caught exception: ' + err);
-    //});
-
     return {
         /**
          * Extracts the given entry from the archive and returns the content as a Buffer object
@@ -57,6 +52,7 @@ module.exports = function(/*String*/inPath) {
             var item = getEntry(entry);
             return item && item.getData() || null;
         },
+
         /**
          * Asynchronous readFile
          * @param entry ZipEntry object or String with the full path of the entry
@@ -72,6 +68,7 @@ module.exports = function(/*String*/inPath) {
                 callback(null,"getEntry failed for:" + entry)
             }
         },
+
         /**
          * Extracts the given entry from the archive and returns the content as plain text in the given encoding
          * @param entry ZipEntry object or String with the full path of the entry
@@ -89,6 +86,7 @@ module.exports = function(/*String*/inPath) {
             }
             return "";
         },
+
         /**
          * Asynchronous readAsText
          * @param entry ZipEntry object or String with the full path of the entry
@@ -362,6 +360,7 @@ module.exports = function(/*String*/inPath) {
          * Writes the newly created zip file to disk at the specified location or if a zip was opened and no ``targetFileName`` is provided, it will overwrite the opened zip
          *
          * @param targetFileName
+         * @param callback
          */
         writeZip : function(/*String*/targetFileName, /*Function*/callback) {
             if (arguments.length == 1) {
@@ -395,11 +394,5 @@ module.exports = function(/*String*/inPath) {
             }
             return _zip.toBuffer()
         }
-
-        /*get lastError () {
-            var x = function() { console.log("2", arguments); };
-            x.prototype = 2
-            return x; //
-        } */
     }
 };

@@ -128,6 +128,13 @@ module.exports = (function() {
 
         },
 
+        toBuffer : function(input) {
+            if (Buffer.isBuffer(input)) {
+                input = input.toString();
+            }
+            return new Buffer(input);
+        },
+
         Constants : Constants,
         Errors : Errors
     }

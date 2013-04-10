@@ -379,13 +379,13 @@ function JSInflater(/*Buffer*/input) {
                             copyLen--;
                             copyDist &= WSIZE - 1;
                             windowPos &= WSIZE - 1;
-                            outputBuffer[offset++] = slide[windowPos++] = slide[copyDist++];
+                            outputBuffer[offset++] = (slide[windowPos++] = slide[copyDist++]);
                         }
                     } else {
                         while(copyLen > 0 && offset < size) {
                             copyLen--;
                             windowPos &= WSIZE - 1;
-                            outputBuffer[offset++] = slide[windowPos++] = maskBits(8);
+                            outputBuffer[offset++] = (slide[windowPos++] = maskBits(8));
                         }
                         copyLen == 0 && (method = -1); // done
                     }

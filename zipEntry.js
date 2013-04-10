@@ -1,159 +1,153 @@
 var Utils = require("./util"),
     Headers = require("./headers"),
+    Constants = Utils.Constants,
     Methods = require("./methods");
 
-module.exports = function () {
+module.exports = function (/*Buffer*/input) {
 
     var _entryHeader = new Headers.EntryHeader(),
-        _dataHeader = new Headers.DataHeader(),
-
         _entryName = new Buffer(0),
-        _isDirectory = false,
-        _extra = null,
-        _compressedData = null,
-        _data = null,
         _comment = new Buffer(0),
-        _needDeflate = false;
+        _isDirectory = false,
+        uncompressedData = null,
+        _extra = null;
+
+    function getCompressedDataFromZip() {
+        if (!input || !Buffer.isBuffer(input)) {
+            return new Buffer(0);
+        }
+        _entryHeader.loadDataHeaderFromBinary(input);
+        return input.slice(_entryHeader.realDataOffset, _entryHeader.realDataOffset + _entryHeader.compressedSize)
+    }
+
+    function crc32OK(data) {
+        // if bit 3 (0x08) of the general-purpose flags field is set, then the CRC-32 and file sizes are not known when the header is written
+        if (_entryHeader.flags & 0x8 != 0x8) {
+           if (Utils.crc32(data) != _entryHeader.crc) {
+               return false;
+           }
+        } else {
+            // @TODO: load and check data descriptor header
+            // The fields in the local header are filled with zero, and the CRC-32 and size are appended in a 12-byte structure
+            // (optionally preceded by a 4-byte signature) immediately after the compressed data:
+        }
+        return true;
+    }
 
     function decompress(/*Boolean*/async, /*Function*/callback) {
-       // if (_data == null)   {
-        if (true) {
-            if (_compressedData == null) {
-                if (_isDirectory) {
-                    if (async && callback) {
-                        callback(new Buffer(), "directory"); //si added error.
-                    }
-                    return;
-                }
-                //throw 'Noting to decompress';
-				callback(new Buffer(), "Nothing to decompress");//si added error.
-            }
-            switch (_dataHeader.method) {
-                case Utils.Constants.STORED:
-                    _data = new Buffer(_dataHeader.size);
-                    _compressedData.copy(_data, 0, _dataHeader.fileHeaderSize);
-                    if (Utils.crc32(_data) != _dataHeader.crc) {
-                        //throw Utils.Errors.BAD_CRC
-						callback(_data, Utils.Errors.BAD_CRC);//si added error
-						return Utils.Errors.BAD_CRC;
-                    } else {//si added otherwise did not seem to return data.
-						if (callback) callback(_data);
-						return 'ok';
-					}
-                    break;
-                case Utils.Constants.DEFLATED:
-                    var inflater = new Methods.Inflater(_compressedData.slice(_dataHeader.fileHeaderSize));
-                    if (!async) {
-                        _data = new Buffer(_entryHeader.size);
-                        _data.fill(0);
-                        inflater.inflate(_data);
-                        if (Utils.crc32(_data) != _dataHeader.crc) {
-                            console.warn( Utils.Errors.BAD_CRC + " " + _entryName.toString())
-                        }
-                    } else {
-                        inflater.inflateAsync(function(data) {
-                            _data = new Buffer(_entryHeader.size);
-                            _data.fill(0);
-                            data.copy(_data, 0);
-                            if (Utils.crc32(_data) != _dataHeader.crc) {
-                                //throw Utils.Errors.BAD_CRC
-								callback(_data,Utils.Errors.BAD_CRC); //avoid throw it would bring down node.
-								return Utils.Errors.BAD_CRC
-                            } else {
-								callback(_data);
-								return 'ok';
-							}
-                        })
-                    }
-                    break;
-                default:
-                    // throw Utils.Errors.UNKNOWN_METHOD;
-					callback(new Buffer(),Utils.Errors.BAD_CRC); //avoid throw it would bring down node.
-					return Utils.Errors.UNKNOWN_METHOD;        
-            }
-        } else {
+        if (_isDirectory) {
             if (async && callback) {
-                callback(_data);
+                callback(new Buffer(0), Utils.Errors.DIRECTORY_CONTENT_ERROR); //si added error.
             }
+            return new Buffer(0);
+        }
+
+        var compressedData = getCompressedDataFromZip();
+        if (compressedData.length == 0) {
+            if (async && callback) callback(compressedData, Utils.Errors.NO_DATA);//si added error.
+            return compressedData;
+        }
+
+        var data = new Buffer(_entryHeader.size);
+        data.fill(0);
+
+        switch (_entryHeader.method) {
+            case Utils.Constants.STORED:
+                compressedData.copy(data);
+                if (!crc32OK(data)) {
+                    if (async && callback) callback(data, Utils.Errors.BAD_CRC);//si added error
+                    return Utils.Errors.BAD_CRC;
+                } else {//si added otherwise did not seem to return data.
+                    if (async && callback) callback(data);
+                    return data;
+                }
+                break;
+            case Utils.Constants.DEFLATED:
+                var inflater = new Methods.Inflater(compressedData);
+                if (!async) {
+                    inflater.inflate(data);
+                    if (!crc32OK(data)) {
+                        console.warn(Utils.Errors.BAD_CRC + " " + _entryName.toString())
+                    }
+                    return data;
+                } else {
+                    inflater.inflateAsync(function(result) {
+                        result.copy(data, 0);
+                        if (crc32OK(data)) {
+                            if (callback) callback(data, Utils.Errors.BAD_CRC); //si added error
+                        } else { //si added otherwise did not seem to return data.
+                            if (callback) callback(data);
+                        }
+                    })
+                }
+                break;
+            default:
+                if (async && callback) callback(new Buffer(0), Utils.Errors.UNKNOWN_METHOD);
+                return Utils.Errors.UNKNOWN_METHOD;
         }
     }
 
     function compress(/*Boolean*/async, /*Function*/callback) {
-        if ( _needDeflate) {
-            _compressedData = null;
+        if ((!uncompressedData || !uncompressedData.length) && Buffer.isBuffer(input)) {
+            // no data set or the data wasn't changed to require recompression
+            if (async && callback) callback(getCompressedDataFromZip());
+            return getCompressedDataFromZip();
         }
-        if (_compressedData == null) {
-            if (_isDirectory || !_data) {
-                _data = new Buffer(0);
-                _compressedData = new Buffer(0);
-                return;
-            }
+
+        if (uncompressedData.length && !_isDirectory) {
+            var compressedData;
             // Local file header
-            _dataHeader.version = 10;
-            _dataHeader.flags = 0;
-            _dataHeader.time = _entryHeader.time;
-            _dataHeader.compressedSize = _data.length;
-            _dataHeader.fileNameLength = _entryName.length;
-            _dataHeader.method = 8;
-            switch (_dataHeader.method) {
+            switch (_entryHeader.method) {
                 case Utils.Constants.STORED:
-                    _dataHeader.method = Utils.Constants.STORED;
-                    _compressedData = new Buffer(Utils.Constants.LOCHDR + _entryName.length + _data.length);
-                    _dataHeader.toBinary().copy(_compressedData);
-                    _entryName.copy(_compressedData, Utils.Constants.LOCHDR);
-                    _data.copy(_compressedData, Utils.Constants.LOCHDR + _entryName.length);
+                    _entryHeader.method = Utils.Constants.STORED;
+                    _entryHeader.compressedSize = _entryHeader.size;
+
+                    compressedData = new Buffer(uncompressedData.length);
+                    uncompressedData.copy(compressedData);
+
+                    if (async && callback) callback(compressedData);
+                    return compressedData;
+
                     break;
                 default:
                 case Utils.Constants.DEFLATED:
-                    _dataHeader.method = Utils.Constants.DEFLATED;
                     _entryHeader.method = Utils.Constants.DEFLATED;
 
-                    var deflater = new Methods.Deflater(_data);
+                    var deflater = new Methods.Deflater(uncompressedData);
+
                     if (!async) {
                         var deflated = deflater.deflate();
-                        _compressedData = new Buffer(deflated.length + Utils.Constants.LOCHDR + _entryName.length);
-                        _compressedData.fill(0);
-
-                        _dataHeader.toBinary().copy(_compressedData);
-                        _entryName.copy(_compressedData, Utils.Constants.LOCHDR);
-                        deflated.copy(_compressedData, Utils.Constants.LOCHDR + _entryName.length);
-
-                        deflated = null;
+                        _entryHeader.compressedSize = deflated.length;
+                        compressedData = new Buffer(deflated.length);
+                        return compressedData;
                     } else {
                         deflater.deflateAsync(function(data) {
-                            _compressedData = new Buffer(data.length + Utils.Constants.LOCHDR + _entryName.length);
-                            _dataHeader.toBinary().copy(_compressedData);
-                            _entryName.copy(_compressedData, Utils.Constants.LOCHDR);
-                            data.copy(_compressedData, Utils.Constants.LOCHDR + _entryName.length);
-                            callback(_compressedData);
+                            compressedData = new Buffer(data.length);
+                            _entryHeader.compressedSize = data.length;
+                            data.copy(compressedData);
+                            callback && callback(compressedData);
                         })
                     }
                     deflater = null;
                     break;
             }
-            _needDeflate = false;
         } else {
             if (async && callback) {
-                callback(_compressedData);
+                callback(new Buffer(0));
+            } else {
+                return new Buffer(0);
             }
         }
     }
 
     return {
         get entryName () { return _entryName.toString(); },
-        get rawEntryName() {return _entryName;},
+        get rawEntryName() { return _entryName; },
         set entryName (val) {
-            _compressedData && (_needDeflate = true);
-
-            if (typeof val == 'string') {
-                _entryName = new Buffer(val);
-            } else {
-                _entryName = val;
-            }
-            
-            _isDirectory = _entryName[_entryName.length - 1] == 47;
+            _entryName = Utils.toBuffer(val);
+            var lastChar = _entryName[_entryName.length - 1];
+            _isDirectory = (lastChar == 47) || (lastChar == 92);
             _entryHeader.fileNameLength = _entryName.length;
-            _dataHeader.fileNameLength = _entryName.length;
         },
 
         get extra () { return _extra; },
@@ -164,57 +158,33 @@ module.exports = function () {
 
         get comment () { return _comment.toString(); },
         set comment (val) {
-            if (typeof val == 'string') {
-                _comment = new Buffer(val);
-            } else {
-                _comment = val;
-            }
+            _comment = Utils.toBuffer(val);
             _entryHeader.commentLength = _comment.length;
         },
 
         get name () { return _entryName.toString().split("/").pop(); },
         get isDirectory () { return _isDirectory },
 
-        setCompressedData : function(value) {
-            _compressedData = value;
-            _dataHeader.loadFromBinary(_compressedData.slice(0, Utils.Constants.LOCHDR));
-            _data = null;
-            _needDeflate = false;
+        getCompressedData : function() {
+            return compress(false, null)
         },
 
-        getCompressedData : function() {
-            compress(false, null);
-            return _compressedData
-        },
         getCompressedDataAsync : function(/*Function*/callback) {
             compress(true, callback)
         },
 
         setData : function(value) {
-            if (typeof value == "string") {
-                value = new Buffer(value);
-            }
-            _needDeflate = true;
-            _compressedData = null;
-            _dataHeader.time = +new Date();
-            _entryHeader.size = _dataHeader.size;
+            uncompressedData = Utils.toBuffer(value);
 
-            if (value && value.length) {
-                _dataHeader.compressedSize = value.length;
-                _entryHeader.compressedSize = _dataHeader.compressedSize;
-                _dataHeader.size = value.length;
-                _entryHeader.size = value.length;
-                _dataHeader.crc = Utils.crc32(value);
-                _entryHeader.crc = _dataHeader.crc;
+            _entryHeader.time = +new Date();
+            if (!_isDirectory) {
+                _entryHeader.size = uncompressedData.length;
+                _entryHeader.crc = Utils.crc32(uncompressedData);
             }
-            //_entryHeader.method = _dataHeader.method;
-
-            _data = value;
         },
 
         getData : function() {
-            decompress(false, null);
-            return _data
+            return decompress(false, null);
         },
 
         getDataAsync : function(/*Function*/callback) {

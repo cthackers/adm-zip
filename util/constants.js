@@ -49,5 +49,10 @@ module.exports = {
 
     /* Compression methods */
     STORED : 0,
-    DEFLATED : 8
+    DEFLATED : 8,
+
+    /* Load type */
+    FILE : 0,
+    BUFFER : 1,
+    NONE : 2
 };

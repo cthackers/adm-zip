@@ -2,41 +2,48 @@ var ZipEntry = require("./zipEntry"),
     Headers = require("./headers");
     Utils = require("./util");
 
-module.exports = function(/*Buffer*/buf) {
+module.exports = function(/*String|Buffer*/input, /*Number*/inputType) {
     var entryList = [],
         entryTable = {},
         _comment = new Buffer(0),
-        endHeader = new Headers.MainHeader();
+        filename = "",
+        fs = require("fs"),
+        inBuffer = null,
+        mainHeader = new Headers.MainHeader();
 
-    if (buf) {
+    if (inputType == Utils.Constants.FILE) {
+        // is a filename
+        filename = input;
+        inBuffer = fs.readFileSync(filename);
         readMainHeader();
+    } else if (inputType == Utils.Constants.BUFFER) {
+        // is a memory buffer
+        inBuffer = input;
+        readMainHeader();
+    } else {
+        // none. is a new file
     }
 
     function readEntries() {
         entryTable = {};
-        entryList = new Array(endHeader.diskEntries);  // total number of entries
-        var index = endHeader.offset;  // offset of first CEN header
+        entryList = new Array(mainHeader.diskEntries);  // total number of entries
+        var index = mainHeader.offset;  // offset of first CEN header
         for(var i = 0; i < entryList.length; i++) {
 
             var tmp = index,
-                entry = new ZipEntry();
+                entry = new ZipEntry(inBuffer);
+            entry.header = inBuffer.slice(tmp, tmp += Utils.Constants.CENHDR);
 
-            entry.header = buf.slice(tmp, tmp += Utils.Constants.CENHDR);
-            entry.entryName = buf.slice(tmp, tmp += entry.header.fileNameLength);
+            entry.entryName = inBuffer.slice(tmp, tmp += entry.header.fileNameLength);
 
-            if (entry.header.extraLength)
-                entry.extra = buf.slice(tmp, tmp += entry.header.extraLength);
+            if (entry.header.extraLength) {
+                entry.extra = inBuffer.slice(tmp, tmp += entry.header.extraLength);
+            }
 
             if (entry.header.commentLength)
-                entry.comment = buf.slice(tmp, tmp + entry.header.commentLength);
+                entry.comment = inBuffer.slice(tmp, tmp + entry.header.commentLength);
 
             index += entry.header.entryHeaderSize;
-
-            if (!entry.isDirectory) {
-                // read data
-                //entry.setCompressedData(buf.slice(entry.header.offset, entry.header.offset + Utils.Constants.LOCHDR + entry.header.compressedSize + entry.entryName.length));
-                entry.setCompressedData(buf.slice(entry.header.offset, entry.header.offset + Utils.Constants.LOCHDR + entry.header.compressedSize + entry.rawEntryName.length + buf.readUInt16LE(entry.header.offset + Utils.Constants.LOCEXT)));
-            }
 
             entryList[i] = entry;
             entryTable[entry.entryName] = entry;
@@ -44,13 +51,13 @@ module.exports = function(/*Buffer*/buf) {
     }
 
     function readMainHeader() {
-        var i = buf.length - Utils.Constants.ENDHDR, // END header size
+        var i = inBuffer.length - Utils.Constants.ENDHDR, // END header size
             n = Math.max(0, i - 0xFFFF), // 0xFFFF is the max zip file comment length
             endOffset = 0; // Start offset of the END header
 
         for (i; i >= n; i--) {
-            if (buf[i] != 0x50) continue; // quick check that the byte is 'P'
-            if (buf.readUInt32LE(i) == Utils.Constants.ENDSIG) { // "PK\005\006"
+            if (inBuffer[i] != 0x50) continue; // quick check that the byte is 'P'
+            if (inBuffer.readUInt32LE(i) == Utils.Constants.ENDSIG) { // "PK\005\006"
                 endOffset = i;
                 break;
             }
@@ -58,9 +65,9 @@ module.exports = function(/*Buffer*/buf) {
         if (!endOffset)
             throw Utils.Errors.INVALID_FORMAT;
 
-        endHeader.loadFromBinary(buf.slice(endOffset, endOffset + Utils.Constants.ENDHDR));
-        if (endHeader.commentLength) {
-            _comment = buf.slice(endOffset + Utils.Constants.ENDHDR);
+        mainHeader.loadFromBinary(inBuffer.slice(endOffset, endOffset + Utils.Constants.ENDHDR));
+        if (mainHeader.commentLength) {
+            _comment = inBuffer.slice(endOffset + Utils.Constants.ENDHDR);
         }
         readEntries();
     }
@@ -80,7 +87,7 @@ module.exports = function(/*Buffer*/buf) {
          */
         get comment () { return _comment.toString(); },
         set comment(val) {
-            endHeader.commentLength = val.length;
+            mainHeader.commentLength = val.length;
             _comment = val;
         },
 
@@ -102,7 +109,7 @@ module.exports = function(/*Buffer*/buf) {
         setEntry : function(/*ZipEntry*/entry) {
             entryList.push(entry);
             entryTable[entry.entryName] = entry;
-            endHeader.totalEntries = entryList.length;
+            mainHeader.totalEntries = entryList.length;
         },
 
         /**
@@ -123,7 +130,7 @@ module.exports = function(/*Buffer*/buf) {
             }
             entryList.slice(entryList.indexOf(entry), 1);
             delete(entryTable[entryName]);
-            endHeader.totalEntries = entryList.length;
+            mainHeader.totalEntries = entryList.length;
         },
 
         /**
@@ -167,8 +174,8 @@ module.exports = function(/*Buffer*/buf) {
                 header = [],
                 dindex = 0;
 
-            endHeader.size = 0;
-            endHeader.offset = 0;
+            mainHeader.size = 0;
+            mainHeader.offset = 0;
 
             entryList.forEach(function(entry) {
                 entry.header.offset = dindex;
@@ -178,13 +185,13 @@ module.exports = function(/*Buffer*/buf) {
 
                 var headerData = entry.packHeader();
                 header.push(headerData);
-                endHeader.size += headerData.length;
+                mainHeader.size += headerData.length;
                 totalSize += compressedData.length + headerData.length;
             });
 
-            totalSize += endHeader.mainHeaderSize;
+            totalSize += mainHeader.mainHeaderSize;
             // point to end of data and begining of central directory first record
-            endHeader.offset = dindex;
+            mainHeader.offset = dindex;
 
             dindex = 0;
             var outBuffer = new Buffer(totalSize);
@@ -197,7 +204,7 @@ module.exports = function(/*Buffer*/buf) {
                 dindex += content.length;
             });
 
-            var mainHeader = endHeader.toBinary();
+            var mainHeader = mainHeader.toBinary();
             if (_comment) {
                 _comment.copy(mainHeader, Utils.Constants.ENDHDR);
             }
