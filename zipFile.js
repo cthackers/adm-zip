@@ -160,18 +160,20 @@ module.exports = function(/*String|Buffer*/input, /*Number*/inputType) {
          *
          * @return Buffer
          */
-        toBuffer : function() {
-            entryList.sort(function(a, b) {
-                var nameA = a.entryName.toLowerCase( );
-                var nameB = b.entryName.toLowerCase( );
-                if (nameA < nameB) {return -1}
-                if (nameA > nameB) {return 1}
-                return 0;
-            });
+        compressToBuffer : function() {
+            if (entryList.length > 1) {
+                entryList.sort(function(a, b) {
+                    var nameA = a.entryName.toLowerCase( );
+                    var nameB = b.entryName.toLowerCase( );
+                    if (nameA < nameB) {return -1}
+                    if (nameA > nameB) {return 1}
+                    return 0;
+                });
+            }
 
             var totalSize = 0,
-                data = [],
-                header = [],
+                dataBlock = [],
+                entryHeaders = [],
                 dindex = 0;
 
             mainHeader.size = 0;
@@ -179,37 +181,47 @@ module.exports = function(/*String|Buffer*/input, /*Number*/inputType) {
 
             entryList.forEach(function(entry) {
                 entry.header.offset = dindex;
-                var compressedData = entry.getCompressedData();
-                dindex += compressedData.length;
-                data.push(compressedData);
 
-                var headerData = entry.packHeader();
-                header.push(headerData);
-                mainHeader.size += headerData.length;
-                totalSize += compressedData.length + headerData.length;
+                // compress data and set local and entry header accordingly. Reason why is called first
+                var compressedData = entry.getCompressedData();
+                // data header
+                var dataHeader = entry.header.dataHeaderToBinary();
+                var postHeader = new Buffer(entry.entryName + entry.extra.toString());
+                var dataLength = dataHeader.length + postHeader.length + compressedData.length;
+
+                dindex += dataLength;
+
+                dataBlock.push(dataHeader);
+                dataBlock.push(postHeader);
+                dataBlock.push(compressedData);
+
+                var entryHeader = entry.packHeader();
+                entryHeaders.push(entryHeader);
+                mainHeader.size += entryHeader.length;
+                totalSize += (dataLength + entryHeader.length);
             });
 
-            totalSize += mainHeader.mainHeaderSize;
+            totalSize += mainHeader.mainHeaderSize; // also includes zip file comment length
             // point to end of data and begining of central directory first record
             mainHeader.offset = dindex;
 
             dindex = 0;
             var outBuffer = new Buffer(totalSize);
-            data.forEach(function(content) {
-                content.copy(outBuffer, dindex); // write data
+            dataBlock.forEach(function(content) {
+                content.copy(outBuffer, dindex); // write data blocks
                 dindex += content.length;
             });
-            header.forEach(function(content) {
-                content.copy(outBuffer, dindex); // write data
+            entryHeaders.forEach(function(content) {
+                content.copy(outBuffer, dindex); // write central directory entries
                 dindex += content.length;
             });
 
-            var mainHeader = mainHeader.toBinary();
+            var mh = mainHeader.toBinary();
             if (_comment) {
-                _comment.copy(mainHeader, Utils.Constants.ENDHDR);
+                _comment.copy(mh, Utils.Constants.ENDHDR); // add zip file comment
             }
 
-            mainHeader.copy(outBuffer, dindex);
+            mh.copy(outBuffer, dindex); // write main header
 
             return outBuffer
         },

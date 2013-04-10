@@ -10,7 +10,7 @@ module.exports = function (/*Buffer*/input) {
         _comment = new Buffer(0),
         _isDirectory = false,
         uncompressedData = null,
-        _extra = null;
+        _extra = new Buffer(0);
 
     function getCompressedDataFromZip() {
         if (!input || !Buffer.isBuffer(input)) {
@@ -118,8 +118,7 @@ module.exports = function (/*Buffer*/input) {
                     if (!async) {
                         var deflated = deflater.deflate();
                         _entryHeader.compressedSize = deflated.length;
-                        compressedData = new Buffer(deflated.length);
-                        return compressedData;
+                        return deflated;
                     } else {
                         deflater.deflateAsync(function(data) {
                             compressedData = new Buffer(data.length);
@@ -175,12 +174,13 @@ module.exports = function (/*Buffer*/input) {
 
         setData : function(value) {
             uncompressedData = Utils.toBuffer(value);
-
-            _entryHeader.time = +new Date();
             if (!_isDirectory) {
                 _entryHeader.size = uncompressedData.length;
-                _entryHeader.crc = Utils.crc32(uncompressedData);
+                _entryHeader.method = Utils.Constants.DEFLATED;
+            } else {
+                _entryHeader.method = Utils.Constants.STORED;
             }
+            _entryHeader.crc = Utils.crc32(uncompressedData);
         },
 
         getData : function() {
@@ -200,7 +200,8 @@ module.exports = function (/*Buffer*/input) {
         },
 
         packHeader : function() {
-            var header = _entryHeader.toBinary();
+            var header = _entryHeader.entryHeaderToBinary();
+            // add
             _entryName.copy(header, Utils.Constants.CENHDR);
             if (_entryHeader.extraLength) {
                 _extra.copy(header, Utils.Constants.CENHDR + _entryName.length)
@@ -218,8 +219,8 @@ module.exports = function (/*Buffer*/input) {
                 '\t"comment" : "' + _comment.toString() + "\",\n" +
                 '\t"isDirectory" : ' + _isDirectory + ",\n" +
                 '\t"header" : ' + _entryHeader.toString().replace(/\t/mg, "\t\t") + ",\n" +
-                '\t"compressedData" : <' + (_compressedData && _compressedData.length  + " bytes buffer" || "null") + ">\n" +
-                '\t"data" : <' + (_data && _data.length  + " bytes buffer" || "null") + ">\n" +
+                '\t"compressedData" : <' + (input && input.length  + " bytes buffer" || "null") + ">\n" +
+                '\t"data" : <' + (uncompressedData && uncompressedData.length  + " bytes buffer" || "null") + ">\n" +
                 '}';
         }
     }

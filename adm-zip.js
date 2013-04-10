@@ -257,7 +257,6 @@ module.exports = function(/*String*/input) {
                 throw Utils.Errors.DIRECTORY_CONTENT_ERROR;
             }
             entry.setData(content);
-            entry.header.time = new Date();
             _zip.setEntry(entry);
         },
 
@@ -375,7 +374,7 @@ module.exports = function(/*String*/input) {
             }
             if (!targetFileName) return;
 
-            var zipData = _zip.toBuffer();
+            var zipData = _zip.compressToBuffer();
             if (zipData) {
                 Utils.writeFileTo(targetFileName, zipData, true);
             }
@@ -392,7 +391,7 @@ module.exports = function(/*String*/input) {
                 _zip.toAsyncBuffer(callback);
                 return null;
             }
-            return _zip.toBuffer()
+            return _zip.compressToBuffer()
         }
     }
 };
