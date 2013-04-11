@@ -333,12 +333,15 @@ module.exports = function(/*String*/input) {
             }
 
             _zip.entries.forEach(function(entry) {
-                if (entry.isDirectory) return;
+                if (entry.isDirectory) {
+                    Utils.makeDir(pth.resolve(targetPath, entry.entryName.toString()));
+                    return;
+                }
                 var content = entry.getData();
                 if (!content) {
                     throw Utils.Errors.CANT_EXTRACT_FILE + "2";
                 }
-                Utils.writeFileTo(pth.resolve(targetPath, entry.entryName), content, overwrite);
+                Utils.writeFileTo(pth.resolve(targetPath, entry.entryName.toString()), content, overwrite);
             })
         },
 
