@@ -130,9 +130,13 @@ module.exports = (function() {
 
         toBuffer : function(input) {
             if (Buffer.isBuffer(input)) {
-                input = input.toString();
+                return input;
+            } else {
+                if (input.length == 0) {
+                    return new Buffer(0)
+                }
+                return new Buffer(input, 'utf8');
             }
-            return new Buffer(input);
         },
 
         Constants : Constants,

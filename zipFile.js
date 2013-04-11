@@ -163,8 +163,8 @@ module.exports = function(/*String|Buffer*/input, /*Number*/inputType) {
         compressToBuffer : function() {
             if (entryList.length > 1) {
                 entryList.sort(function(a, b) {
-                    var nameA = a.entryName.toLowerCase( );
-                    var nameB = b.entryName.toLowerCase( );
+                    var nameA = a.entryName.toLowerCase();
+                    var nameB = b.entryName.toLowerCase();
                     if (nameA < nameB) {return -1}
                     if (nameA > nameB) {return 1}
                     return 0;

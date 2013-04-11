@@ -188,15 +188,8 @@ module.exports = function(/*String*/input) {
          */
         addLocalFile : function(/*String*/localPath) {
              if (fs.existsSync(localPath)) {
-                 var entry = new ZipEntry();
-                 entry.entryName = localPath.split("\\").join("/"); //windows fix
-                 var stats = fs.statSync(localPath);
-                 entry.setData(fs.readFileSync(localPath));
-                 entry.header.inAttr = stats.mode;
-                 entry.header.attr = stats.mode;
-                 entry.attr = stats.mode;
-                 entry.header.time = stats.mtime;
-                 _zip.setEntry(entry);
+                 var p = localPath.split("\\").join("/").split("/").pop();
+                 this.addFile(p, fs.readFileSync(localPath), "", 0)
              } else {
                  throw Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath);
              }
@@ -213,24 +206,18 @@ module.exports = function(/*String*/input) {
                 localPath += "/";
 
             if (fs.existsSync(localPath)) {
-                var items = Utils.findFiles(localPath);
+
+                var items = Utils.findFiles(localPath),
+                    self = this;
+
                 if (items.length) {
                     items.forEach(function(path) {
-                        var entry = new ZipEntry();
-						entry.entryName = path.split("\\").join("/").replace(localPath, ""); //windows fix
-                        var stats = fs.statSync(path);
-                        if (stats.isDirectory()) {
-                            entry.setData("");
-                            entry.header.inAttr = stats.mode;
-                            entry.header.attr = stats.mode
+						var p = path.split("\\").join("/").replace(localPath, ""); //windows fix
+                        if (p.charAt(p.length - 1) !== "/") {
+                            self.addFile(p, fs.readFileSync(path), "", 0)
                         } else {
-                            entry.setData(fs.readFileSync(path));
-                            entry.header.inAttr = stats.mode;
-                            entry.header.attr = stats.mode
+                            self.addFile(p, new Buffer(0), "", 0)
                         }
-                        entry.attr = stats.mode;
-                        entry.header.time = stats.mtime;
-                        _zip.setEntry(entry);
                     });
                 }
             } else {
@@ -254,7 +241,7 @@ module.exports = function(/*String*/input) {
             entry.comment = comment || "";
             entry.attr = attr || 0666;
             if (entry.isDirectory && content.length) {
-                throw Utils.Errors.DIRECTORY_CONTENT_ERROR;
+               // throw Utils.Errors.DIRECTORY_CONTENT_ERROR;
             }
             entry.setData(content);
             _zip.setEntry(entry);

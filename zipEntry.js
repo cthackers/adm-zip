@@ -99,7 +99,6 @@ module.exports = function (/*Buffer*/input) {
             // Local file header
             switch (_entryHeader.method) {
                 case Utils.Constants.STORED:
-                    _entryHeader.method = Utils.Constants.STORED;
                     _entryHeader.compressedSize = _entryHeader.size;
 
                     compressedData = new Buffer(uncompressedData.length);
@@ -111,11 +110,9 @@ module.exports = function (/*Buffer*/input) {
                     break;
                 default:
                 case Utils.Constants.DEFLATED:
-                    _entryHeader.method = Utils.Constants.DEFLATED;
-
                     var deflater = new Methods.Deflater(uncompressedData);
-
                     if (!async) {
+                        console.log(_entryName.toString());
                         var deflated = deflater.deflate();
                         _entryHeader.compressedSize = deflated.length;
                         return deflated;
@@ -161,7 +158,7 @@ module.exports = function (/*Buffer*/input) {
             _entryHeader.commentLength = _comment.length;
         },
 
-        get name () { return _entryName.toString().split("/").pop(); },
+        get name () { var n = _entryName.toString(); return _isDirectory ? n.substr(n.length - 1).split("/").pop() : n.split("/").pop(); },
         get isDirectory () { return _isDirectory },
 
         getCompressedData : function() {
@@ -174,13 +171,13 @@ module.exports = function (/*Buffer*/input) {
 
         setData : function(value) {
             uncompressedData = Utils.toBuffer(value);
-            if (!_isDirectory) {
+            if (!_isDirectory && uncompressedData.length) {
                 _entryHeader.size = uncompressedData.length;
                 _entryHeader.method = Utils.Constants.DEFLATED;
-            } else {
+                _entryHeader.crc = Utils.crc32(value);
+            } else { // folders and blank files should be stored
                 _entryHeader.method = Utils.Constants.STORED;
             }
-            _entryHeader.crc = Utils.crc32(uncompressedData);
         },
 
         getData : function() {

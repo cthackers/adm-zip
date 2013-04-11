@@ -4,7 +4,7 @@ var Utils = require("../util"),
 /* The central directory file header */
 module.exports = function () {
     var _verMade = 0x0A,
-        _version = 20,
+        _version = 0x0A,
         _flags = 0,
         _method = 0,
         _time = 0,
@@ -24,12 +24,14 @@ module.exports = function () {
 
     function setTime(val) {
         var val = new Date(val);
-        _time = (val.getFullYear() - 1980 & 0x7f) << 25
-            | (val.getMonth() + 1) << 21
-            | val.getDay() << 16
-            | val.getHours() << 11
-            | val.getMinutes() << 5
-            | val.getSeconds() >> 1;
+        _time = (val.getFullYear() - 1980 & 0x7f) << 25  // b09-16 years from 1980
+            | (val.getMonth() + 1) << 21                 // b05-08 month
+            | val.getDay() << 16                         // b00-04 hour
+
+            // 2 bytes time
+            | val.getHours() << 11    // b11-15 hour
+            | val.getMinutes() << 5   // b05-10 minute
+            | val.getSeconds() >> 1;  // b00-04 seconds divided by 2
     }
 
     setTime(+new Date());
