@@ -112,7 +112,6 @@ module.exports = function (/*Buffer*/input) {
                 case Utils.Constants.DEFLATED:
                     var deflater = new Methods.Deflater(uncompressedData);
                     if (!async) {
-                        console.log(_entryName.toString());
                         var deflated = deflater.deflate();
                         _entryHeader.compressedSize = deflated.length;
                         return deflated;
