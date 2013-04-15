@@ -186,10 +186,19 @@ module.exports = function(/*String*/input) {
          *
          * @param localPath
          */
-        addLocalFile : function(/*String*/localPath) {
+        addLocalFile : function(/*String*/localPath, /*String*/zipPath) {
              if (fs.existsSync(localPath)) {
+                if(zipPath){
+                    zipPath=zipPath.split("\\").join("/");
+                    if(zipPath.charAt(zipPath.length - 1) != "/"){
+                        zipPath += "/";
+                    }
+                }else{
+                    zipPath="";
+                }
                  var p = localPath.split("\\").join("/").split("/").pop();
-                 this.addFile(p, fs.readFileSync(localPath), "", 0)
+
+                 this.addFile(zipPath+p, fs.readFileSync(localPath), "", 0)
              } else {
                  throw Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath);
              }
@@ -200,7 +209,15 @@ module.exports = function(/*String*/input) {
          *
          * @param localPath
          */
-        addLocalFolder : function(/*String*/localPath) {
+        addLocalFolder : function(/*String*/localPath, /*String*/zipPath) {
+            if(zipPath){
+                zipPath=zipPath.split("\\").join("/");
+                if(zipPath.charAt(zipPath.length - 1) != "/"){
+                    zipPath += "/";
+                }
+            }else{
+                zipPath="";
+            }
 			localPath = localPath.split("\\").join("/"); //windows fix
             if (localPath.charAt(localPath.length - 1) != "/")
                 localPath += "/";
@@ -214,9 +231,9 @@ module.exports = function(/*String*/input) {
                     items.forEach(function(path) {
 						var p = path.split("\\").join("/").replace(localPath, ""); //windows fix
                         if (p.charAt(p.length - 1) !== "/") {
-                            self.addFile(p, fs.readFileSync(path), "", 0)
+                            self.addFile(zipPath+p, fs.readFileSync(path), "", 0)
                         } else {
-                            self.addFile(p, new Buffer(0), "", 0)
+                            self.addFile(zipPath+p, new Buffer(0), "", 0)
                         }
                     });
                 }
@@ -375,10 +392,10 @@ module.exports = function(/*String*/input) {
          *
          * @return Buffer
          */
-        toBuffer : function(/*Function*/callback) {
+        toBuffer : function(/*Function*/onSuccess,/*Function*/onFail,/*Function*/onItemStart,/*Function*/onItemEnd) {
             this.valueOf = 2;
-            if (typeof callback == "function") {
-                _zip.toAsyncBuffer(callback);
+            if (typeof onSuccess == "function") {
+                _zip.toAsyncBuffer(onSuccess,onFail,onItemStart,onItemEnd);
                 return null;
             }
             return _zip.compressToBuffer()

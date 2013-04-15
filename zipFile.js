@@ -226,8 +226,86 @@ module.exports = function(/*String|Buffer*/input, /*Number*/inputType) {
             return outBuffer
         },
 
-        toAsyncBuffer : function(/*Function*/callback) {
+        toAsyncBuffer : function(/*Function*/onSuccess,/*Function*/onFail,/*Function*/onItemStart,/*Function*/onItemEnd) {
+            if (entryList.length > 1) {
+                entryList.sort(function(a, b) {
+                    var nameA = a.entryName.toLowerCase();
+                    var nameB = b.entryName.toLowerCase();
+                    if (nameA > nameB) {return -1}
+                    if (nameA < nameB) {return 1}
+                    return 0;
+                });
+            }
 
+            var totalSize = 0,
+                dataBlock = [],
+                entryHeaders = [],
+                dindex = 0;
+
+            mainHeader.size = 0;
+            mainHeader.offset = 0;
+            
+            var compress=function(entryList){
+                var self=arguments.callee;
+                var entry;
+                if(entryList.length){
+                    var entry=entryList.pop();
+                    var name=entry.entryName + entry.extra.toString();
+                    if(onItemStart)onItemStart(name);
+                    entry.getCompressedDataAsync(function(compressedData){
+                        if(onItemEnd)onItemEnd(name);
+        
+                        entry.header.offset = dindex;
+                        // data header
+                        var dataHeader = entry.header.dataHeaderToBinary();
+                        var postHeader = new Buffer(name);
+                        var dataLength = dataHeader.length + postHeader.length + compressedData.length;
+                        
+                        dindex += dataLength;
+                        
+                        dataBlock.push(dataHeader);
+                        dataBlock.push(postHeader);
+                        dataBlock.push(compressedData);
+                        
+                        var entryHeader = entry.packHeader();
+                        entryHeaders.push(entryHeader);
+                        mainHeader.size += entryHeader.length;
+                        totalSize += (dataLength + entryHeader.length);
+
+                        if(entryList.length){
+                            self(entryList);
+                        }else{
+                            
+
+                            totalSize += mainHeader.mainHeaderSize; // also includes zip file comment length
+                            // point to end of data and begining of central directory first record
+                            mainHeader.offset = dindex;
+                            
+                            dindex = 0;
+                            var outBuffer = new Buffer(totalSize);
+                            dataBlock.forEach(function(content) {
+                                content.copy(outBuffer, dindex); // write data blocks
+                                dindex += content.length;
+                            });
+                            entryHeaders.forEach(function(content) {
+                                content.copy(outBuffer, dindex); // write central directory entries
+                                dindex += content.length;
+                            });
+                            
+                            var mh = mainHeader.toBinary();
+                            if (_comment) {
+                                _comment.copy(mh, Utils.Constants.ENDHDR); // add zip file comment
+                            }
+                            
+                            mh.copy(outBuffer, dindex); // write main header
+
+                            onSuccess(outBuffer);
+                        }
+                    });
+                }
+            };
+
+            compress(entryList);
         }
     }
 };

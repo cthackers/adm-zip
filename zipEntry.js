@@ -110,6 +110,7 @@ module.exports = function (/*Buffer*/input) {
                     break;
                 default:
                 case Utils.Constants.DEFLATED:
+
                     var deflater = new Methods.Deflater(uncompressedData);
                     if (!async) {
                         var deflated = deflater.deflate();

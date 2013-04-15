@@ -1555,7 +1555,7 @@ module.exports = function (/*Buffer*/inbuf) {
         },
 
         deflateAsync: function (/*Function*/callback) {
-            var tmp = zlib.createDeflateRaw();
+            var tmp = zlib.createDeflateRaw({chunkSize:(parseInt(inbuf.length / 1024) + 1)*1024});
             tmp.on('data', function (data) {
                 callback(data);
             });
