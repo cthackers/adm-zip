@@ -17,7 +17,7 @@
     "licenses": [
         {
             "type": "MIT",
-            "url": "http://github.com/kriskowal/zip/raw/master/LICENSE"
+            "url": "https://raw.github.com/cthackers/adm-zip/master/MIT-LICENSE.txt"
         }
     ],
     "main": "adm-zip.js",
