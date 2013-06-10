@@ -1555,11 +1555,24 @@ module.exports = function (/*Buffer*/inbuf) {
         },
 
         deflateAsync: function (/*Function*/callback) {
-            var tmp = zlib.createDeflateRaw({chunkSize:(parseInt(inbuf.length / 1024) + 1)*1024});
-            tmp.on('data', function (data) {
-                callback(data);
+            var tmp = zlib.createDeflateRaw({chunkSize:(parseInt(inbuf.length / 1024) + 1)*1024}),
+                parts = [], total = 0;
+            tmp.on('data', function(data) {
+                parts.push(data);
+                total += data.length;
             });
-            tmp.end(inbuf)
+            tmp.on('end', function() {
+                var buf = new Buffer(total), written = 0;
+                buf.fill(0);
+
+                for (var i = 0; i < parts.length; i++) {
+                    var part = parts[i];
+                    part.copy(buf, written);
+                    written += part.length;
+                }
+                callback && callback(buf);
+            });
+            tmp.end(inbuf);
         }
     }
 };
