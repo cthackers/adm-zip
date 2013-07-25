@@ -38,7 +38,7 @@ There are no other nodeJS libraries that ADM-ZIP is dependent of
 	// outputs the content of some_folder/my_file.txt
 	console.log(zip.readAsText("some_folder/my_file.txt")); 
 	// extracts the specified file to the specified location
-	zip.extractEntryTo(/*entry name*/"some_folder/my_file.txt", /*target path*/"/home/me/tempfolder", /*overwrite*/true)
+	zip.extractEntryTo(/*entry name*/"some_folder/my_file.txt", /*target path*/"/home/me/tempfolder", /*maintainEntryPath*/false, /*overwrite*/true);
 	// extracts everything
 	zip.extractAllTo(/*target path*/"/home/me/zipcontent/", /*overwrite*/true);
 	
