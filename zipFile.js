@@ -128,7 +128,7 @@ module.exports = function(/*String|Buffer*/input, /*Number*/inputType) {
                     }
                 })
             }
-            entryList.slice(entryList.indexOf(entry), 1);
+            entryList.splice(entryList.indexOf(entry), 1);
             delete(entryTable[entryName]);
             mainHeader.totalEntries = entryList.length;
         },
@@ -244,7 +244,7 @@ module.exports = function(/*String|Buffer*/input, /*Number*/inputType) {
 
             mainHeader.size = 0;
             mainHeader.offset = 0;
-            
+
             var compress=function(entryList){
                 var self=arguments.callee;
                 var entry;
@@ -254,19 +254,19 @@ module.exports = function(/*String|Buffer*/input, /*Number*/inputType) {
                     if(onItemStart)onItemStart(name);
                     entry.getCompressedDataAsync(function(compressedData){
                         if(onItemEnd)onItemEnd(name);
-        
+
                         entry.header.offset = dindex;
                         // data header
                         var dataHeader = entry.header.dataHeaderToBinary();
                         var postHeader = new Buffer(name);
                         var dataLength = dataHeader.length + postHeader.length + compressedData.length;
-                        
+
                         dindex += dataLength;
-                        
+
                         dataBlock.push(dataHeader);
                         dataBlock.push(postHeader);
                         dataBlock.push(compressedData);
-                        
+
                         var entryHeader = entry.packHeader();
                         entryHeaders.push(entryHeader);
                         mainHeader.size += entryHeader.length;
@@ -275,12 +275,12 @@ module.exports = function(/*String|Buffer*/input, /*Number*/inputType) {
                         if(entryList.length){
                             self(entryList);
                         }else{
-                            
+
 
                             totalSize += mainHeader.mainHeaderSize; // also includes zip file comment length
                             // point to end of data and begining of central directory first record
                             mainHeader.offset = dindex;
-                            
+
                             dindex = 0;
                             var outBuffer = new Buffer(totalSize);
                             dataBlock.forEach(function(content) {
@@ -291,12 +291,12 @@ module.exports = function(/*String|Buffer*/input, /*Number*/inputType) {
                                 content.copy(outBuffer, dindex); // write central directory entries
                                 dindex += content.length;
                             });
-                            
+
                             var mh = mainHeader.toBinary();
                             if (_comment) {
                                 _comment.copy(mh, Utils.Constants.ENDHDR); // add zip file comment
                             }
-                            
+
                             mh.copy(outBuffer, dindex); // write main header
 
                             onSuccess(outBuffer);
