@@ -387,6 +387,46 @@ module.exports = function(/*String*/input) {
             }
         },
 
+        writeZipAsync : function(/*String*/targetFileName,
+                                 /*Function*/onSuccess,
+                                 /*Function*/onFail,
+                                 /*Function*/onItemStart,
+                                 /*Function*/onItemEnd) {
+            if (!onFail)
+                onFail = function () {};
+            if (!onSuccess)
+                onSuccess = function () {};
+            if (arguments.length == 1) {
+                if (typeof targetFileName == "function") {
+                    callback = targetFileName;
+                    targetFileName = "";
+                }
+            }
+
+            if (!targetFileName && _filename) {
+                targetFileName = _filename;
+            }
+            if (!targetFileName) {
+              onFail();
+              return;
+            }
+
+            _zip.toAsyncBuffer(function (zipData) {
+              if (zipData) {
+                Utils.writeFileToAsync(targetFileName, zipData, true, null,
+                                       function (err) {
+                  if (err) {
+                    onFail(err);
+                    return;
+                  }
+                  onSuccess();
+                });
+              } else {
+                onFail();
+              }
+            }, null, onItemStart, onItemEnd);
+        },
+
         /**
          * Returns the content of the entire zip file as a Buffer object
          *

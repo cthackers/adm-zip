@@ -2,7 +2,7 @@ var fs = require("fs"),
     pth = require('path');
 
 fs.existsSync = fs.existsSync || pth.existsSync;
-	
+
 module.exports = (function() {
 
     var crcTable = [],
@@ -114,6 +114,44 @@ module.exports = (function() {
             }
             fs.chmodSync(path, attr || 0666);
             return true;
+        },
+
+        writeFileToAsync: function (path, content, overwrite, attr, callback) {
+          if (fs.existsSync(path)) {
+            if (!overwrite) {
+              callback('File exists');
+              return;
+            }
+            var stat = fs.statSync(path);
+            if (stat.isDirectory()) {
+              callback('path is directory');
+              return;
+            }
+          }
+
+          var folder = pth.dirname(path);
+          if (!fs.existsSync(folder)) {
+            mkdirSync(folder);
+          }
+
+          var fd;
+          try {
+            fd = fs.openSync(path, 'w', 0666);
+          } catch (e) {
+            fs.chmodSync(path, 0666);
+            fd = fs.openSync(path, 'w', 0666);
+          }
+
+          if (fd) {
+            fs.write(fd, content,0, content.length, 0, function (err) {
+              fs.closeSync(fd);
+              if (err) {
+                callback(err);
+              }
+//              fs.chmodSync(path, attr || 0666);
+              callback();
+            });
+          }
         },
 
         findFiles : function(/*String*/path) {
