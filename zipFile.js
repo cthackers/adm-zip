@@ -1,5 +1,5 @@
 var ZipEntry = require("./zipEntry"),
-    Headers = require("./headers");
+    Headers = require("./headers"),
     Utils = require("./util");
 
 module.exports = function(/*String|Buffer*/input, /*Number*/inputType) {
