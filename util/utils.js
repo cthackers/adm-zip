@@ -103,16 +103,16 @@ module.exports = (function() {
 
             var fd;
             try {
-                fd = fs.openSync(path, 'w', 0666);
+                fd = fs.openSync(path, 'w', 438); // 0666
             } catch(e) {
-                fs.chmodSync(path, 0666);
-                fd = fs.openSync(path, 'w', 0666);
+                fs.chmodSync(path, 438);
+                fd = fs.openSync(path, 'w', 438);
             }
             if (fd) {
                 fs.writeSync(fd, content, 0, content.length, 0);
                 fs.closeSync(fd);
             }
-            fs.chmodSync(path, attr || 0666);
+            fs.chmodSync(path, attr || 438);
             return true;
         },
 
