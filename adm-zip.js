@@ -256,7 +256,7 @@ module.exports = function(/*String*/input) {
             var entry = new ZipEntry();
             entry.entryName = entryName;
             entry.comment = comment || "";
-            entry.attr = attr || 0666;
+            entry.attr = attr || 438; //0666;
             if (entry.isDirectory && content.length) {
                // throw Utils.Errors.DIRECTORY_CONTENT_ERROR;
             }
