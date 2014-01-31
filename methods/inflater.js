@@ -438,9 +438,11 @@ module.exports = function(/*Buffer*/inbuf) {
         },
 
         inflate : function(/*Buffer*/outputBuffer) {
-            var x = new JSInflater(inbuf);
-            x.inflate(outputBuffer);
-            delete(x);
+            var x = {
+                x: new JSInflater(inbuf)
+            };
+            x.x.inflate(outputBuffer);
+            delete(x.x);
         }
     }
 };
