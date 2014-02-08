@@ -1,47 +1,17 @@
-var fs = require("fs"),
-    pth = require("path");
-
-fs.existsSync = fs.existsSync || pth.existsSync;
-
-var ZipEntry = require("./zipEntry"),
-    ZipFile =  require("./zipFile"),
-    Utils = require("./util");
-
-module.exports = function(/*String*/input) {
-    var _zip = undefined,
-        _filename = "";
-
-    if (input && typeof input === "string") { // load zip file
-        if (fs.existsSync(input)) {
-            _filename = input;
-            _zip = new ZipFile(input, Utils.Constants.FILE);
-        } else {
-           throw Utils.Errors.INVALID_FILENAME;
-        }
-    } else if(input && Buffer.isBuffer(input)) { // load buffer
-        _zip = new ZipFile(input, Utils.Constants.BUFFER);
-    } else { // create new zip file
-        _zip = new ZipFile(null, Utils.Constants.NONE);
-    }
-
-    function getEntry(/*Object*/entry) {
-        if (entry && _zip) {
-            var item;
-            // If entry was given as a file name
-            if (typeof entry === "string")
-                item = _zip.getEntry(entry);
-            // if entry was given as a ZipEntry object
-            if (typeof entry === "object" && entry.entryName != undefined && entry.header != undefined)
-                item =  _zip.getEntry(entry.entryName);
-
-            if (item) {
-                return item;
-            }
-        }
-        return null;
-    }
+/**
+ * ADMZip offers functionality to easily create/extract/manage zip archives
+ *
+ *
+ * @param input Input can be a :
+ *   - Buffer with the content of a zip file
+ *   - String to a local zip file
+ *
+ * @constructor
+ */
+function ADMZip(/*Buffer|String*/input) {
 
     return {
+
         /**
          * Extracts the given entry from the archive and returns the content as a Buffer object
          * @param entry ZipEntry object or String with the full path of the entry
@@ -49,8 +19,7 @@ module.exports = function(/*String*/input) {
          * @return Buffer or Null in case of error
          */
         readFile : function(/*Object*/entry) {
-            var item = getEntry(entry);
-            return item && item.getData() || null;
+            return null;
         },
 
         /**
@@ -61,12 +30,7 @@ module.exports = function(/*String*/input) {
          * @return Buffer or Null in case of error
          */
         readFileAsync : function(/*Object*/entry, /*Function*/callback) {
-            var item = getEntry(entry);
-            if (item) {
-                item.getDataAsync(callback);
-            } else {
-                callback(null,"getEntry failed for:" + entry)
-            }
+            return null
         },
 
         /**
@@ -77,13 +41,6 @@ module.exports = function(/*String*/input) {
          * @return String
          */
         readAsText : function(/*Object*/entry, /*String - Optional*/encoding) {
-            var item = getEntry(entry);
-            if (item) {
-                var data = item.getData();
-                if (data && data.length) {
-                    return data.toString(encoding || "utf8");
-                }
-            }
             return "";
         },
 
@@ -96,18 +53,7 @@ module.exports = function(/*String*/input) {
          * @return String
          */
         readAsTextAsync : function(/*Object*/entry, /*Function*/callback, /*String - Optional*/encoding) {
-            var item = getEntry(entry);
-            if (item) {
-                item.getDataAsync(function(data) {
-                    if (data && data.length) {
-                        callback(data.toString(encoding || "utf8"));
-                    } else {
-                        callback("");
-                    }
-                })
-            } else {
-                callback("");
-            }
+            return ""
         },
 
         /**
@@ -115,11 +61,8 @@ module.exports = function(/*String*/input) {
          *
          * @param entry
          */
-        deleteFile : function(/*Object*/entry) { // @TODO: test deleteFile
-            var item = getEntry(entry);
-            if (item) {
-                _zip.deleteEntry(item.entryName);
-            }
+        deleteFile : function(/*Object*/entry) {
+
         },
 
         /**
@@ -127,8 +70,8 @@ module.exports = function(/*String*/input) {
          *
          * @param comment
          */
-        addZipComment : function(/*String*/comment) { // @TODO: test addZipComment
-            _zip.comment = comment;
+        addZipComment : function(/*String*/comment) {
+
         },
 
         /**
@@ -137,7 +80,7 @@ module.exports = function(/*String*/input) {
          * @return String
          */
         getZipComment : function() {
-            return _zip.comment || '';
+            return "";
         },
 
         /**
@@ -148,10 +91,7 @@ module.exports = function(/*String*/input) {
          * @param comment
          */
         addZipEntryComment : function(/*Object*/entry,/*String*/comment) {
-            var item = getEntry(entry);
-            if (item) {
-                item.comment = comment;
-            }
+
         },
 
         /**
@@ -161,11 +101,7 @@ module.exports = function(/*String*/input) {
          * @return String
          */
         getZipEntryComment : function(/*Object*/entry) {
-            var item = getEntry(entry);
-            if (item) {
-                return item.comment || '';
-            }
-            return ''
+
         },
 
         /**
@@ -175,71 +111,27 @@ module.exports = function(/*String*/input) {
          * @param content
          */
         updateFile : function(/*Object*/entry, /*Buffer*/content) {
-            var item = getEntry(entry);
-            if (item) {
-                item.setData(content);
-            }
+
         },
 
         /**
          * Adds a file from the disk to the archive
          *
          * @param localPath
+         * @param zipPath
          */
         addLocalFile : function(/*String*/localPath, /*String*/zipPath) {
-             if (fs.existsSync(localPath)) {
-                if(zipPath){
-                    zipPath=zipPath.split("\\").join("/");
-                    if(zipPath.charAt(zipPath.length - 1) != "/"){
-                        zipPath += "/";
-                    }
-                }else{
-                    zipPath="";
-                }
-                 var p = localPath.split("\\").join("/").split("/").pop();
 
-                 this.addFile(zipPath+p, fs.readFileSync(localPath), "", 0)
-             } else {
-                 throw Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath);
-             }
         },
 
         /**
          * Adds a local directory and all its nested files and directories to the archive
          *
          * @param localPath
+         * @param zipPath
          */
         addLocalFolder : function(/*String*/localPath, /*String*/zipPath) {
-            if(zipPath){
-                zipPath=zipPath.split("\\").join("/");
-                if(zipPath.charAt(zipPath.length - 1) != "/"){
-                    zipPath += "/";
-                }
-            }else{
-                zipPath="";
-            }
-			localPath = localPath.split("\\").join("/"); //windows fix
-            if (localPath.charAt(localPath.length - 1) != "/")
-                localPath += "/";
 
-            if (fs.existsSync(localPath)) {
-
-                var items = Utils.findFiles(localPath),
-                    self = this;
-
-                if (items.length) {
-                    items.forEach(function(path) {
-						var p = path.split("\\").join("/").replace(localPath, ""); //windows fix
-                        if (p.charAt(p.length - 1) !== "/") {
-                            self.addFile(zipPath+p, fs.readFileSync(path), "", 0)
-                        } else {
-                            self.addFile(zipPath+p, new Buffer(0), "", 0)
-                        }
-                    });
-                }
-            } else {
-                throw Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath);
-            }
         },
 
         /**
@@ -253,15 +145,7 @@ module.exports = function(/*String*/input) {
          * @param attr
          */
         addFile : function(/*String*/entryName, /*Buffer*/content, /*String*/comment, /*Number*/attr) {
-            var entry = new ZipEntry();
-            entry.entryName = entryName;
-            entry.comment = comment || "";
-            entry.attr = attr || 438; //0666;
-            if (entry.isDirectory && content.length) {
-               // throw Utils.Errors.DIRECTORY_CONTENT_ERROR;
-            }
-            entry.setData(content);
-            _zip.setEntry(entry);
+
         },
 
         /**
@@ -270,11 +154,7 @@ module.exports = function(/*String*/input) {
          * @return Array
          */
         getEntries : function() {
-            if (_zip) {
-               return _zip.entries;
-            } else {
-                return [];
-            }
+            return []
         },
 
         /**
@@ -284,7 +164,7 @@ module.exports = function(/*String*/input) {
          * @return ZipEntry
          */
         getEntry : function(/*String*/name) {
-            return getEntry(name);
+            return null
         },
 
         /**
@@ -301,39 +181,7 @@ module.exports = function(/*String*/input) {
          * @return Boolean
          */
         extractEntryTo : function(/*Object*/entry, /*String*/targetPath, /*Boolean*/maintainEntryPath, /*Boolean*/overwrite) {
-            overwrite = overwrite || false;
-            maintainEntryPath = typeof maintainEntryPath == "undefined" ? true : maintainEntryPath;
-
-            var item = getEntry(entry);
-            if (!item) {
-                throw Utils.Errors.NO_ENTRY;
-            }
-
-            var target = pth.resolve(targetPath, maintainEntryPath ? item.entryName : pth.basename(item.entryName));
-
-            if (item.isDirectory) {
-                target = pth.resolve(target, "..");
-                var children = _zip.getEntryChildren(item);
-                children.forEach(function(child) {
-                    if (child.isDirectory) return;
-                    var content = child.getData();
-                    if (!content) {
-                        throw Utils.Errors.CANT_EXTRACT_FILE;
-                    }
-                    Utils.writeFileTo(pth.resolve(targetPath, maintainEntryPath ? child.entryName : child.entryName.substr(item.entryName.length)), content, overwrite);
-                });
-                return true;
-            }
-
-            var content = item.getData();
-            if (!content) throw Utils.Errors.CANT_EXTRACT_FILE;
-
-            if (fs.existsSync(targetPath) && !overwrite) {
-                throw Utils.Errors.CANT_OVERRIDE;
-            }
-            Utils.writeFileTo(target, content, overwrite);
-
-            return true;
+            return false
         },
 
         /**
@@ -344,22 +192,7 @@ module.exports = function(/*String*/input) {
          *                  Default is FALSE
          */
         extractAllTo : function(/*String*/targetPath, /*Boolean*/overwrite) {
-            overwrite = overwrite || false;
-            if (!_zip) {
-                throw Utils.Errors.NO_ZIP;
-            }
 
-            _zip.entries.forEach(function(entry) {
-                if (entry.isDirectory) {
-                    Utils.makeDir(pth.resolve(targetPath, entry.entryName.toString()));
-                    return;
-                }
-                var content = entry.getData();
-                if (!content) {
-                    throw Utils.Errors.CANT_EXTRACT_FILE + "2";
-                }
-                Utils.writeFileTo(pth.resolve(targetPath, entry.entryName.toString()), content, overwrite);
-            })
         },
 
         /**
@@ -369,22 +202,7 @@ module.exports = function(/*String*/input) {
          * @param callback
          */
         writeZip : function(/*String*/targetFileName, /*Function*/callback) {
-            if (arguments.length == 1) {
-                if (typeof targetFileName == "function") {
-                    callback = targetFileName;
-                    targetFileName = "";
-                }
-            }
 
-            if (!targetFileName && _filename) {
-                targetFileName = _filename;
-            }
-            if (!targetFileName) return;
-
-            var zipData = _zip.compressToBuffer();
-            if (zipData) {
-                Utils.writeFileTo(targetFileName, zipData, true);
-            }
         },
 
         /**
@@ -393,12 +211,9 @@ module.exports = function(/*String*/input) {
          * @return Buffer
          */
         toBuffer : function(/*Function*/onSuccess,/*Function*/onFail,/*Function*/onItemStart,/*Function*/onItemEnd) {
-            this.valueOf = 2;
-            if (typeof onSuccess == "function") {
-                _zip.toAsyncBuffer(onSuccess,onFail,onItemStart,onItemEnd);
-                return null;
-            }
-            return _zip.compressToBuffer()
+            return null
         }
     }
-};
+}
+
+module.exports = ADMZip;
