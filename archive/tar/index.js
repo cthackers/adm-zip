@@ -1,0 +1,1 @@
+exports.Reader = function() {};

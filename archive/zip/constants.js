@@ -69,7 +69,7 @@ define("zip64ExtraId", 0x0001); // zip64 Extended Information Extra Field
 
 
 function define(name, value) {
-    Object.defineProperty(exports, name, {
+    Object.defineProperty(module.exports, name, {
         value: value,
         enumerable: true
     });

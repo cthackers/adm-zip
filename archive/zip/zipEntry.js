@@ -1,63 +1,97 @@
-var constants = require("./constants");
+var fs = require("fs"),
 
-module.exports = function ZipEntry() {
+    constants = require("./constants"),
+    register = require("./register");
+
+module.exports.File = File;
+module.exports.FileHeader = FileHeader;
+
+function FileHeader() {
     var // Name is the name of the file.
-        // It must be a relative path: it must not start with a drive
-        // letter (e.g. C:) or leading slash, and only forward slashes
-        // are allowed.
+    // It must be a relative path: it must not start with a drive
+    // letter (e.g. C:) or leading slash, and only forward slashes
+    // are allowed.
         name = new Buffer(0, 'utf8'),
-        creatorVersion = 0,
-        readerVersion = 0,
-        flags = 0,
-        method = 0,
-        modifiedTime = 0, // ms-dos time
-        modifiedDate = 0, // ms-dos date
-        crc23 = 0,
-        compressedSize = 0,
-        uncompressedSize = 0,
-        compressedSize64 = 0,
-        uncompressedSize64 = 0,
-        extra = new Buffer(0),
-        externalAttr = 0, // Meaning depends on CreatorVersion
-        comment = "";
+        _uncompressedSize64 = 0,
+        _uncompressedSize = 0,
+        _compressedSize = 0,
+        _compressedSize64 = 0,
+        _externalAttr = 0,
+        _flags = 0,
+        _method = 0,
+        _time = new Date(),
+        _readerVersion = 0,
+        _creatorVersion = 0;
 
     return {
-        get entryName () {
+        extra: new Buffer(0),
+        crc32: 0,
+        comment: new Buffer(0, 'utf8'),
+
+        get creatorVersion() { return _creatorVersion },
+        set creatorVersion(val) { _creatorVersion = val},
+
+        get readerVersion() { return _readerVersion },
+        set readerVersion(val) { _readerVersion = val},
+
+        get flags() { return _flags },
+        set flags(val) { _flags = val},
+
+        get method() { return _method },
+        set method(val) { _method = val},
+
+        get externalAttr() { return _externalAttr },
+        set externalAttr(val) { _externalAttr = val},
+
+        get compressedSize() { return _compressedSize },
+        set compressedSize(val) { _compressedSize = val},
+
+        get compressedSize64() { return _compressedSize64 },
+        set compressedSize64(val) { _compressedSize64 = val},
+
+        get uncompressedSize() { return _uncompressedSize },
+        set uncompressedSize(val) { _uncompressedSize = val},
+
+        get uncompressedSize64() { return _uncompressedSize64 },
+        set uncompressedSize64(val) { _uncompressedSize64 = val},
+
+        get entryName() {
             return name.toString("utf8");
         },
 
         set entryName(/*Buffer|string*/value) {
             if (Buffer.isBuffer(value)) {
-                name = name.slice(0,0);
+                name = new Buffer(value.length);
                 value.copy(name, 0, 0, value.length);
+            } else {
+                name = new Buffer(value)
             }
-            name = new Buff
         },
 
-        get size () {
-            if (uncompressedSize64 > 0) {
-                return uncompressedSize64
+        get size() {
+            if (_uncompressedSize64 > 0) {
+                return _uncompressedSize64
             }
-            return uncompressedSize
+            return _uncompressedSize
         },
 
-        get isDirectory () {
-
+        get isDirectory() {
+            return this.mode & constants.fileModes.dir != 0
         },
 
-        get mode () {
+        get mode() {
             var creator = constants.creator,
                 mod = 0;
 
-            switch (creatorVersion >> 8) {
+            switch (_creatorVersion >> 8) {
                 case creator.Unix:
                 case creator.MacOSX:
-                    mod = unixModeToFileMode(externalAttr >> 16);
+                    mod = unixModeToFileMode(_externalAttr >> 16);
                     break;
                 case creator.NTFS:
                 case creator.VFAT:
                 case creator.FAT:
-                    mod = msdosModeToFileMode(externalAttr);
+                    mod = msdosModeToFileMode(_externalAttr);
                     break
             }
 
@@ -69,48 +103,126 @@ module.exports = function ZipEntry() {
         },
 
         set mode(value) {
-            creatorVersion = creatorVersion & 0xFF | constants.creator.Unix << 8;
-            externalAttr = fileModeToUnixMode(value) << 16;
+            _creatorVersion = _creatorVersion & 0xFF | constants.creator.Unix << 8;
+            _externalAttr = fileModeToUnixMode(value) << 16;
 
             // set MSDOS attributes too
             if ((value & constants.fileModes.dir) != 0) {
-                externalAttr |= constants.fileModes.msdosDir
+                _externalAttr |= constants.fileModes.msdosDir
             }
             if ((value & 128) == 0) {
-                externalAttr |= constants.fileModes.msdosReadOnly
+                _externalAttr |= constants.fileModes.msdosReadOnly
             }
         },
 
-        get modTime () {
-            return msDosTimeToTime({date:modifiedDate, time:modifiedTime})
+        get modTime() {
+            return _time
         },
-        set modTime (val) {
-            var time = timeToMsDosTime(val);
-            modifiedDate = time.date;
-            modifiedTime = time.time
+        set modTime(val) {
+            _time = new Date(
+                ((val >> 25) & 0x7f) + 1980,
+                ((val >> 21) & 0x0f) - 1,
+                (val >> 16) & 0x1f,
+
+                (val >> 11) & 0x1f,
+                (val >> 5) & 0x3f,
+                (val & 0x1f) << 1
+            );
+        },
+        get msdosTime() {
+            return (_time.getFullYear() - 1980 & 0x7f) << 25  // b09-16 years from 1980
+                | (_time.getMonth() + 1) << 21                 // b05-08 month
+                | _time.getDay() << 16                         // b00-04 hour
+
+                // 2 bytes time
+                | _time.getHours() << 11    // b11-15 hour
+                | _time.getMinutes() << 5   // b05-10 minute
+                | _time.getSeconds() >> 1;  // b00-04 seconds divided by 2
         }
-
     }
-};
-
-function timeToMsDosTime(t) {
-    var fDate = t.getDate() + (t.getMonth() + 1) << 5 + (t.getFullYear() - 1980) << 9,
-        fTime = t.getSeconds() / 2 + t.getMinutes() << 5 + t.getHours() << 11;
-    return {date:fDate, time:fTime}
 }
 
-function msDosTimeToTime(obj) {
-    return new Date(
-        obj.date >> 9 + 1980,
-        obj.date >> 5 & 0xf,
-        obj.date & 0x1f,
+function File(r, zipSize) {
 
-        obj.time >> 11,
-        obj.time >> 6 & 0x3f,
-        obj.time >> 0x1f * 2,
+    var comment = new Buffer(0),
+        _fd = undefined,
+        _reader = r,
+        _header = new FileHeader(),
+        _headerOffset = 0;
 
-        0
-    );
+    if (Buffer.isBuffer(r)) {
+        _reader = r;
+    } else {
+        _fd = r
+    }
+
+    function readAt(loc, len, buffer) {
+        if (_fd) {
+            fs.readSync(_fd, buffer, 0, len, loc)
+        } else {
+            _reader.copy(buffer, 0, loc, loc + len)
+        }
+    }
+
+    function dataOffset() {
+        var bodyOffset = findBodyOffset();
+        return _headerOffset + bodyOffset
+    }
+
+    function read() {
+        var bodyOffset = findBodyOffset(),
+            size = _header.compressedSize64;
+
+        var buf = new Buffer(size),
+            decomp = register.decompressor(_header.method);
+
+        if (!decomp) {
+            throw Error("zip: unsupported compression algorithm")
+        }
+        var rc = decomp(buf),
+            decompressed = new Buffer(_header.uncompressedSize64),
+            desc;
+
+        if (hasDataDescriptor()) {
+            desc = new Buffer(constants.fieldSize.dataDescriptor);
+            readAt(_headerOffset + bodyOffset + size, desc.length, desc)
+        }
+
+        return decompressed
+    }
+
+    function readDataDescriptor() {
+
+    }
+
+    function findBodyOffset() {
+        var buf = new Buffer(constants.fieldSize.fileHeader);
+        readAt(_headerOffset, buf.length, buf);
+
+        if (buf.readUInt32LE(0) != constants.signature.fileHeader) {
+            throw Error("zip: not a valid zip file")
+        }
+        buf = buf.slice(26);
+        var filenameLen = buf.readUInt16LE(0),
+            extraLen = buf.readUInt16LE(2);
+
+        return constants.fieldSize.fileHeader + filenameLen + extraLen;
+    }
+
+    function hasDataDescriptor() {
+        return _header.flags & 0x8 != 0
+    }
+
+    return {
+        header : _header,
+        get headerOffset () {
+            return _headerOffset
+        },
+        set headerOffset(val) {
+            _headerOffset = val
+        },
+        read : read
+    }
 }
 
 function unixModeToFileMode(m) {
@@ -119,19 +231,25 @@ function unixModeToFileMode(m) {
 
     switch (m & 0xf000) {
         case 0x6000:
-            mode |= modes.device; break;
+            mode |= modes.device;
+            break;
         case 0x2000:
-            mode |= modes.device | modes.chardevice; break;
+            mode |= modes.device | modes.chardevice;
+            break;
         case 0x4000:
-            mode |= modes.dir; break;
+            mode |= modes.dir;
+            break;
         case 0x1000:
-            mode |= modes.namedpipe; break;
+            mode |= modes.namedpipe;
+            break;
         case 0xa000:
-            mode |= modes.symlink; break;
+            mode |= modes.symlink;
+            break;
         case 0x8000:
             break;
         case 0xc000:
-            mode |= modes.socket; break;
+            mode |= modes.socket;
+            break;
     }
 
     if (m & 0x400) {
@@ -166,15 +284,20 @@ function fileModeToUnixMode(mode) {
 
     switch (mode & modes.type) {
         default:
-            m = 0x8000; break;
+            m = 0x8000;
+            break;
         case modes.dir:
-            m = 0x4000; break;
+            m = 0x4000;
+            break;
         case modes.symlink:
-            m = 0xa000; break;
+            m = 0xa000;
+            break;
         case modes.namedItem:
-            m = 0x1000; break;
+            m = 0x1000;
+            break;
         case modes.socket:
-            m = 0xc000; break;
+            m = 0xc000;
+            break;
         case modes.device:
             if (mode & modes.chardevice) {
                 m = 0x2000;
