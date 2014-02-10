@@ -6,7 +6,9 @@ exports.decompressor = function(b) {
     return n
 };
 
-exports.test = function() {
-    return require("./copy_test").run() &&
-           require("./deflate_test").run();
+exports.unitTests = function() {
+    return {
+        "forwardCopy" : require("./copy_test"),
+        "deflate" : require("./deflate_test")
+    }
 };
