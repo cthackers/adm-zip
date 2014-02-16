@@ -1,4 +1,6 @@
 var submodules = [
+    './utils',
+
     // test methods
     // flate
     './methods/flate',
@@ -24,17 +26,16 @@ submodules.forEach(function (importPath) {
         var t = new Date().getTime();
         try {
             var status = test.run();
-            if (status) {
-                console.log(name, "(" + (new Date().getTime() - t) + "ms) ✓");
-                results.success++;
-            } else {
-                console.log(name, "(" + (new Date().getTime() - t) + "ms) ✗");
-                results.failed++;
-            }
         } catch (e) {
-            console.log(name, "(" + (new Date().getTime() - t) + "ms) ✗");
+            console.log("Error: ", e.message)
+            status = false;
+        }
+        if (status) {
+            results.success++
+        } else {
             results.failed++;
         }
+        console.log(name, "(" + (new Date().getTime() - t) + "ms) " + (status ? "✓" : "✗"));
         results.total++;
     }
 

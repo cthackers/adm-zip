@@ -33,10 +33,10 @@ var reverseByte = [
     0x1f, 0x9f, 0x5f, 0xdf, 0x3f, 0xbf, 0x7f, 0xff
 ];
 
-function reverse(v) {
+function reverse(/*Number*/v) {
     return reverseByte[v >> 8] | reverseByte[v & 0xFF] << 8
 }
 
-module.exports = function(number, bitLength) {
-    return reverse(number << (16 - bitLength))
+module.exports = function(/*Number*/number, /*Number*/bitLength) {
+    return reverse(number << ((16 - bitLength) & 0xFF))
 };
