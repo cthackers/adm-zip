@@ -2,7 +2,7 @@ var fs = require("fs"),
     pth = require('path');
 
 fs.existsSync = fs.existsSync || pth.existsSync;
-	
+
 module.exports = (function() {
 
     var crcTable = [],
@@ -81,7 +81,7 @@ module.exports = (function() {
                 case Constants.DEFLATED:
                     return 'DEFLATED (' + method + ')';
                 default:
-                    return 'UNSUPPORTED (' + method + ')'
+                    return 'UNSUPPORTED (' + method + ')';
             }
 
         },
