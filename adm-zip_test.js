@@ -20,23 +20,24 @@ submodules.forEach(function (importPath) {
 
     console.log("-- Testing lib " + importPath + " ---");
     for (var name in tests) {
-        if (!tests.hasOwnProperty(name)) return;
-        var test = tests[name];
+        if (tests.hasOwnProperty(name)) {
+            var test = tests[name];
 
-        var t = new Date().getTime();
-        try {
-            var status = test.run();
-        } catch (e) {
-            console.log("Error: ", e.message)
-            status = false;
+            var t = new Date().getTime();
+          //  try {
+                var status = test.run();
+           // } catch (e) {
+//                console.log("Error: ", e.message);
+    //            status = false;
+         //   }
+            if (status) {
+                results.success++
+            } else {
+                results.failed++;
+            }
+            console.log(name, "(" + (new Date().getTime() - t) + "ms) " + (status ? "✓" : "✗"));
+            results.total++;
         }
-        if (status) {
-            results.success++
-        } else {
-            results.failed++;
-        }
-        console.log(name, "(" + (new Date().getTime() - t) + "ms) " + (status ? "✓" : "✗"));
-        results.total++;
     }
 
     if (!results.total) {

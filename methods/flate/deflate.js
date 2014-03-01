@@ -79,11 +79,9 @@ function compressor() {
             var _window = new Buffer(0);
             if (blockStart <= index) {
                 _window = window.slice(blockStart, index);
-                //_window = new Buffer(index);
-                //window.copy(_window, 0, blockStart, index)
             }
             blockStart = index;
-            return w.writeBlock(tokens, eof, _window)
+            return w.writeBlock(tokens, eof, _window);
         }
         return true
     }
@@ -131,7 +129,7 @@ function compressor() {
         hashPrev = EmptyArray(consts.windowSize);
         window = new Buffer(consts.windowSize * 2);
         hashOffset = 1;
-        tokens = [];//new Array(consts.maxFlateBlockTokens + 1);
+        tokens = [];
         length = consts.minMatchLength - 1;
         offset = 0;
         byteAvailable = false;

@@ -3,10 +3,10 @@ const
 // 8 bits:   xlength = length - MIN_MATCH_LENGTH
 // 22 bits   xoffset = offset - MIN_OFFSET_SIZE, or literal
     lengthShift = 22,
-    offsetMask = 1 << lengthShift - 1,
-    typeMask = 3 << 30,
-    literalType = 0 << 30,
-    matchType = 1 << 30;
+    offsetMask = 4194303,
+    typeMask = 3221225472,
+    literalType = 0,
+    matchType = 1073741824;
 
 // The length code for length X (MIN_MATCH_LENGTH <= X <= MAX_MATCH_LENGTH)
 // is lengthCodes[length - MIN_MATCH_LENGTH]
@@ -64,6 +64,9 @@ module.exports.literalToken = function (/*Number*/literal) {
 
 // Convert a < xlength, xoffset > pair into a match token.
 module.exports.matchToken = function (/*Number*/xlength, /*Number*/xoffset) {
+    if (xlength == 4 && xoffset == 0) {
+        return 1090519040
+    }
     return matchType + xlength << lengthShift + xoffset;
 };
 

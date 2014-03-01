@@ -66,8 +66,8 @@ function huffmanBitWriter(/*Writer*/w) {
 
     var _literalFreq = EmptyArray(maxLit),
         _offsetFreq = EmptyArray(offsetCodeCount),
-        _codegen = EmptyArray(offsetCodeCount + maxLit + 1),
-        _codegenFreq = EmptyArray(codegenCodeCount),
+        _codegen = new Buffer(offsetCodeCount + maxLit + 1),
+        _codegenFreq = new Buffer(codegenCodeCount),
 
         _literalEncoding = huffmanEncoder(maxLit),
         _offsetEncoding = huffmanEncoder(offsetCodeCount),
@@ -80,6 +80,8 @@ function huffmanBitWriter(/*Writer*/w) {
         _nbits = 0,
         _bytes = new Buffer(64),
         _nbytes = 0;
+
+    reset(w);
 
     function reset(writer) {
         w = writer;
@@ -182,23 +184,14 @@ function huffmanBitWriter(/*Writer*/w) {
             _codegenFreq[i] = 0;
         }
 
-        //var codegen = _codegen; // cache
+        _literalEncoding.codeBits.copy(_codegen, 0, 0, numLiterals);
 
-        //console.log("codebits1", _literalEncoding.codeBits.length, _literalEncoding.codeBits.join(","));
-        //console.log("codegen1", _codegen.length, _codegen.join(","));
-
-        _codegen = [].concat(_literalEncoding.codeBits.slice(0, numLiterals), _codegen.slice(numLiterals));
-
-        //console.log("codegen2", _codegen.length, _codegen.join(","));
-        _codegen = [].concat(_codegen.slice(0, numLiterals), _offsetEncoding.codeBits.slice(0, numOffsets), _codegen.slice(numLiterals + numOffsets));
-
-        //console.log("codegen3", _codegen.length, _codegen.join(","));
+        _offsetEncoding.codeBits.copy(_codegen, numLiterals, 0, numLiterals+numOffsets)
         _codegen[numLiterals + numOffsets] = badCode;
 
         var size = _codegen[0],
             count = 1,
             outIndex = 0;
-
         for (var inIndex = 1; size != badCode; inIndex++) {
             // INVARIANT: We have seen "count" copies of size that have not yet
             // had output generated for them.
@@ -211,9 +204,9 @@ function huffmanBitWriter(/*Writer*/w) {
             if (size != 0) {
                 _codegen[outIndex] = size;
                 outIndex++;
-                _codegenFreq[size]++;
+                _codegenFreq[size] = _codegenFreq[size] + 1;
                 count--;
-                while (count >= 3) {
+                for (;count >= 3;) {
                     var n = 6;
                     if (n > count) {
                         n = count;
@@ -222,11 +215,11 @@ function huffmanBitWriter(/*Writer*/w) {
                     outIndex++;
                     _codegen[outIndex] = n - 3;
                     outIndex++;
-                    _codegenFreq[16]++;
+                    _codegenFreq[16] = _codegenFreq[16] + 1;
                     count -= n;
                 }
             } else {
-                while (count >= 11) {
+                for (;count >= 11;) {
                     var n = 138;
                     if (n > count) {
                         n = count;
@@ -235,7 +228,7 @@ function huffmanBitWriter(/*Writer*/w) {
                     outIndex++;
                     _codegen[outIndex] = n - 11;
                     outIndex++;
-                    _codegenFreq[18]++;
+                    _codegenFreq[18] = _codegenFreq[18] + 1;
                     count -= n;
                 }
                 if (count >= 3) {
@@ -243,7 +236,7 @@ function huffmanBitWriter(/*Writer*/w) {
                     outIndex++;
                     _codegen[outIndex] = count - 3;
                     outIndex++;
-                    _codegenFreq[17]++;
+                    _codegenFreq[17] = _codegenFreq[17] + 1;
                     count++;
                 }
             }
@@ -251,14 +244,14 @@ function huffmanBitWriter(/*Writer*/w) {
             for (;count >= 0; count--) {
                 _codegen[outIndex] = size;
                 outIndex++;
-                _codegenFreq[size]++;
+                _codegenFreq[size] = _codegenFreq[size] + 1;
             }
             // Set up invariant for next time through the loop.
             size = nextSize;
             count = 1
         }
         // Marker indicating the end of the codegen.
-        _codegen[outIndex] = badCode
+        _codegen[outIndex] = badCode;
     }
 
     function writeCode(/*huffmanEncoder*/code, /*Number*/literal) {
@@ -332,7 +325,6 @@ function huffmanBitWriter(/*Writer*/w) {
     }
 
     function writeBlock(/*Array*/tokens, /*Boolean*/eof, /*Buffer*/input) {
-        //console.log("writeBlock()", tokens.length, tokens, eof, input);
 
         if (_err != 0) {
             return false;
@@ -347,13 +339,13 @@ function huffmanBitWriter(/*Writer*/w) {
             var t = tokens[i];
             switch (token.typ(t)) {
                 case 0 << 30:
-                    _literalFreq[token.literal(t)]++;
+                    _literalFreq[token.literal(t)] = _literalFreq[token.literal(t)] = _literalFreq[token.literal(t)] = _literalFreq[token.literal(t)] + 1;
                     break;
                 case 1 << 30:
                     var length = token.length(t),
                         offset = token.offset(t);
-                    _literalFreq[lengthCodesStart + token.lengthCode(length)]++;
-                    _offsetFreq[token.offsetCode(offset)]++;
+                    _literalFreq[lengthCodesStart + token.lengthCode(length)] = _literalFreq[lengthCodesStart + token.lengthCode(length)] + 1;
+                    _offsetFreq[token.offsetCode(offset)] = _offsetFreq[token.offsetCode(offset)] + 1;
             }
         }
 
@@ -376,6 +368,7 @@ function huffmanBitWriter(/*Writer*/w) {
         _literalEncoding.generate(_literalFreq, 15);
         _offsetEncoding.generate(_offsetFreq, 15);
 
+
         var storedBytes = 0;
         if (input != null) {
             storedBytes = input.length;
@@ -397,12 +390,8 @@ function huffmanBitWriter(/*Writer*/w) {
             offsetEncoding = fixedOffsetEncoding,
             numCodegens = 0;
 
-        //console.log("writeBlock() size", size);
-        //console.log("codgenFreq1", _codegenFreq);
         generateCodegen(numLiterals, numOffset);
-        //console.log("codgenFreq2", _codegenFreq);
         _codegenEncoding.generate(_codegenFreq, 7);
-        //console.log("codgenFreq3", _codegenFreq);
 
         numCodegens = _codegenFreq.length;
         for (; numCodegens > 4 && _codegenFreq[codegenOrder[numCodegens - 1]] == 0;) {
@@ -434,10 +423,10 @@ function huffmanBitWriter(/*Writer*/w) {
             writeDynamicHeader(numLiterals, numOffset, numCodegens, eof)
         }
         for (i = 0; i < tokens.length; i++) {
-            t = tokens[t];
+            t = tokens[i];
             switch (token.typ(t)) {
                 case 0 << 30:
-                    writeCode(literalEncoding, token.literal(t));
+                    writeCode(literalEncoding, t, token.literal(t));
                     break;
                 case 1 << 30:
                     var length = token.length(t),
@@ -479,8 +468,8 @@ function huffmanBitWriter(/*Writer*/w) {
 }
 
 function huffmanEncoder(size) {
-    var codeBits = EmptyArray(size),
-        code = EmptyArray(size);
+    var codeBits = new Buffer(size),
+        code = new Buffer(size);
 
     function bitLength(freq) {
         var total = 0;
@@ -509,6 +498,7 @@ function huffmanEncoder(size) {
 
         for (var i = 0; i < maxBitsLimit; i++) {
             leafCounts[i] = new Array(maxBitsLimit);
+            levels[i] = {level:0, lastFreq:0, nextCharFreq:0, nextPairFreq:0, needed:0}
         }
 
         for (var level = 1; level <= maxBits; level++) {
@@ -516,7 +506,7 @@ function huffmanEncoder(size) {
                 level: level,
                 lastFreq: list[1].freq,
                 nextCharFreq: list[2].freq,
-                nextPaiFreq: list[0].freq + list[1].freq,
+                nextPairFreq: list[0].freq + list[1].freq,
                 needed: 0
             };
             leafCounts[level][level] = 2;
@@ -604,20 +594,19 @@ function huffmanEncoder(size) {
     function sortByFreq(a) {
         a.sort(function(i, j) {
             if (i.freq == j.freq) {
-                return i.literal < j.literal
+                return i.literal > j.literal
             }
-            return i.freq < j.freq;
+            return i.freq > j.freq;
         });
     }
 
     function sortByLiteral(a) {
         a.sort(function(i, j) {
-            return i.literal < j.literal;
+            return i.literal > j.literal;
         });
     }
 
     function generate(freq, maxBits) {
-        //console.log("generate(), freq", freq.join(" "), maxBits);
         var list = new Array(freq.length + 1),
             count = 0;
 
@@ -711,7 +700,7 @@ function EmptyArray(size) {
 
 function maxNode() {
     return {
-        literal: 1<<16 - 1,
-        freq: 1<<31 - 1
+        literal: 65535,
+        freq: 2147483647
     }
 }
