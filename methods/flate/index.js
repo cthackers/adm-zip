@@ -1,14 +1,10 @@
 exports.compressor = require("./deflate").compressor;
-
-exports.decompressor = function(b) {
-    var n = new Buffer(b.length);
-    b.copy(n, 0, 0, b.length);
-    return n
-};
+exports.decompressor = require("./inflate").decompressor;
 
 exports.unitTests = function() {
     return {
         "forwardCopy" : require("./copy_test"),
+        "flate" : require("./flate_test"),
         "deflate" : require("./deflate_test")
     }
 };

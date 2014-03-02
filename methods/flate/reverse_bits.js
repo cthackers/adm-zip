@@ -40,3 +40,4 @@ function reverse(/*Number*/v) {
 module.exports = function(/*Number*/number, /*Number*/bitLength) {
     return reverse(number << ((16 - bitLength) & 0xFF))
 };
+module.exports.reverseByte = reverseByte;

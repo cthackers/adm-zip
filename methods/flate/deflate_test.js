@@ -1,4 +1,5 @@
-var compressor = require("./deflate").compressor;
+var compressor = require("./deflate").compressor,
+    decompressor = require("./inflate").decompressor;
 
 var deflateTests = [
     [new Buffer(0), 0, new Buffer([1, 0, 0, 255, 255])],
@@ -66,16 +67,104 @@ function testDeflate() {
     return true;
 }
 
-function testDeflateInflate() {
+function testToFromWithLevelAndLimit(level, input, name, limit) {
+    //console.log("--- level", level, "input", input, "name", name, "limit", limit, "input length", input.length)
+    var buf = require("../../utils").Writer(),
+        w = compressor(buf, level);
 
+    w.Write(input);
+    w.Close();
+
+   // console.log("compressed", buf.buffer, buf.length)
+
+    if (limit > 0 && buf.length > limit) {
+        console.log("level: " + level + ", len(compress(data)) = "+ buf.length + " > limit = "+ limit);
+        return false;
+    }
+
+    var r = new decompressor(buf.buffer),
+        data;
+
+    if (Buffer.isBuffer(r)) {
+        data = r
+    } else {
+        data = new Buffer(input.length);
+        var tmp = new Buffer(512),
+            count = 0,
+            read = 0;
+
+        while (read = r.Read(tmp)) {
+            tmp.copy(data, count, 0, read);
+            count += read;
+        }
+        r.Close();
+    }
+
+    //console.log("decompressed", data, data.length)
+
+    if (data.toString('hex') != input.toString('hex')) {
+        var count = 0;
+        for (var i = 0; i < input.length; i++) {
+            if (count > 10) break;
+            if (input[i] != data[i]) {
+                console.log("byte index ", i, "is different ", input[i],'=',data[i])
+                count++;
+            }
+        }
+        console.log("decompress(compress(data)) != data: level=" + level + " input=" + name)
+        return false;
+    }
+
+    return true;
+}
+
+function testDeflateInflate() {
+    for (var i = 0; i < deflateInflateTests.length; i++) {
+     // var  i = 5;
+        var h = deflateInflateTests[i],
+            name = "#" + i,
+            limit = new Array(10);
+
+        for (var j = 0; j < 10; j++) {
+  //  var j = 1;
+            limit[j] = 0;
+            if (!testToFromWithLevelAndLimit(j, h, name, limit[j])) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 function testReverseBits() {
+    for (var i = 0; i < reverseBitsTests.length; i++) {
+        var h = reverseBitsTests[i],
+            reverseBits = require("./reverse_bits"),
+            v = reverseBits(h[0], h[1]);
+        if  (v != h[2]) {
+            console.log("reverseBits("+ h[0] +"," + h[1] + ") = " + v + ", want " + h[2]);
+            return false;
+        }
+    }
+    return true;
+}
 
+function fail(name, expected, returned) {
+    console.log("expected ",name," '", expected, "' got '",returned,"'");
+    return false;
 }
 
 module.exports.run = function () {
+    if (!testReverseBits()) {
+        console.log("testReverseBits failed");
+        return false
+    }
     if (!testDeflate()) {
+        console.log("testDeflate failed");
+        return false
+    }
+    if (!testDeflateInflate()) {
+        console.log("testDeflateInflate failed");
         return false
     }
     return true;

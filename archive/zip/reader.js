@@ -111,8 +111,7 @@ function Reader(r, size) {
         return header;
     }
 
-    function readDataDescriptor() {
-
+    function readDataDescriptor(r, f) {
     }
 
     function findDirectory64End(dirOffset) {

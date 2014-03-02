@@ -69,9 +69,9 @@ function huffmanBitWriter(/*Writer*/w) {
         _codegen = new Buffer(offsetCodeCount + maxLit + 1),
         _codegenFreq = new Buffer(codegenCodeCount),
 
-        _literalEncoding = huffmanEncoder(maxLit),
-        _offsetEncoding = huffmanEncoder(offsetCodeCount),
-        _codegenEncoding = huffmanEncoder(codegenCodeCount),
+        _literalEncoding = new huffmanEncoder(maxLit),
+        _offsetEncoding = new huffmanEncoder(offsetCodeCount),
+        _codegenEncoding = new huffmanEncoder(codegenCodeCount),
 
         _err = 0,
         // Data waiting to be written is bytes[0:nbytes]
@@ -151,7 +151,7 @@ function huffmanBitWriter(/*Writer*/w) {
     }
 
     function writeBits(b, nb) {
-        _bits |= b << _nbits;
+        _bits |= (b << _nbits);
         _nbits += nb;
         if (_nbits >= 16) {
             flushBits();
@@ -339,7 +339,7 @@ function huffmanBitWriter(/*Writer*/w) {
             var t = tokens[i];
             switch (token.typ(t)) {
                 case 0 << 30:
-                    _literalFreq[token.literal(t)] = _literalFreq[token.literal(t)] = _literalFreq[token.literal(t)] = _literalFreq[token.literal(t)] + 1;
+                    _literalFreq[token.literal(t)] = _literalFreq[token.literal(t)] + 1;
                     break;
                 case 1 << 30:
                     var length = token.length(t),
@@ -467,74 +467,106 @@ function huffmanBitWriter(/*Writer*/w) {
     }
 }
 
-function huffmanEncoder(size) {
-    var codeBits = new Buffer(size),
-        code = new Buffer(size);
+function huffmanEncoder(/*Number*/size) {
 
-    function bitLength(freq) {
+    var h = this;
+
+    this.codeBits = new Buffer(size);
+    this.code = EmptyArray(size);
+
+    this.bitLength = function(/*Array*/freq) {
         var total = 0;
         for (var i = 0, l = freq.length; i < l; i++) {
             var f = freq[i];
             if (f != 0) {
-                total += f * codeBits[i];
+                total += (f * h.codeBits[i]);
             }
         }
         return total;
-    }
+    };
 
-    function bitCounts(list, maxBits) {
+    this.bitCounts = function(/*Array*/list, /*Number*/maxBits) {
+        //console.log("bitCounts", maxBits, list)
         if (maxBits >= maxBitsLimit) {
             throw Error("flate: maxBits too large")
         }
+
         var n = list.length;
         list.push(maxNode());
 
+        // The tree can't have greater depth than n - 1, no matter what.  This
+        // saves a little bit of work in some small cases
         if (maxBits > n - 1) {
             maxBits = n - 1
         }
 
+        // Create information about each of the levels.
+        // A bogus "Level 0" whose sole purpose is so that
+        // level1.prev.needed==0.  This makes level1.nextPairFreq
+        // be a legitimate value that never gets chosen.
         var levels = new Array(maxBitsLimit),
+        // leafCounts[i] counts the number of literals at the left
+        // of ancestors of the rightmost node at level i.
+        // leafCounts[i][j] is the number of literals at the left
+        // of the level j ancestor.
             leafCounts = new Array(maxBitsLimit);
 
         for (var i = 0; i < maxBitsLimit; i++) {
-            leafCounts[i] = new Array(maxBitsLimit);
-            levels[i] = {level:0, lastFreq:0, nextCharFreq:0, nextPairFreq:0, needed:0}
+            leafCounts[i] = EmptyArray(maxBitsLimit);
+            levels[i] = {
+                level: 0,
+                lastFreq: 0,
+                nextCharFreq: 0,
+                nextPairFreq: 0,
+                needed: 0
+            };
         }
 
+        // For every level, the first two items are the first two characters.
+        // We initialize the levels as if we had already figured this out.
         for (var level = 1; level <= maxBits; level++) {
             levels[level] = {
-                level: level,
-                lastFreq: list[1].freq,
+                level:        level,
+                lastFreq:     list[1].freq,
                 nextCharFreq: list[2].freq,
                 nextPairFreq: list[0].freq + list[1].freq,
                 needed: 0
             };
             leafCounts[level][level] = 2;
             if (level == 1) {
-                levels[level].nextPairFreq = consts.maxint
+                levels[level].nextPairFreq = 0xFFFFFFFF;
             }
         }
 
+        // We need a total of 2*n - 2 items at top level and have already generated 2.
         levels[maxBits].needed = 2 * n - 4;
         level = maxBits;
 
-        for (;;) {
+        while (true) {
             var l = levels[level];
-            if (l.nextPairFreq == consts.maxint && l.nextCharFreq == consts.maxint) {
+            if (l.nextPairFreq == 0xFFFFFFFF && l.nextCharFreq == 0xFFFFFFFF) {
+                // We've run out of both leafs and pairs.
+                // End all calculations for this level.
+                // To make sure we never come back to this level or any lower level,
+                // set nextPairFreq impossibly large.
                 l.needed = 0;
-                levels[level+1].nextPairFreq = consts.maxint;
+                levels[level+1].nextPairFreq = 0xFFFFFFFF;
                 level++;
-
                 continue
             }
 
             var prevFreq = l.lastFreq;
             if (l.nextCharFreq < l.nextPairFreq) {
+                // The next item on this row is a leaf node.
                 var n = leafCounts[level][level] + 1;
                 l.lastFreq = l.nextCharFreq;
+                // Lower leafCounts are the same of the previous node.
                 leafCounts[level][level] = n;
                 l.nextCharFreq = list[n].freq
             } else {
+                // The next item on this row is a pair from the previous row.
+                // nextPairFreq isn't valid until we generate two
+                // more values in the level below
                 l.lastFreq = l.nextPairFreq;
                 leafCounts[level] = [].concat(leafCounts[level-1].slice(0,level), leafCounts[level].slice(level));
                 levels[l.level-1].needed = 2;
@@ -542,13 +574,18 @@ function huffmanEncoder(size) {
             l.needed--;
 
             if (l.needed == 0) {
+                // We've done everything we need to do for this level.
+                // Continue calculating one level up.  Fill in nextPairFreq
+                // of that level with the sum of the two nodes we've just calculated on
+                // this level.
                 if (l.level == maxBits) {
+                    // All done!
                     break;
                 }
                 levels[l.level + 1].nextPairFreq = prevFreq + l.lastFreq;
                 level++;
             } else {
-                for (;levels[level-1].needed > 0;) {
+                while (levels[level-1].needed > 0) {
                     level--
                 }
             }
@@ -563,14 +600,16 @@ function huffmanEncoder(size) {
             counts = leafCounts[maxBits];
 
         for (level = maxBits; level > 0; level--) {
+            // chain.leafCount gives the number of literals requiring at least "bits"
+            // bits to encode.
             bitCount[bits] = counts[level] - counts[level - 1];
             bits++;
         }
 
         return bitCount;
-    }
+    };
 
-    function assignEncodingAndSize(bitCount, list) {
+    this.assignEncodingAndSize = function(/*Array*/bitCount, /*Array*/list) {
         var code = 0;
         for (var n = 0; n < bitCount.length; n++) {
             var bits = bitCount[n];
@@ -578,18 +617,22 @@ function huffmanEncoder(size) {
             if (n == 0 || bits == 0) {
                 continue;
             }
+            // The literals list[len(list)-bits] .. list[len(list)-bits]
+            // are encoded using "bits" bits, and get the values
+            // code, code + 1, ....  The code values are
+            // assigned in literal order (not frequency order).
             var chunk = list.slice(list.length - bits);
             sortByLiteral(chunk);
             for (var i = 0; i < chunk.length; i++) {
                 var node = chunk[i];
-                codeBits[node.literal] = n;
-                code[node.literal] = reverseBits(code, n);
+                h.codeBits[node.literal] = n;
+                h.code[node.literal] = reverseBits(code, n);
                 code++
             }
             list = list.slice(0, list.length - bits);
         }
         return list
-    }
+    };
 
     function sortByFreq(a) {
         a.sort(function(i, j) {
@@ -606,8 +649,9 @@ function huffmanEncoder(size) {
         });
     }
 
-    function generate(freq, maxBits) {
+    this.generate = function(freq, maxBits) {
         var list = new Array(freq.length + 1),
+        // Number of non-zero literals
             count = 0;
 
         for (var i = 0; i < list.length; i++) {
@@ -620,35 +664,33 @@ function huffmanEncoder(size) {
                 list[count] = {literal:i, freq:f};
                 count++
             } else {
-                codeBits[i] = 0;
+                h.codeBits[i] = 0;
             }
         }
-        codeBits = codeBits.slice(0, freq.length);
+        // If freq[] is shorter than codeBits[], fill rest of codeBits[] with zeros
+        h.codeBits = h.codeBits.slice(0, freq.length);
         list = list.slice(0, count);
         if (count <= 2) {
+            // Handle the small cases here, because they are awkward for the general case code.  With
+            // two or fewer literals, everything has bit length 1.
             for (var j = 0; j < list.length; j++) {
                 var node = list[j];
-                codeBits[node.literal] = 1;
-                code[node.literal] = j;
+                // "list" is in order of increasing literal value.
+                h.codeBits[node.literal] = 1;
+                h.code[node.literal] = j;
             }
             return
         }
         sortByFreq(list);
-        var bitCount = bitCounts(list, maxBits);
-        assignEncodingAndSize(bitCount, list);
-    }
-
-    return {
-        codeBits : codeBits,
-        code : code,
-        generate : generate,
-        bitLength : bitLength,
-        bitCounts : bitCounts
-    }
+        // Get the number of literals for each bit count
+        var bitCount = h.bitCounts(list, maxBits);
+        // And do the assignment
+        h.assignEncodingAndSize(bitCount, list);
+    };
 }
 
 function generateFixedLiteralEncoding() {
-    var h = huffmanEncoder(286),
+    var h = new huffmanEncoder(286),
         codeBits = h.codeBits,
         code = h.code;
 
@@ -679,7 +721,7 @@ function generateFixedLiteralEncoding() {
 }
 
 function generateFixedOffsetEncoding() {
-    var h = huffmanEncoder(30),
+    var h = new huffmanEncoder(30),
         codeBits = h.codeBits,
         code = h.code;
 

@@ -68,18 +68,6 @@ var tests = [
         ]
     },
     {
-        name: "r.zip",
-        source: recursiveZip,
-        files: [
-            {
-                name: "r/r.zip",
-                content: rZipBytes(),
-                modtime: "03-04-10 00:24:16",
-                mode: 438 // 0666
-            }
-        ]
-    },
-    {
         name: "symlink.zip",
         files: [
             {
@@ -108,16 +96,6 @@ var tests = [
         ]
     },
     {
-        // created in windows XP file manager.
-        name: "winxp.zip",
-        files: crossPlatform
-    },
-    {
-        // created by Zip 3.0 under Linux
-        name: "unix.zip",
-        files: crossPlatform
-    },
-    {
         // no data descriptor signatures (which are required by OS X)
         name: "no-datadesc-sig.zip",
         files: [
@@ -135,22 +113,7 @@ var tests = [
             }
         ]
     },
-    {
-        // with data descriptor
-        name: "with-datadesc-sig.zip",
-        files: [
-            {
-                name: "foo.txt",
-                content: new Buffer("foo\n"),
-                mode: 438 // 0666
-            },
-            {
-                name: "bar.txt",
-                content: new Buffer("bar\n"),
-                mode: 438 // 0666
-            }
-        ]
-    },
+
     {
         name: "Bad-CRC32-in-data-descriptor",
         source: corruptCRC32Zip,
@@ -207,6 +170,47 @@ var tests = [
                 mode: 420 // 0644
             }
         ]
+    }
+];
+
+var tests2 = [
+    {
+        name: "r.zip",
+        source: recursiveZip,
+        files: [
+            {
+                name: "r/r.zip",
+                content: rZipBytes(),
+                modtime: "03-04-10 00:24:16",
+                mode: 438 // 0666
+            }
+        ]
+    },
+    {
+        // created in windows XP file manager.
+        name: "winxp.zip",
+        files: crossPlatform
+    },
+    {
+        // created by Zip 3.0 under Linux
+        name: "unix.zip",
+        files: crossPlatform
+    },
+    {
+        // with data descriptor
+        name: "with-datadesc-sig.zip",
+        files: [
+            {
+                name: "foo.txt",
+                content: new Buffer("foo\n"),
+                mode: 438 // 0666
+            },
+            {
+                name: "bar.txt",
+                content: new Buffer("bar\n"),
+                mode: 438 // 0666
+            }
+        ]
     },
     {
         name: "zip64.zip",
@@ -219,7 +223,7 @@ var tests = [
             }
         ]
     }
-];
+]
 
 function corruptNotStreamedZip() {
     var buf = messWith("crc32-not-streamed.zip", function(buf) {
@@ -244,7 +248,7 @@ function corruptCRC32Zip() {
 }
 
 function messWith(fileName, corrupter) {
-    var bytes = fs.readFileSync(path.join("test/testdata", fileName));
+    var bytes = fs.readFileSync(path.join("testdata", fileName));
     corrupter(bytes);
     return bytes
 }
@@ -296,13 +300,13 @@ function recursiveZip() {
 
 function readTestFile(test, ft, f) {
     if (f.entryName != f.name) {
-        return fail(f.name, f.entryName)
+        return fail("entryName", f.name, f.entryName)
     }
 
     if (ft.modtime) {
         var time = new Date(ft.modtime);
         if (time.getTime() != f.header.modTime.getTime()) {
-            return fail(time, f.header.modTime)
+            return fail("modTime", time, f.header.modTime)
         }
     }
 
@@ -311,11 +315,27 @@ function readTestFile(test, ft, f) {
     }
 
     var size0 = f.header.size,
-        uncompressed = f.read(),
-        size1 = uncompressed.length;
+        uncompressed;
+
+    try {
+        uncompressed = f.read();
+    } catch (e) {
+        if (ft.error) {
+            if (ft.error != e.message) {
+                return fail("thrown error", ft.error, e.message);
+            } else {
+                // got the error expected error message
+                return true;
+            }
+        } else {
+            return fail(ft, "no exception", e.message);
+        }
+    }
+
+    var size1 = uncompressed.length;
 
     if (size0 != size1) {
-        return fail(size0, size1);
+        return fail("size", size0, size1);
     }
 
     var c;
@@ -326,11 +346,10 @@ function readTestFile(test, ft, f) {
     }
 
     if (c.length != uncompressed.length) {
-        return fail(c.length, uncompressed.length)
+        return fail("uncompressed Length", c.length, uncompressed.length)
     }
-
     if (c.toString('hex') != uncompressed.toString('hex')) {
-        console.log("content of decompressed bytes is not as expected")
+        console.log(test.name, "content of decompressed bytes is not as expected");
         return false
     }
 
@@ -397,24 +416,17 @@ function readTestZip(test) {
     return true
 }
 
-function testInvalidFiles() {
-    return true
-}
-
-function fail(expected, returned) {
-    console.log("expected '", expected, "' got '",returned,"'");
+function fail(name, expected, returned) {
+    console.log("expected ",name," '", expected, "' got '",returned,"'");
     return false;
 }
 
 module.exports.run = function () {
     for (var i = 0; i < tests.length; i++) {
         var test = tests[i];
-        console.log("testing: ", test.name);
-
         if (!readTestZip(test)) {
             return false
         }
     }
-
-    return testInvalidFiles();
+    return true
 };
