@@ -6,6 +6,7 @@ var constants = require("./constants"),
 module.exports.Reader = Reader;
 
 function Reader(r, size) {
+
     var _comment = "",
         _reader = r,
         _fd = undefined,
@@ -26,15 +27,23 @@ function Reader(r, size) {
     }
 
     function initReader() {
+        var stats;
+
         if (Buffer.isBuffer(r)) {
             _reader = r;
             if (!size) {
                 _size = r.length
             }
         } else if (typeof r == "string") {
-            var stats = fs.statSync(r);
+            stats = fs.statSync(r);
             _size = stats.size;
             _fd = fs.openSync(r, "rs");
+        } else if (typeof r == "number") {
+            stats = fs.fstatSync(r);
+            _size = stats.size;
+            _fd = r;
+        } else {
+            throw Error("Invalid input")
         }
 
         var end = readDirectoryEnd();

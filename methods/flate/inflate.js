@@ -1,3 +1,7 @@
+var fixedHuffmanDecoder = require("./fixedhuff"),
+    reverseBits = require("./reverse_bits"),
+    forwardCopy = require("./copy").forwardCopy;
+
 var maxCodeLen = 6,
     maxHist = 32768,
     maxLit = 286,
@@ -8,16 +12,14 @@ var maxCodeLen = 6,
     huffmanCountMask  = 15,
     huffmanValueShift = 4,
     codeOrder = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15],
-    fixedHuffmanDecoder = require("./fixedhuff"),
-    reverseBits = require("./reverse_bits"),
-    reverseByte = reverseBits.reverseByte,
-    forwardCopy = require("./copy").forwardCopy;
+    reverseByte = reverseBits.reverseByte;
 
-module.exports.decompressor = function(r) {
+module.exports.decompressor = function(/*Reader*/r) /*Reader*/ {
     var f = new Decompressor();
     f.r = r;
     return f;
 };
+
 module.exports.HuffmanDecoder = HuffmanDecoder;
 
 function HuffmanDecoder() {
@@ -233,19 +235,15 @@ function Decompressor() {
     };
 
     this.Read = function(/*Buffer*/b) {
-    //    console.log("read()", b.length)
         while (true) {
             if (f.toRead.length > 0) {
                 var n = f.toRead.copy(b);
                 f.toRead = f.toRead.slice(n);
-            //    console.log("read() n = ", n, "toRead = ", f.toRead.length)
                 return n;
             }
             if (f.err) {
-            //    console.log("read()  n = ", 0)
                 return 0;
             }
-          //  console.log("Read() step")
             f.step(f);
         }
     };

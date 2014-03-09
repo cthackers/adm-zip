@@ -1,185 +1,200 @@
-var consts = require("./constants"),
-    token = require("./token"),
+var token = require("./token"),
     utils = require("../../utils"),
-    hufWriter = require("./huffman_bit_writer");
+    newHuffmanBitWriter = require("./huffman_bit_writer"),
+    EmptyArray = utils.EmptyArray,
+    copy = utils.copy;
 
-module.exports.compressor = function(w, level) {
-    var dw = Writer();
-    dw.d.init(w, level);
-    return dw
-};
 
-function Writer() {
-    var d = compressor();
+const
+    NoCompression = 0,
+    BestSpeed = 1,
+    FastCompression = 3,
+    BestCompression = 9,
+    DefaultCompression = -1,
+    logWindowSize = 15,
+    windowSize = 1 << logWindowSize,
+    windowMask = windowSize - 1,
+    minMatchLength = 3, // The smallest match that the compressor looks for
+    maxMatchLength = 258, // The longest match for the compressor
+    minOffsetSize = 1, // The shortest offset that makes any sense
 
-    return {
-        get d () {
-          return d
-        },
-        Write :  function (data) {
-            return d.write(data)
-        },
-        Flush :  function () {
-            d.syncFlush()
-        },
-        Close : function () {
-            d.close();
-        }
-    }
+    // The maximum number of tokens we put into a single flat block, just too
+    // stop things from getting too large.
+    maxFlateBlockTokens = 1 << 14,
+    maxStoreBlockSize = 32768, //128 - 524288, 64 - 65535, 32 - 32768, 16 - 16384
+    hashBits = 17,
+    hashSize = 1 << hashBits,
+    hashMask = (1 << hashBits) - 1,
+    hashShift = (hashBits + minMatchLength - 1) / minMatchLength,
+    maxHashOffset = 1 << 24,
+    maxInt32 = 0xFFFFFFFF,
+    skipNever = maxInt32;
+
+// compression levels
+module.exports.NoCompression = NoCompression;
+module.exports.BestSpeed = BestSpeed;
+module.exports.FastCompression = FastCompression;
+module.exports.BestCompression = BestCompression;
+module.exports.DefaultCompression = DefaultCompression;
+
+function CompressionLevel(a, b, c, d, e) {
+    this.good = a || 0;
+    this.lazy = b || 0;
+    this.nice = c || 0;
+    this.chain = d || 0;
+    this.fastSkipHashing = e || 0;
 }
 
-function compressor() {
-    var compressionLevel = consts.levels[0],
-        w,
-        chainHead = 0,
-        hashHead = [],
-        hashPrev = [],
-        hashOffset = 0,
+var levels = [
+    new CompressionLevel(), // 0
+    // For levels 1-3 we don't bother trying with lazy matches
+    new CompressionLevel(3, 0, 8, 4, 4),
+    new CompressionLevel(3, 0, 16, 8, 5),
+    new CompressionLevel(3, 0, 32, 32, 6),
+    // Levels 4-9 use increasingly more lazy matching
+    // and increasingly stringent conditions for "good enough".
+    new CompressionLevel(4, 4, 16, 16, skipNever),
+    new CompressionLevel(8, 16, 32, 32, skipNever),
+    new CompressionLevel(8, 16, 128, 128, skipNever),
+    new CompressionLevel(8, 32, 128, 256, skipNever),
+    new CompressionLevel(32, 128, 258, 1024, skipNever),
+    new CompressionLevel(32, 258, 258, 4096, skipNever)
+];
 
-        index = 0,
-        window = new Buffer(0),
-        windowEnd = 0,
-        blockStart = 0,
-        byteAvailable = false,
+function Compressor() {
+    var d = this;
+    /*huffmanBitWriter*/
+    this.w = null;
+    // copy data to window
+    this.fill = null;
+    // process window
+    this.step = null;
+    // requesting flush
+    this.flush = null;
 
-        tokens = [],
-        length = 0,
-        offset = 0,
-        hash = 0,
-        maxInsertIndex = 0,
-        sync = false,
-        fill, step;
+    // Input hash chains
+    // hashHead[hashValue] contains the largest inputIndex with the specified hash value
+    // If hashHead[hashValue] is within the current window, then
+    // hashPrev[hashHead[hashValue] & windowMask] contains the previous index
+    // with the same hash value.
+    this.chainHead = 0;
+    this.hashHead = [];
+    this.hashPrev = [];
+    this.hashOffset = 0;
 
-    function init(_w, level) {
-        w = new hufWriter(_w);
+    // input window: unprocessed data is window[index:windowEnd]
+    this.index = 0;
+    this.window = new Buffer(0);
+    this.windowEnd = 0;
+    // window index where current tokens start
+    this.blockStart = 0;
+    // if true, still need to process window[index-1].
+    this.byteAvailable = false;
 
-        switch (level) {
-            case consts.NoCompression:
-                window = new Buffer(consts.maxStoreBlockSize);
-                fill = fillStore;
-                step = store;
-                break;
+    // queued output tokens
+    this.tokens = [];
 
-            case consts.DefaultCompression:
-                level = 6;
-            default:
-                if (1 <= level && level <= 9) {
-                    compressionLevel = consts.levels[level];
-                    initDeflate();
-                    fill = fillDeflate;
-                    step = deflate;
-                } else {
-                    throw Error("flate: invalid compression level " + level + ": value should be in range [-1, 9]")
-                }
-        }
-    }
+    // deflate state
+    this.length = 0;
+    this.offset = 0;
+    this.hash = 0;
+    this.maxInsertIndex = 0;
 
-    function writeBlock(/*Array*/tokens, /*Number*/index, /*Boolean*/eof) {
-        if (index > 0 || eof) {
-            var _window = new Buffer(0);
-            if (blockStart <= index) {
-                _window = window.slice(blockStart, index);
+    this.err = "";
+
+    this.fillDeflate = function (/*Buffer*/b) /*Number*/ {
+        if (d.index >= 2 * windowSize - (minMatchLength + maxMatchLength)) {
+            // shift the window by windowSize
+            copy(d.window, 0, d.window.length, d.window, windowSize, 2 * windowSize);
+            d.index -= windowSize;
+            d.windowEnd -= windowSize;
+            if (d.blockStart >= windowSize) {
+                d.blockStart -= windowSize
+            } else {
+                d.blockStart = maxInt32;
             }
-            blockStart = index;
-            return w.writeBlock(tokens, eof, _window);
+            d.hashOffset += windowSize;
+            if (d.hashOffset > maxHashOffset) {
+                var delta = d.hashOffset - 1;
+                d.hashOffset -= delta;
+                d.chainHead -= delta;
+                for (var i = 0; i < d.hashPrev.length; i++) {
+                    if (d.hashPrev[i] > delta) {
+                        d.hashPrev[i] -= delta
+                    } else {
+                        d.hashPrev[i] = 0;
+                    }
+                }
+                for (var j = 0; j < d.hashHead.length; j++) {
+                    if (d.hashHead[j] > delta) {
+                        d.hashHead[j] -= delta
+                    } else {
+                        d.hashHead[j] = 0;
+                    }
+                }
+            }
+        }
+        var n = copy(d.window, d.windowEnd, d.window.length, b);
+        d.windowEnd += n;
+        return n
+    };
+
+    this.writeBlock = function (/*Array*/tokens, /*Number*/index, /*Boolean*/eof) /*boolean*/ {
+        if (index > 0 || eof) {
+            var window = new Buffer(0);
+            if (d.blockStart <= index) {
+                window = d.window.slice(d.blockStart, index);
+            }
+            d.blockStart = index;
+            d.w.writeBlock(tokens, eof, window);
+            return d.w.err == 0;
         }
         return true
-    }
+    };
 
-    function fillDeflate(/*Buffer*/b) {
-        var windowSize = consts.windowSize;
-
-        if (index >= 2 * windowSize - (consts.minMatchLength + consts.maxMatchLength)) {
-            window.copy(window, 0, windowSize, 2 * windowSize);
-            index -= windowSize;
-            windowEnd -= windowSize;
-            if (blockStart >= windowSize) {
-                blockStart -= windowSize
-            } else {
-                blockStart = consts.maxint
-            }
-            hashOffset += windowSize;
-            if (hashOffset > consts.maxHashOffset) {
-                var delta = hashOffset - 1;
-                hashOffset -= delta;
-                chainHead -= delta;
-                for (var i = 0; i < hashPrev.length; i++) {
-                    if (hashPrev[i] > delta) {
-                        hashPrev[i] -= delta
-                    } else {
-                        hashPrev[i] = 0;
-                    }
-                }
-                for (var j = 0; j < hashHead.length; j++) {
-                    if (hashHead[j] > delta) {
-                        hashHead[j] -= delta
-                    } else {
-                        hashHead[j] = 0;
-                    }
-                }
-            }
-        }
-        var n =  b.copy(window, windowEnd);
-        windowEnd += n;
-        return n
-    }
-
-    function initDeflate() {
-        hashHead = EmptyArray(consts.hashSize);
-        hashPrev = EmptyArray(consts.windowSize);
-        window = new Buffer(consts.windowSize * 2);
-        hashOffset = 1;
-        tokens = [];
-        length = consts.minMatchLength - 1;
-        offset = 0;
-        byteAvailable = false;
-        index = 0;
-        hash = 0;
-        chainHead = -1;
-    }
-
-    function findMatch(pos, prevHead, prevLength, lookAhead) {
-        var result = {
-                length : 0,
-                offset : 0,
-                ok : false
-            },
-            minMatchLook = consts.maxMatchLength;
+    this.findMatch = function (/*Number*/pos, /*Number*/prevHead, /*Number*/prevLength, /*Number*/lookAhead) /*Object*/ {
+        var offset = 0,
+            ok = false,
+            minMatchLook = maxMatchLength;
 
         if (lookAhead < minMatchLook) {
             minMatchLook = lookAhead
         }
 
-        var win = window.slice(0, pos + minMatchLook),
-            nice = win.length - pos;
+        var win = d.window.slice(0, pos + minMatchLook),
         // We quit when we get a match that's at least nice long
-        if (compressionLevel[2] < nice) {
-            nice = compressionLevel[2]
+            nice = win.length - pos;
+
+        if (d.nice < nice) {
+            nice = d.nice
         }
+
         // If we've got a match that's good enough, only look in 1/4 the chain.
-        var tries = compressionLevel[4];
-        result.length = prevLength;
-        if (result.length >= compressionLevel[0]) {
+        var tries = d.chain;
+        var length = prevLength;
+
+        if (length >= d.good) {
             tries >>= 2
         }
 
         var w0 = win[pos],
             w1 = win[pos + 1],
-            wEnd = win[pos + result.length],
-            minIndex = pos - consts.windowSize;
+            wEnd = win[pos + length],
+            minIndex = pos - windowSize;
 
         for (var i = prevHead; tries > 0; tries--) {
-            if (w0 == win[i] && w1 == win[i+1] && wEnd == win[i + result.length]) {
+            if (w0 == win[i] && w1 == win[i + 1] && wEnd == win[i + length]) {
                 // The hash function ensures that if win[i] and win[i+1] match, win[i+2] matches
                 var n = 3;
                 while (pos + n < win.length && win[i + n] == win[pos + n]) {
                     n++;
                 }
-                if (n > result.length && (n > 3 || pos - i <= 4096)) {
-                    result.length = n;
-                    result.offset = pos - i;
-                    result.ok = true;
-                    if (n >= compressionLevel[2]) {
+
+                if (n > length && (n > 3 || pos - i <= 4096)) {
+                    length = n;
+                    offset = pos - i;
+                    ok = true;
+                    if (n >= nice) {
                         // The match is good enough that we don't try to find a better one.
                         break
                     }
@@ -190,253 +205,344 @@ function compressor() {
                 // hashPrev[i & windowMask] has already been overwritten, so stop now.
                 break
             }
-            i = hashPrev[i & consts.windowMask] - hashOffset;
+            i = d.hashPrev[i & windowMask] - d.hashOffset;
             if (i < minIndex || i < 0) {
                 break;
             }
         }
 
-        return result
-    }
+        return {length: length, offset: offset, ok: ok}
+    };
 
-    function deflate() {
-        var minMatchLength = consts.minMatchLength,
-            maxMatchLength = consts.maxMatchLength,
-            hashShift = consts.hashShift,
-            hashMask = consts.hashMask,
-            windowMask = consts.windowMask,
-            windowSize = consts.windowSize,
-            skipNever = consts.skipNever,
-            minOffsetSize = consts.minOffsetSize,
+    this.writeStoredBlock = function (/*Buffer*/buf) /*string*/ {
+        d.w.writeStoredHeader(buf.length, false);
+        if (d.w.err != "") {
+            return d.w.err
+        }
 
-            fastSkipHashing = compressionLevel[4];
+        d.w.writeBytes(buf);
+        return d.w.err;
+    };
 
+    this.initDeflate = function () {
+        d.hashHead = EmptyArray(hashSize);
+        d.hashPrev = EmptyArray(windowSize);
+        d.window = new Buffer(windowSize * 2);
+        d.hashOffset = 1;
+        d.tokens = [];
+        d.length = minMatchLength - 1;
+        d.offset = 0;
+        d.byteAvailable = false;
+        d.index = 0;
+        d.hash = 0;
+        d.chainHead = -1;
+    };
 
-        if (windowEnd - index < minMatchLength + maxMatchLength && !sync) {
+    this.deflate = function () {
+        if (d.windowEnd - d.index < minMatchLength + maxMatchLength && !d.sync) {
             return
         }
 
-        maxInsertIndex = windowEnd - (minMatchLength - 1);
-        if (index < maxInsertIndex) {
-            hash = window[index] << hashShift + window[index + 1];
+        d.maxInsertIndex = d.windowEnd - (minMatchLength - 1);
+        if (d.index < d.maxInsertIndex) {
+            d.hash = (d.window[d.index] << hashShift) + d.window[d.index + 1];
         }
-
-        for (;;) {
-            if (index > windowEnd) {
+        while (true) {
+            if (d.index > d.windowEnd) {
                 throw Error("index > windowEnd")
             }
 
-            var lookAhead = windowEnd - index;
+            var lookAhead = d.windowEnd - d.index;
             if (lookAhead < minMatchLength + maxMatchLength) {
-                if (!sync) {
+                if (!d.sync) {
                     break;
                 }
-                if (index > windowEnd) {
+                if (d.index > d.windowEnd) {
                     throw Error("index > windowEnd")
                 }
                 if (lookAhead == 0) {
                     // Flush current output block if any.
-                    if (byteAvailable) {
+                    if (d.byteAvailable) {
                         // There is still one pending token that needs to be flushed
-                        tokens.push(token.literalToken(window[index - 1]));
-                        byteAvailable = false;
+                        d.tokens.push(token.literalToken(d.window[d.index - 1]));
+                        d.byteAvailable = false;
                     }
-                    if (tokens.length > 0) {
-                        if (!writeBlock(tokens, index, false)) {
+                    if (d.tokens.length > 0) {
+                        if (!d.writeBlock(d.tokens, d.index, false)) {
                             return
                         }
-                        tokens = []
+                        d.tokens = []
                     }
                     break;
                 }
             }
-            if (index < maxInsertIndex) {
+            if (d.index < d.maxInsertIndex) {
                 // Update the hash
-                hash = (hash << hashShift + window[index + 2]) & hashMask;
-                chainHead = hashHead[hash];
-                hashPrev[index & windowMask] = chainHead;
-                hashHead[hash] = index + hashOffset;
+                d.hash = ((d.hash << hashShift) + d.window[d.index + 2]) & hashMask;
+                d.chainHead = d.hashHead[d.hash];
+                d.hashPrev[d.index & windowMask] = d.chainHead;
+                d.hashHead[d.hash] = d.index + d.hashOffset;
             }
 
-            var prevLength = length,
-                prevOffset = offset;
+            var prevLength = d.length,
+                prevOffset = d.offset;
 
-            length = minMatchLength - 1;
-            offset = 0;
+            d.length = minMatchLength - 1;
+            d.offset = 0;
 
-            var minIndex = index - windowSize;
+            var minIndex = d.index - windowSize;
             if (minIndex < 0) {
                 minIndex = 0;
             }
 
-            if (chainHead - hashOffset >= minIndex &&
-                (fastSkipHashing != skipNever && lookAhead > minMatchLength - 1 ||
-                    fastSkipHashing == skipNever && lookAhead > prevLength && prevLength < compressionLevel[1])) {
+            if (d.chainHead - d.hashOffset >= minIndex &&
+                (d.fastSkipHashing != skipNever && lookAhead > minMatchLength - 1 ||
+                    d.fastSkipHashing == skipNever && lookAhead > prevLength && prevLength < d.lazy)) {
 
-                var match = findMatch(index, chainHead - hashOffset, minMatchLength - 1, lookAhead);
+                var match = d.findMatch(d.index, d.chainHead - d.hashOffset, minMatchLength - 1, lookAhead);
                 if (match.ok) {
-                    length = match.length;
-                    offset = match.offset;
+                    d.length = match.length;
+                    d.offset = match.offset;
                 }
             }
-            if (fastSkipHashing != skipNever && length >= minMatchLength ||
-                fastSkipHashing == skipNever && prevLength >= minMatchLength && length <= prevLength) {
+            if (d.fastSkipHashing != skipNever && d.length >= minMatchLength ||
+                d.fastSkipHashing == skipNever && prevLength >= minMatchLength && d.length <= prevLength) {
                 // There was a match at the previous step, and the current match is
                 // not better. Output the previous match.
-                if (fastSkipHashing != skipNever) {
-                    tokens.push(token.matchToken(length - minMatchLength, offset - minOffsetSize))
+                if (d.fastSkipHashing != skipNever) {
+                    d.tokens.push(token.matchToken(d.length - minMatchLength, d.offset - minOffsetSize))
                 } else {
-                    tokens.push(token.matchToken(prevLength - minMatchLength, prevOffset - minOffsetSize))
+                    d.tokens.push(token.matchToken(prevLength - minMatchLength, prevOffset - minOffsetSize))
                 }
                 // Insert in the hash table all strings up to the end of the match.
                 // index and index-1 are already inserted. If there is not enough
                 // lookAhead, the last two strings are not inserted into the hash
                 // table.
-                if (length <= fastSkipHashing) {
+                if (d.length <= d.fastSkipHashing) {
                     var newIndex = 0;
-                    if (fastSkipHashing != skipNever) {
-                        newIndex = index + length
+                    if (d.fastSkipHashing != skipNever) {
+                        newIndex = d.index + d.length
                     } else {
-                        newIndex = index + prevLength - 1
+                        newIndex = d.index + prevLength - 1
                     }
-                    for (index++; index < newIndex; index++) {
-                        if (index < maxInsertIndex) {
-                            hash = (hash << hashShift + window[index + 2]) & hashMask;
+                    for (d.index++; d.index < newIndex; d.index++) {
+                        if (d.index < d.maxInsertIndex) {
+                            d.hash = ((d.hash << hashShift) + d.window[d.index + 2]) & hashMask;
                             // Get previous value with the same hash.
                             // Our chain should point to the previous value.
-                            hashPrev[index & windowMask] = hashHead[hash];
+                            d.hashPrev[d.index & windowMask] = d.hashHead[d.hash];
                             // Set the head of the hash chain to us.
-                            hashHead[hash] = index + hashOffset
+                            d.hashHead[d.hash] = d.index + d.hashOffset
                         }
                     }
-                    if (fastSkipHashing == skipNever) {
-                        byteAvailable = false;
-                        length = minMatchLength - 1
+                    if (d.fastSkipHashing == skipNever) {
+                        d.byteAvailable = false;
+                        d.length = minMatchLength - 1
                     }
                 } else {
-                    index += length;
-                    if (index < maxInsertIndex) {
-                        hash = window[index] << hashShift + window[index + 1];
+                    // For matches this long, we don't bother inserting each individual
+                    // item into the table
+                    d.index += d.length;
+                    if (d.index < d.maxInsertIndex) {
+                        d.hash = (d.window[d.index] << hashShift) + d.window[d.index + 1];
                     }
                 }
-                if (tokens.length == consts.maxFlateBlockTokens) {
+                if (d.tokens.length == maxFlateBlockTokens) {
                     // The block includes the current character
-                    if (!writeBlock(tokens, index, false)) {
+                    if (!d.writeBlock(d.tokens, d.index, false)) {
                         return
                     }
-                    tokens = [];
+                    d.tokens = [];
                 }
             } else {
-                if (fastSkipHashing != skipNever || byteAvailable) {
-                    var i = index - 1;
-                    if (fastSkipHashing != skipNever) {
-                        i = index;
+                if (d.fastSkipHashing != skipNever || d.byteAvailable) {
+                    var i = d.index - 1;
+                    if (d.fastSkipHashing != skipNever) {
+                        i = d.index;
                     }
-                    tokens.push(token.literalToken(window[i]));
-                    if (tokens.length == consts.maxFlateBlockTokens) {
-                        if (!writeBlock(tokens, i+1, false)) {
+                    d.tokens.push(token.literalToken(d.window[i]));
+                    if (d.tokens.length == maxFlateBlockTokens) {
+                        if (!d.writeBlock(d.tokens, i + 1, false)) {
                             return
                         }
-                        tokens = []
+                        d.tokens = []
                     }
                 }
-                index++;
-                if (fastSkipHashing == skipNever) {
-                    byteAvailable = true;
+                d.index++;
+                if (d.fastSkipHashing == skipNever) {
+                    d.byteAvailable = true;
                 }
             }
         }
-    }
+    };
 
-    function fillStore(b) {
-        var n = b.copy(window, windowEnd);
-        windowEnd += n;
+    this.fillStore = function (/*Buffer*/b) /*Number*/ {
+        var n = copy(d.window, d.windowEnd, d.window.length, b);
+        d.windowEnd += n;
         return n
-    }
+    };
 
-    function store() {
-        if (windowEnd > 0) {
-            writeStoredBlock(window.slice(0, windowEnd))
+    this.store = function () {
+        if (d.windowEnd > 0) {
+            d.err = d.writeStoredBlock(d.window.slice(0, d.windowEnd))
         }
-        windowEnd = 0;
-    }
+        d.windowEnd = 0;
+    };
 
-    function write(b) {
+    this.write = function (/*Buffer*/b) /*Number*/ {
         var n = b.length;
-        b = b.slice(fill(b));
+        b = b.slice(d.fill(b));
         if (b.length > 0) {
-            step();
-            b = b.slice(fill(b));
+            d.step();
+            b = b.slice(d.fill(b));
         }
         return n
-    }
+    };
 
-    function writeStoredBlock(buf) {
-        w.writeStoredHeader(buf.length, false);
-        w.writeBytes(buf)
-    }
+    this.syncFlush = function () /*string*/ {
+        d.sync = true;
+        d.step();
+        if (d.err == "") {
+            d.w.writeStoredHeader(0, false);
+            d.w.flush();
+            d.err = d.w.err
+        }
+        d.sync = false;
+        return d.err
+    };
 
-    function syncFlush() {
-        sync = true;
-        step();
-        w.writeStoredHeader(0, false);
-        w.flush();
-        sync = false
-    }
+    this.init = function (/*Writer*/w, /*Number*/level) {
+        d.w = new newHuffmanBitWriter(w);
 
-    function reset(w) {
-        w.reset(w);
-        sync = false;
-        switch (compressionLevel[3]) {
-            case 0:
-                // level was NoCompression
-                for (i = 0; i < window.length; i++) {
-                    window[i] = 0;
-                }
-                windowEnd = 0;
-                break;
-            default:
-                chainHead = -1;
-                hashHead = [];
-                hashPrev = [];
-                hashOffset = 1;
-                index = 0;
-                windowEnd = 0;
-                window = new Buffer(0);
-                blockStart = 0;
-                byteAvailable = false;
-                tokens = [];
-                length = consts.minMAtchLength - 1;
-                offset = 0;
-                hash = 0;
-                maxInsertIndex = 0;
-                break;
+        if (level == DefaultCompression) {
+            level = 6;
         }
 
-    }
+        if (level == NoCompression) {
+            d.window = new Buffer(maxStoreBlockSize);
+            d.fill = d.fillStore;
+            d.step = d.store;
+        } else if (1 <= level && level <= 9) {
+            var compressionLevel = levels[level];
 
-    function close() {
-        sync = true;
-        step();
-        if (!w.writeStoredHeader(0, true)) {
+            d.good = compressionLevel.good;
+            d.lazy = compressionLevel.lazy;
+            d.nice = compressionLevel.nice;
+            d.chain = compressionLevel.chain;
+            d.fastSkipHashing = compressionLevel.fastSkipHashing;
+
+            d.initDeflate();
+            d.fill = d.fillDeflate;
+            d.step = d.deflate;
+        } else {
+            throw Error("flate: invalid compression level " + level + ": value should be in range [-1, 9]")
+        }
+    };
+
+    this.reset = function (/*Writer*/w) {
+        d.w.reset(w);
+        d.sync = false;
+
+        if (d.chain = 0) {
+            // level was no NoCompression
+            for (var i = 0, len = d.window.length; i < len; i++) {
+                d.window[i] = 0;
+            }
+            d.windowEnd = 0;
             return
         }
-        w.flush()
-    }
 
-    return {
-        init : init,
-        write : write,
-        syncFlush : syncFlush,
-        close : close,
-        reset : reset
-    }
+        d.chainHead = -1;
+        d.hashHead = [];
+        d.hashPrev = [];
+        d.hashOffset = 1;
+        d.index = 0;
+        d.windowEnd = 0;
+        d.window = new Buffer(0);
+        d.blockStart = 0;
+        d.byteAvailable = false;
+        d.tokens = [];
+        d.length = minMatchLength - 1;
+        d.offset = 0;
+        d.hash = 0;
+        d.maxInsertIndex = 0;
+    };
+
+    this.close = function () {
+        d.sync = true;
+        d.step();
+        if (!d.w.writeStoredHeader(0, true)) {
+            return
+        }
+        d.w.flush()
+    };
 }
 
-function EmptyArray(size) {
-    var arr = [];
-    for (var i = 0; i < size; i++) {
-        arr.push(0)
+Compressor.prototype = new CompressionLevel();
+
+module.exports.compressor = function (/*Writer*/w, /*Number*/level, /*Buffer*/dict) /*Writer*/ {
+    var dw;
+    if (dict) {
+        dw = new Writer();
+        dw.Write(dict);
+        dw.enabled = true;
+        dw.Flush();
+        dw.dict = dict;
+    } else {
+        dw = new Writer();
+        dw.d.init(w, level);
     }
-    return arr;
+
+    return dw
+};
+
+// A Writer takes data written to it and writes the compressed
+// form of that data to an underlying writer
+function Writer() {
+    var w = this;
+
+    this.dict = new Buffer(0);
+    this.enabled = false;
+
+    this.d = new Compressor();
+
+    this.Close = function () {
+        w.d.close()
+    };
+
+    this.Flush = function () {
+        return w.d.syncFlush()
+    };
+
+    // Write writes data to w, which will eventually write the
+    // compressed form of data to its underlying writer.
+    this.Write = function (/*Buffer*/data) /*Number*/ {
+        if (this.dict.length)
+            if (this.enabled) {
+                return data.length
+            } else {
+                return data.length
+        } else {
+            return w.d.write(data)
+        }
+    };
+
+    this.Reset = function(/*Writer*/dst) {
+        var dw = w.d.w.w;
+        if (dw.dict.length) {
+            dw.w = dst;
+            w.d.reset(dw);
+            dw.enabled = false;
+            w.Write(w.dict);
+            w.Flush();
+            dw.enabled = true;
+        } else {
+            w.d.reset(dst);
+        }
+    };
+
+    this.close = w.Close;
+    this.flush = w.Flush;
+    this.write = w.Write;
+    this.reset = w.Reset;
 }

@@ -237,6 +237,13 @@ function File(r, zipSize) {
         }
         return data;
     };
+
+    this.toString = function() {
+        return "{\n" +
+            "header : " + f.header.toString() + "\n" +
+            "comment : ''\n" +
+            "}"
+    }
 }
 
 function unixModeToFileMode(m) {

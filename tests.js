@@ -8,6 +8,7 @@ var submodules = [
     // test archive
     './archive/zip'
 ];
+var AdmZip = require("./adm-zip");
 
 var results = {
     total : 0,
@@ -15,8 +16,9 @@ var results = {
     success : 0
 };
 
-var to_test = ""
+var to_test = "filesystem";
 
+// test submodules
 submodules.forEach(function (importPath) {
     var tests = require(importPath).unitTests();
 
@@ -42,5 +44,6 @@ submodules.forEach(function (importPath) {
         }
     }
 });
+
 
 console.log("--- Tests " + (results.failed > 0 ? "FAILED" : "OK") + ". Total : " + results.total + ", Success: " + results.success + ", Failed: " + results.failed + " ---- ");

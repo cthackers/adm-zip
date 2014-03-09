@@ -64,10 +64,10 @@ module.exports.literalToken = function (/*Number*/literal) {
 
 // Convert a < xlength, xoffset > pair into a match token.
 module.exports.matchToken = function (/*Number*/xlength, /*Number*/xoffset) {
-    if (xlength == 4 && xoffset == 0) {
-        return 1090519040
-    }
-    return matchType + xlength << lengthShift + xoffset;
+    //if (xlength == 4 && xoffset == 0) {
+    //    return 1090519040
+    //}
+    return matchType + (xlength << lengthShift) + xoffset;
 };
 
 // Returns the type of a token

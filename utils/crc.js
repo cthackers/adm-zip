@@ -11,8 +11,8 @@ module.exports.CRC32 = function(data) {
             crc32Table[n] = c;
         }
     }
-    var sum = 0 ^ (-1);
-    i = 0;
+    var sum = 0 ^ (-1),
+        i = 0;
     for (var len = data.length; i < len; i++) {
         sum = (sum >>> 8) ^ crc32Table[(sum ^ data[i]) & 0xFF];
     }

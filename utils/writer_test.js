@@ -6,11 +6,13 @@ module.exports.run = function () {
         console.log("a new writer should have had 0 length");
         return false
     }
+
     w.write(new Buffer("abc"));
     if (w.length != 3) {
         console.log("invalid length");
         return false
     }
+
     if (w.buffer.toString() != "abc") {
         console.log("invalid content");
         return false;
