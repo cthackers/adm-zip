@@ -380,6 +380,8 @@ module.exports = function(/*String*/input) {
             var entries = _zip.entries;
             var i = entries.length; 
             entries.forEach(function(entry) {
+                if(i <= 0) return; // Had an error already
+
                 if (entry.isDirectory) {
                     Utils.makeDir(pth.resolve(targetPath, entry.entryName.toString()));
                     if(--i == 0)
@@ -387,13 +389,17 @@ module.exports = function(/*String*/input) {
                     return;
                 }
                 entry.getDataAsync(function(content) {
+                    if(i <= 0) return;
                     if (!content) {
                         i = 0;
                         callback(new Error(Utils.Errors.CANT_EXTRACT_FILE + "2"));
                         return;
                     }
                     Utils.writeFileToAsync(pth.resolve(targetPath, entry.entryName.toString()), content, overwrite, function(succ) {
+                        if(i <= 0) return;
+
                         if(!succ) {
+                            i = 0;
                             callback(new Error('Unable to write'));
                             return;
                         }
