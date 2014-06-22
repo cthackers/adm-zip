@@ -218,7 +218,7 @@ module.exports = function(/*String*/input) {
             }else{
                 zipPath="";
             }
-			localPath = localPath.split("\\").join("/"); //windows fix
+            localPath = localPath.split("\\").join("/"); //windows fix
             if (localPath.charAt(localPath.length - 1) != "/")
                 localPath += "/";
 
@@ -229,7 +229,7 @@ module.exports = function(/*String*/input) {
 
                 if (items.length) {
                     items.forEach(function(path) {
-						var p = path.split("\\").join("/").replace(localPath, ""); //windows fix
+                        var p = path.split("\\").join("/").replace(localPath, ""); //windows fix
                         if (p.charAt(p.length - 1) !== "/") {
                             self.addFile(zipPath+p, fs.readFileSync(path), "", 0)
                         } else {
@@ -383,25 +383,25 @@ module.exports = function(/*String*/input) {
                 if (entry.isDirectory) {
                     Utils.makeDir(pth.resolve(targetPath, entry.entryName.toString()));
                     if(--i == 0)
-                    	callback(undefined);
+                        callback(undefined);
                     return;
                 }
                 entry.getDataAsync(function(content) {
-                	if (!content) {
-                		i = 0;
-                		callback(new Error(Utils.Errors.CANT_EXTRACT_FILE + "2"));
-                		return;
-	                }
-	                Utils.writeFileToAsync(pth.resolve(targetPath, entry.entryName.toString()), content, overwrite, function(succ) {
-	                	if(!succ) {
-	                		callback(new Error('Unable to write'));
-	                		return;
-	                	}
+                    if (!content) {
+                        i = 0;
+                        callback(new Error(Utils.Errors.CANT_EXTRACT_FILE + "2"));
+                        return;
+                    }
+                    Utils.writeFileToAsync(pth.resolve(targetPath, entry.entryName.toString()), content, overwrite, function(succ) {
+                        if(!succ) {
+                            callback(new Error('Unable to write'));
+                            return;
+                        }
 
-	                	if(--i == 0)
-	                		callback(undefined);
-	                });
-	                
+                        if(--i == 0)
+                            callback(undefined);
+                    });
+                    
                 });
             })
         },
