@@ -86,7 +86,7 @@ module.exports = function (/*Buffer*/input) {
                 } else {
                     inflater.inflateAsync(function(result) {
                         result.copy(data, 0);
-                        if (crc32OK(data)) {
+                        if (!crc32OK(data)) {
                             if (callback) callback(data, Utils.Errors.BAD_CRC); //si added error
                         } else { //si added otherwise did not seem to return data.
                             if (callback) callback(data);
