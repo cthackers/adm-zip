@@ -229,7 +229,7 @@ module.exports = function(/*String*/input) {
 
                 if (items.length) {
                     items.forEach(function(path) {
-						var p = path.split("\\").join("/").replace(localPath, ""); //windows fix
+						var p = path.split("\\").join("/").replace( new RegExp(localPath, 'i'), ""); //windows fix
                         if (p.charAt(p.length - 1) !== "/") {
                             self.addFile(zipPath+p, fs.readFileSync(path), "", 0)
                         } else {
