@@ -328,7 +328,7 @@ module.exports = function(/*String*/input) {
             var content = item.getData();
             if (!content) throw Utils.Errors.CANT_EXTRACT_FILE;
 
-            if (fs.existsSync(targetPath) && !overwrite) {
+            if (fs.existsSync(target) && !overwrite) {
                 throw Utils.Errors.CANT_OVERRIDE;
             }
             Utils.writeFileTo(target, content, overwrite);
