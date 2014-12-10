@@ -383,7 +383,8 @@ module.exports = function(/*String*/input) {
 
             var zipData = _zip.compressToBuffer();
             if (zipData) {
-                Utils.writeFileTo(targetFileName, zipData, true);
+                var ok = Utils.writeFileTo(targetFileName, zipData, true);
+                if (typeof callback == 'function') callback(!ok? new Error("failed"): null, "");
             }
         },
 
