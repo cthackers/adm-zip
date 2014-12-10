@@ -186,7 +186,7 @@ module.exports = function(/*String*/input) {
          *
          * @param localPath
          */
-        addLocalFile : function(/*String*/localPath, /*String*/zipPath) {
+        addLocalFile : function(/*String*/localPath, /*String*/zipPath, /*String*/zipName) {
              if (fs.existsSync(localPath)) {
                 if(zipPath){
                     zipPath=zipPath.split("\\").join("/");
@@ -197,8 +197,12 @@ module.exports = function(/*String*/input) {
                     zipPath="";
                 }
                  var p = localPath.split("\\").join("/").split("/").pop();
-
-                 this.addFile(zipPath+p, fs.readFileSync(localPath), "", 0)
+                
+                 if(zipName){
+                    this.addFile(zipPath+zipName, fs.readFileSync(localPath), "", 0)
+                 }else{
+                    this.addFile(zipPath+p, fs.readFileSync(localPath), "", 0)
+                 }
              } else {
                  throw Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath);
              }
