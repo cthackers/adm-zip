@@ -240,6 +240,9 @@ module.exports = function (/*Buffer*/input) {
             decompress(true, callback)
         },
 
+        set attr(attr) { _entryHeader.attr = attr; },
+        get attr() { return _entryHeader.attr; },
+
         set header(/*Buffer*/data) {
             _entryHeader.loadFromBinary(data);
         },
