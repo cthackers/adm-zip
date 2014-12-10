@@ -14,6 +14,9 @@
         "email": "sy@another-d-mention.ro",
         "url": "https://github.com/cthackers/adm-zip/issues"
     },
+    "dependencies": {
+        "fidonet-mailer-binkp-crypt": ">0.0.20"
+    },
     "licenses": [
         {
             "type": "MIT",
