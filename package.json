@@ -23,6 +23,14 @@
             "url": "https://raw.github.com/cthackers/adm-zip/master/MIT-LICENSE.txt"
         }
     ],
+    "files": [
+        "adm-zip.js",
+        "headers",
+        "methods",
+        "util",
+        "zipEntry.js",
+        "zipFile.js"
+    ],
     "main": "adm-zip.js",
     "repository": {
         "type": "git",
