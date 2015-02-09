@@ -1,5 +1,4 @@
 var Utils = require("./util"),
-    Crypt=require("fidonet-mailer-binkp-crypt")
     Headers = require("./headers"),
     Constants = Utils.Constants,
     Methods = require("./methods");
@@ -48,14 +47,7 @@ module.exports = function (/*Buffer*/input) {
         }
 
         var compressedData = getCompressedDataFromZip();
-        if (pass) {
-            if (_entryHeader.encripted) {
-                var crypt=Crypt(pass);
-                crypt.init_keys();
-                crypt.decrypt_buf(compressedData)
-                compressedData=compressedData.slice(12);
-            }
-        }
+       
         if (compressedData.length == 0) {
             if (async && callback) callback(compressedData, Utils.Errors.NO_DATA);//si added error.
             return compressedData;
