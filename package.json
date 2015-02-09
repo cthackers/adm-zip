@@ -1,6 +1,6 @@
 {
     "name": "adm-zip",
-    "version": "0.4.5",
+    "version": "0.4.7",
     "description": "A Javascript implementation of zip for nodejs. Allows user to create or extract zip files both in memory or to/from disk",
     "keywords": [
         "zip",
@@ -13,9 +13,6 @@
     "bugs": {
         "email": "sy@another-d-mention.ro",
         "url": "https://github.com/cthackers/adm-zip/issues"
-    },
-    "dependencies": {
-        "fidonet-mailer-binkp-crypt": ">0.0.20"
     },
     "licenses": [
         {
