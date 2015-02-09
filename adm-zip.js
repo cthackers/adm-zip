@@ -212,8 +212,21 @@ module.exports = function(/*String*/input) {
          * Adds a local directory and all its nested files and directories to the archive
          *
          * @param localPath
+         * @param zipPath optional path inside zip
+         * @param filter optional RegExp or Function if files match will
+         *               be included.
          */
-        addLocalFolder : function(/*String*/localPath, /*String*/zipPath) {
+        addLocalFolder : function(/*String*/localPath, /*String*/zipPath, /*RegExp|Function*/filter) {
+            if (filter === undefined) {
+              filter = function() { return true; };
+            } else if (filter instanceof RegExp) {
+              filter = function(filter) {
+                return function(filename) {
+                  return filter.test(filename);
+                }
+              }(filter);
+            }
+
             if(zipPath){
                 zipPath=zipPath.split("\\").join("/");
                 if(zipPath.charAt(zipPath.length - 1) != "/"){
@@ -234,11 +247,21 @@ module.exports = function(/*String*/input) {
 
                 if (items.length) {
                     items.forEach(function(path) {
+<<<<<<< HEAD
 						var p = path.split("\\").join("/").replace( new RegExp(localPath, 'i'), ""); //windows fix
                         if (p.charAt(p.length - 1) !== "/") {
                             self.addFile(zipPath+p, fs.readFileSync(path), "", 0)
                         } else {
                             self.addFile(zipPath+p, new Buffer(0), "", 0)
+=======
+						var p = path.split("\\").join("/").replace(localPath, ""); //windows fix
+                        if (filter(p)) {
+                            if (p.charAt(p.length - 1) !== "/") {
+                                self.addFile(zipPath+p, fs.readFileSync(path), "", 0)
+                            } else {
+                                self.addFile(zipPath+p, new Buffer(0), "", 0)
+                            }
+>>>>>>> 4041cc3b1ecaee66cd835f6d4daa2ed0a9a34ff4
                         }
                     });
                 }
