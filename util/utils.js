@@ -116,6 +116,60 @@ module.exports = (function() {
             return true;
         },
 
+        writeFileToAsync : function(/*String*/path, /*Buffer*/content, /*Boolean*/overwrite, /*Number*/attr, /*Function*/callback) {
+            if(typeof attr === 'function') {
+                callback = attr;
+                attr = undefined;
+            }
+
+            fs.exists(path, function(exists) {
+                if(exists && !overwrite)
+                    return callback(false);
+
+                fs.stat(path, function(err, stat) {
+                    if(exists &&stat.isDirectory()) {
+                        return callback(false);
+                    }
+
+                    var folder = pth.dirname(path);
+                    fs.exists(folder, function(exists) {
+                        if(!exists)
+                            mkdirSync(folder);
+                        
+                        fs.open(path, 'w', 438, function(err, fd) {
+                            if(err) {
+                                fs.chmod(path, 438, function(err) {
+                                    fs.open(path, 'w', 438, function(err, fd) {
+                                        fs.write(fd, content, 0, content.length, 0, function(err, written, buffer) {
+                                            fs.close(fd, function(err) {
+                                                fs.chmod(path, attr || 438, function() {
+                                                    callback(true);
+                                                })
+                                            });
+                                        });
+                                    });
+                                })
+                            } else {
+                                if(fd) {
+                                    fs.write(fd, content, 0, content.length, 0, function(err, written, buffer) {
+                                        fs.close(fd, function(err) {
+                                            fs.chmod(path, attr || 438, function() {
+                                                callback(true);
+                                            })
+                                        });
+                                    });
+                                } else {
+                                    fs.chmod(path, attr || 438, function() {
+                                        callback(true);
+                                    })
+                                }
+                            }
+                        });
+                    })
+                })
+            })
+        },
+
         findFiles : function(/*String*/path) {
             return findSync(path, true);
         },

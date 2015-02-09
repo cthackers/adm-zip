@@ -368,6 +368,56 @@ module.exports = function(/*String*/input) {
         },
 
         /**
+         * Asynchronous extractAllTo
+         *
+         * @param targetPath Target location
+         * @param overwrite If the file already exists at the target path, the file will be overwriten if this is true.
+         *                  Default is FALSE
+         * @param callback
+         */
+        extractAllToAsync : function(/*String*/targetPath, /*Boolean*/overwrite, /*Function*/callback) {
+            overwrite = overwrite || false;
+            if (!_zip) {
+                callback(new Error(Utils.Errors.NO_ZIP));
+                return;
+            }
+
+            var entries = _zip.entries;
+            var i = entries.length; 
+            entries.forEach(function(entry) {
+                if(i <= 0) return; // Had an error already
+
+                if (entry.isDirectory) {
+                    Utils.makeDir(pth.resolve(targetPath, entry.entryName.toString()));
+                    if(--i == 0)
+                        callback(undefined);
+                    return;
+                }
+                entry.getDataAsync(function(content) {
+                    if(i <= 0) return;
+                    if (!content) {
+                        i = 0;
+                        callback(new Error(Utils.Errors.CANT_EXTRACT_FILE + "2"));
+                        return;
+                    }
+                    Utils.writeFileToAsync(pth.resolve(targetPath, entry.entryName.toString()), content, overwrite, function(succ) {
+                        if(i <= 0) return;
+
+                        if(!succ) {
+                            i = 0;
+                            callback(new Error('Unable to write'));
+                            return;
+                        }
+
+                        if(--i == 0)
+                            callback(undefined);
+                    });
+                    
+                });
+            })
+        },
+
+        /**
          * Writes the newly created zip file to disk at the specified location or if a zip was opened and no ``targetFileName`` is provided, it will overwrite the opened zip
          *
          * @param targetFileName
