@@ -68,7 +68,7 @@ module.exports = (function() {
                 }
             }
             var crc = 0, off = 0, len = buf.length, c1 = ~crc;
-            while(--len >= 0) c1 = crcTable[(c1 ^ buf[off++]) & 0xff] ^ (c1 >>> 8);
+            while(--len >= 0) c1 = crcTable[(c1 ^ buf[off++].charCodeAt()) & 0xff] ^ (c1 >>> 8);
             crc = ~c1;
             b.writeInt32LE(crc & 0xffffffff, 0);
             return b.readUInt32LE(0);
