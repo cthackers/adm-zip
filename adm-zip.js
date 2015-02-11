@@ -197,7 +197,7 @@ module.exports = function(/*String*/input) {
                     zipPath="";
                 }
                  var p = localPath.split("\\").join("/").split("/").pop();
-                
+
                  if(zipName){
                     this.addFile(zipPath+zipName, fs.readFileSync(localPath), "", 0)
                  }else{
@@ -276,10 +276,17 @@ module.exports = function(/*String*/input) {
             var entry = new ZipEntry();
             entry.entryName = entryName;
             entry.comment = comment || "";
-            entry.attr = attr || 438; //0666;
-            if (entry.isDirectory && content.length) {
-               // throw Utils.Errors.DIRECTORY_CONTENT_ERROR;
+
+            if (!attr) {
+                if (entry.isDirectory) {
+                    attr = (040755 << 16) | 0x10; // (permissions drwxr-xr-x) + (MS-DOS directory flag)
+                } else {
+                    attr = 0644 << 16; // permissions -r-wr--r--
+                }
             }
+
+            entry.attr = attr;
+
             entry.setData(content);
             _zip.setEntry(entry);
         },
@@ -398,7 +405,7 @@ module.exports = function(/*String*/input) {
             }
 
             var entries = _zip.entries;
-            var i = entries.length; 
+            var i = entries.length;
             entries.forEach(function(entry) {
                 if(i <= 0) return; // Had an error already
 
@@ -427,7 +434,7 @@ module.exports = function(/*String*/input) {
                         if(--i == 0)
                             callback(undefined);
                     });
-                    
+
                 });
             })
         },
