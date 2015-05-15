@@ -367,7 +367,7 @@ module.exports = function(/*String*/input) {
          * Test the archive
          *
          */
-        Test : function() {
+        test : function() {
             if (!_zip) {
                 return false;
             }
