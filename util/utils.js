@@ -54,6 +54,9 @@ module.exports = (function() {
         },
 
         crc32 : function(buf) {
+            if (typeof buf === 'string') {
+                buf = new Buffer(buf);
+            }
             var b = new Buffer(4);
             if (!crcTable.length) {
                 for (var n = 0; n < 256; n++) {
@@ -68,7 +71,7 @@ module.exports = (function() {
                 }
             }
             var crc = 0, off = 0, len = buf.length, c1 = ~crc;
-            while(--len >= 0) c1 = crcTable[(c1 ^ buf[off++].charCodeAt()) & 0xff] ^ (c1 >>> 8);
+            while(--len >= 0) c1 = crcTable[(c1 ^ buf[off++]) & 0xff] ^ (c1 >>> 8);
             crc = ~c1;
             b.writeInt32LE(crc & 0xffffffff, 0);
             return b.readUInt32LE(0);
@@ -135,7 +138,7 @@ module.exports = (function() {
                     fs.exists(folder, function(exists) {
                         if(!exists)
                             mkdirSync(folder);
-                        
+
                         fs.open(path, 'w', 438, function(err, fd) {
                             if(err) {
                                 fs.chmod(path, 438, function(err) {
