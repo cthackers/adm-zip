@@ -7,6 +7,9 @@ var ZipEntry = require("./zipEntry"),
     ZipFile =  require("./zipFile"),
     Utils = require("./util");
 
+var isWin = /^win/.test(process.platform);
+
+
 module.exports = function(/*String*/input) {
     var _zip = undefined,
         _filename = "";
@@ -23,6 +26,11 @@ module.exports = function(/*String*/input) {
     } else { // create new zip file
         _zip = new ZipFile(null, Utils.Constants.NONE);
     }
+
+    function escapeFileName(/*String*/filename){
+        return filename.replace(/[\:,\/,\>,\<,\",\\,\|,\?,\*"]/g, '_');
+    }
+
 
     function getEntry(/*Object*/entry) {
         if (entry && _zip) {
@@ -336,7 +344,15 @@ module.exports = function(/*String*/input) {
                 throw Utils.Errors.NO_ENTRY;
             }
 
-            var target = pth.resolve(targetPath, maintainEntryPath ? item.entryName : pth.basename(item.entryName));
+            var entryName = item.entryName;
+
+            if(isWin){
+                entryName = escapeFileName(entryName)
+            }
+
+
+
+            var target = pth.resolve(targetPath, maintainEntryPath ? entryName : pth.basename(entryName));
 
             if (item.isDirectory) {
                 target = pth.resolve(target, "..");
@@ -347,7 +363,14 @@ module.exports = function(/*String*/input) {
                     if (!content) {
                         throw Utils.Errors.CANT_EXTRACT_FILE;
                     }
-                    Utils.writeFileTo(pth.resolve(targetPath, maintainEntryPath ? child.entryName : child.entryName.substr(item.entryName.length)), content, overwrite);
+
+                    childName = child.entryName;
+
+                    if(isWin){
+                        childName = escapeFileName(childName)
+                    }
+
+                    Utils.writeFileTo(pth.resolve(targetPath, maintainEntryPath ? childName : childName.substr(entryName.length)), content, overwrite);
                 });
                 return true;
             }
@@ -376,16 +399,23 @@ module.exports = function(/*String*/input) {
                 throw Utils.Errors.NO_ZIP;
             }
 
+
             _zip.entries.forEach(function(entry) {
+                entryName = entry.entryName.toString();
+
+                if(isWin){
+                    entryName = escapeFileName(entryName)
+                }
+
                 if (entry.isDirectory) {
-                    Utils.makeDir(pth.resolve(targetPath, entry.entryName.toString()));
+                    Utils.makeDir(pth.resolve(targetPath, entryName));
                     return;
                 }
                 var content = entry.getData();
                 if (!content) {
                     throw Utils.Errors.CANT_EXTRACT_FILE + "2";
                 }
-                Utils.writeFileTo(pth.resolve(targetPath, entry.entryName.toString()), content, overwrite);
+                Utils.writeFileTo(pth.resolve(targetPath, entryName), content, overwrite);
             })
         },
 
@@ -409,8 +439,14 @@ module.exports = function(/*String*/input) {
             entries.forEach(function(entry) {
                 if(i <= 0) return; // Had an error already
 
+                entryName = entry.entryName.toString();
+
+                if(isWin){
+                    entryName = escapeFileName(entryName)
+                }
+
                 if (entry.isDirectory) {
-                    Utils.makeDir(pth.resolve(targetPath, entry.entryName.toString()));
+                    Utils.makeDir(pth.resolve(targetPath, entryName));
                     if(--i == 0)
                         callback(undefined);
                     return;
@@ -422,7 +458,8 @@ module.exports = function(/*String*/input) {
                         callback(new Error(Utils.Errors.CANT_EXTRACT_FILE + "2"));
                         return;
                     }
-                    Utils.writeFileToAsync(pth.resolve(targetPath, entry.entryName.toString()), content, overwrite, function(succ) {
+
+                    Utils.writeFileToAsync(pth.resolve(targetPath, entryName), content, overwrite, function(succ) {
                         if(i <= 0) return;
 
                         if(!succ) {
