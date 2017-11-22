@@ -365,6 +365,31 @@ module.exports = function(/*String*/input) {
         },
 
         /**
+         * Test the archive
+         *
+         */
+        test : function() {
+            if (!_zip) {
+                return false;
+            }
+
+            for(var entry in _zip.entries) {
+                try{
+                    if (entry.isDirectory) {
+                        continue;
+                    }
+                    var content = _zip.entries[entry].getData();
+                    if (!content) {
+                        return false;
+                    }
+                } catch (err) {
+                    return false;
+                }
+            }
+            return true;
+        },
+
+        /**
          * Extracts the entire archive to the given location
          *
          * @param targetPath Target location
