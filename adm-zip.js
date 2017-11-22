@@ -1,11 +1,11 @@
-var fs = require("fs"),
+var Utils = require("./util");
+var fs = Utils.FileSystem.require(),
     pth = require("path");
 
 fs.existsSync = fs.existsSync || pth.existsSync;
 
 var ZipEntry = require("./zipEntry"),
-    ZipFile =  require("./zipFile"),
-    Utils = require("./util");
+    ZipFile =  require("./zipFile");
 
 var isWin = /^win/.test(process.platform);
 
