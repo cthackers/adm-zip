@@ -34,7 +34,7 @@ There are no other nodeJS libraries that ADM-ZIP is dependent of
 	zipEntries.forEach(function(zipEntry) {
 	    console.log(zipEntry.toString()); // outputs zip entries information
 		if (zipEntry.entryName == "my_file.txt") {
-		     console.log(zipEntry.data.toString('utf8')); 
+		     console.log(zipEntry.getData().toString('utf8')); 
 		}
 	});
 	// outputs the content of some_folder/my_file.txt
