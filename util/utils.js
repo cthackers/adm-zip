@@ -112,8 +112,15 @@ module.exports = (function() {
                 fd = fs.openSync(path, 'w', 438);
             }
             if (fd) {
-                fs.writeSync(fd, content, 0, content.length, 0);
-                fs.closeSync(fd);
+                try {
+                    fs.writeSync(fd, content, 0, content.length, 0);
+                }
+                catch (e){
+                    throw e;
+                }
+                finally {
+                    fs.closeSync(fd);
+                }
             }
             fs.chmodSync(path, attr || 438);
             return true;
