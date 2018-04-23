@@ -1,14 +1,14 @@
 {
     "name": "adm-zip-electron",
     "version": "0.4.7",
-    "description": "Fork of a Javascript implementation of zip for nodejs with support for electron original-fs. Allows user to create or extract zip files both in memory or to/from disk",
+    "description": "Javascript implementation of zip for nodejs with support for electron original-fs. Allows user to create or extract zip files both in memory or to/from disk",
     "keywords": [
         "zip",
         "methods",
         "archive",
         "unzip"
     ],
-    "homepage": "https://github.com/kadledav/adm-zip",
+    "homepage": "https://github.com/cthackers/adm-zip",
     "author": "Nasca Iacob <sy@another-d-mention.ro> (https://github.com/cthackers)",
     "bugs": {
         "email": "sy@another-d-mention.ro",
