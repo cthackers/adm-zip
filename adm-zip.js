@@ -354,7 +354,7 @@ module.exports = function(/*String*/input) {
 
 
             var target = pth.resolve(targetPath, maintainEntryPath ? entryName : pth.basename(entryName));
-            if(!target.startsWith(targetPath)) {
+            if(!pth.resolve(target).startsWith(pth.resolve(targetPath))) {
                 throw Utils.Errors.INVALID_FILENAME + ": " + entryName;
             }
 
@@ -432,7 +432,7 @@ module.exports = function(/*String*/input) {
             _zip.entries.forEach(function(entry) {
                 entryName = entry.entryName.toString();
 
-                if(!pth.resolve(targetPath, entryName).startsWith(targetPath)) {
+                if(!pth.resolve(targetPath, entryName).startsWith(pth.resolve(targetPath))) {
                     throw Utils.Errors.INVALID_FILENAME + ": " + entryName;
                 }
 
@@ -478,7 +478,7 @@ module.exports = function(/*String*/input) {
                     entryName = escapeFileName(entryName)
                 }
 
-                if(!pth.resolve(targetPath, entryName).startsWith(targetPath)) {
+                if(!pth.resolve(targetPath, entryName).startsWith(pth.resolve(targetPath))) {
                   throw Utils.Errors.INVALID_FILENAME + ": " + entryName;
                 }
 
