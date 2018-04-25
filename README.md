@@ -1,7 +1,5 @@
 # ADM-ZIP for NodeJS with added support for electron original-fs
 
-* see comit https://github.com/kadledav/adm-zip/commit/3902bb2639dc4a39f1a2e8566219e085ff12a9d0
-
 ADM-ZIP is a pure JavaScript implementation for zip data compression for [NodeJS](http://nodejs.org/). 
 
 # Installation
