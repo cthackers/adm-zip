@@ -288,9 +288,9 @@ module.exports = function(/*String*/input) {
 
             if (!attr) {
                 if (entry.isDirectory) {
-                    attr = (040755 << 16) | 0x10; // (permissions drwxr-xr-x) + (MS-DOS directory flag)
+                    attr = (0o40755 << 16) | 0x10; // (permissions drwxr-xr-x) + (MS-DOS directory flag)
                 } else {
-                    attr = 0644 << 16; // permissions -r-wr--r--
+                    attr = 0o644 << 16; // permissions -r-wr--r--
                 }
             }
 
