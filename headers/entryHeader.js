@@ -26,7 +26,7 @@ module.exports = function () {
         val = new Date(val);
         _time = (val.getFullYear() - 1980 & 0x7f) << 25  // b09-16 years from 1980
             | (val.getMonth() + 1) << 21                 // b05-08 month
-            | val.getDay() << 16                         // b00-04 hour
+            | val.getDate() << 16                        // b00-04 hour
 
             // 2 bytes time
             | val.getHours() << 11    // b11-15 hour
