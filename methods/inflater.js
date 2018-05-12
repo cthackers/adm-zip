@@ -28,7 +28,7 @@ function JSInflater(/*Buffer*/input) {
 	function HuffTable(clen, cnum, cval, blist, elist, lookupm) {
 
 		this.status = 0;
-		this.root = null;
+		this.r = null;
 		this.maxbit = 0;
 
 		var el, f, tail,
@@ -38,7 +38,7 @@ function JSInflater(/*Buffer*/input) {
 			values = [],
 			tentry = {extra: 0, bitcnt: 0, lbase: 0, next: null};
 
-		tail = this.root = null;
+		tail = this.r = null;
 		for (var i = 0; i < 0x11; i++) {
 			countTbl[i] = 0;
 			sTbl[i] = 0;
@@ -115,7 +115,7 @@ function JSInflater(/*Buffer*/input) {
 					cnode = [];
 					while (cnode.length < tblCnt) cnode.push({extra: 0, bitcnt: 0, lbase: 0, next: null});
 					if (tail == null) {
-						tail = this.root = {next: null, list: null};
+						tail = this.r = {next: null, list: null};
 					} else {
 						tail = tail.next = {next: null, list: null}
 					}
@@ -278,7 +278,7 @@ function JSInflater(/*Buffer*/input) {
 
 			if (htbl.status !== 0) return -1;
 
-			fixedTableList = htbl.root;
+			fixedTableList = htbl.r;
 			fixedLookup = htbl.maxbit;
 
 			for (symbol = 0; symbol < 30; symbol++) lengths[symbol] = 5;
@@ -289,7 +289,7 @@ function JSInflater(/*Buffer*/input) {
 				fixedTableList = null;
 				return -1;
 			}
-			fixedTableDist = htbl.root;
+			fixedTableDist = htbl.r;
 			fixed_bd = htbl.maxbit;
 		}
 
@@ -320,7 +320,7 @@ function JSInflater(/*Buffer*/input) {
 		if (hufTable.status !== 0)
 			return -1;	// incomplete code set
 
-		tblList = hufTable.root;
+		tblList = hufTable.r;
 		bitList = hufTable.maxbit;
 		var lencnt = llencnt + dcodescnt,
 			i = 0,
@@ -354,13 +354,13 @@ function JSInflater(/*Buffer*/input) {
 
 		if (hufTable.status !== 0) return -1;
 
-		tblList = hufTable.root;
+		tblList = hufTable.r;
 		bitList = hufTable.maxbit;
 
 		for (i = 0; i < dcodescnt; i++) ll[i] = ll[i + llencnt];
 		bitdist = 6;
 		hufTable = new HuffTable(ll, dcodescnt, 0, DISTS, DEXT, bitdist);
-		tblDist = hufTable.root;
+		tblDist = hufTable.r;
 		bitdist = hufTable.maxbit;
 
 		if ((bitdist === 0 && llencnt > 257) || hufTable.status !== 0) return -1;

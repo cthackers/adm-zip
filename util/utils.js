@@ -9,7 +9,7 @@ module.exports = (function() {
         Constants = require('./constants'),
         Errors = require('./errors'),
 
-        PATH_SEPARATOR = pth.normalize("/");
+        PATH_SEPARATOR = pth.sep;
 
 
     function mkdirSync(/*String*/path) {
@@ -28,14 +28,14 @@ module.exports = (function() {
         });
     }
 
-    function findSync(/*String*/root, /*RegExp*/pattern, /*Boolean*/recoursive) {
+    function findSync(/*String*/dir, /*RegExp*/pattern, /*Boolean*/recoursive) {
         if (typeof pattern === 'boolean') {
             recoursive = pattern;
             pattern = undefined;
         }
         var files = [];
-        fs.readdirSync(root).forEach(function(file) {
-            var path = pth.join(root, file);
+        fs.readdirSync(dir).forEach(function(file) {
+            var path = pth.join(dir, file);
 
             if (fs.statSync(path).isDirectory() && recoursive)
                 files = files.concat(findSync(path, pattern, recoursive));
@@ -92,7 +92,7 @@ module.exports = (function() {
         writeFileTo : function(/*String*/path, /*Buffer*/content, /*Boolean*/overwrite, /*Number*/attr) {
             if (fs.existsSync(path)) {
                 if (!overwrite)
-                    return false; // cannot overwite
+                    return false; // cannot overwrite
 
                 var stat = fs.statSync(path);
                 if (stat.isDirectory()) {

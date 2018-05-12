@@ -27,6 +27,18 @@ module.exports = function (/*String*/input) {
 		_zip = new ZipFile(null, Utils.Constants.NONE);
 	}
 
+	function sanitize(prefix, name) {
+		prefix = pth.resolve(pth.normalize(prefix));
+		var parts = name.split('/');
+		for (var i = 0, l = parts.length; i < l; i++) {
+			var path = pth.normalize(pth.join(prefix, parts.slice(i, l).join(pth.sep)));
+			if (path.indexOf(prefix) === 0) {
+				return path;
+			}
+		}
+		return pth.normalize(pth.join(prefix, pth.basename(name)));
+	}
+
 	function getEntry(/*Object*/entry) {
 		if (entry && _zip) {
 			var item;
@@ -344,9 +356,9 @@ module.exports = function (/*String*/input) {
 				throw Utils.Errors.NO_ENTRY;
 			}
 
-			var entryName = pth.normalize(item.entryName);
+			var entryName = item.entryName;
 
-			var target = pth.resolve(targetPath, maintainEntryPath ? entryName : pth.basename(entryName));
+			var target = sanitize(targetPath, pth.resolve(targetPath, maintainEntryPath ? entryName : pth.basename(entryName)));
 
 			if (item.isDirectory) {
 				target = pth.resolve(target, "..");
@@ -357,7 +369,7 @@ module.exports = function (/*String*/input) {
 					if (!content) {
 						throw Utils.Errors.CANT_EXTRACT_FILE;
 					}
-					var childName = child.entryName;
+					var childName = sanitize(targetPath, child.entryName);
 
 					Utils.writeFileTo(pth.resolve(targetPath, maintainEntryPath ? childName : childName.substr(entryName.length)), content, overwrite);
 				});
@@ -413,19 +425,17 @@ module.exports = function (/*String*/input) {
 				throw Utils.Errors.NO_ZIP;
 			}
 			_zip.entries.forEach(function (entry) {
-				var entryName = pth.normalize(entry.entryName.toString());
-
+				var entryName = sanitize(targetPath, entry.entryName.toString());
 				if (entry.isDirectory) {
-					Utils.makeDir(pth.resolve(targetPath, entryName));
+					Utils.makeDir(entryName);
 					return;
 				}
 				var content = entry.getData();
 				if (!content) {
 					throw Utils.Errors.CANT_EXTRACT_FILE;
 				}
-				var fname = pth.resolve(targetPath, entryName);
-				Utils.writeFileTo(fname, content, overwrite);
-				fs.utimesSync(fname, entry.header.time, entry.header.time)
+				Utils.writeFileTo(entryName, content, overwrite);
+				fs.utimesSync(entryName, entry.header.time, entry.header.time)
 			})
 		},
 
@@ -455,7 +465,7 @@ module.exports = function (/*String*/input) {
 				var entryName = pth.normalize(entry.entryName.toString());
 
 				if (entry.isDirectory) {
-					Utils.makeDir(pth.resolve(targetPath, entryName));
+					Utils.makeDir(sanitize(targetPath, entryName));
 					if (--i === 0)
 						callback(undefined);
 					return;
@@ -468,7 +478,7 @@ module.exports = function (/*String*/input) {
 						return;
 					}
 
-					Utils.writeFileToAsync(pth.resolve(targetPath, entryName), content, overwrite, function (succ) {
+					Utils.writeFileToAsync(sanitize(targetPath, entryName), content, overwrite, function (succ) {
 						fs.utimesSync(pth.resolve(targetPath, entryName), entry.header.time, entry.header.time);
 						if (i <= 0) return;
 						if (!succ) {
