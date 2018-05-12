@@ -13,7 +13,7 @@ var writeZip = new Zip();
 writeZip.addFile('root_file.txt', 'root');
 
 // add folder
-writeZip.addFile('sub/', new Buffer(0));
+writeZip.addFile('sub/', Buffer.alloc(0));
 
 // file in sub folder
 writeZip.addFile('sub/sub_file.txt', 'sub');

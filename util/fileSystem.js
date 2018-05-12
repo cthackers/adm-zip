@@ -1,3 +1,9 @@
 exports.require = function() {
-  return require(process.versions['electron'] ? "original-fs" : "fs");
+  var fs = require("fs");
+  if (process.versions['electron']) {
+	  try {
+		  fs = require("original-fs")
+	  } catch (e) {}
+  }
+  return fs
 };

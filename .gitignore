@@ -1,2 +1,4 @@
 node_modules/
 test/issue_*/unzipped/
+.idea
+*.iml

@@ -47,7 +47,8 @@ There are no other nodeJS libraries that ADM-ZIP is dependent of
 	var zip = new AdmZip();
 	
 	// add file directly
-	zip.addFile("test.txt", new Buffer("inner content of the file"), "entry comment goes here");
+	var content = "inner content of the file";
+	zip.addFile("test.txt", Buffer.alloc(content.length, content), "entry comment goes here");
 	// add local file
 	zip.addLocalFile("/home/me/some_picture.png");
 	// get everything as a buffer

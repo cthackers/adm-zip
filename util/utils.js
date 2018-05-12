@@ -15,7 +15,7 @@ module.exports = (function() {
     function mkdirSync(/*String*/path) {
         var resolvedPath = path.split(PATH_SEPARATOR)[0];
         path.split(PATH_SEPARATOR).forEach(function(name) {
-            if (!name || name.substr(-1,1) == ":") return;
+            if (!name || name.substr(-1,1) === ":") return;
             resolvedPath += PATH_SEPARATOR + name;
             var stat;
             try {
@@ -55,14 +55,14 @@ module.exports = (function() {
 
         crc32 : function(buf) {
             if (typeof buf === 'string') {
-                buf = new Buffer(buf);
+                buf = Buffer.alloc(buf.length, buf);
             }
-            var b = new Buffer(4);
+            var b = Buffer.alloc(4);
             if (!crcTable.length) {
                 for (var n = 0; n < 256; n++) {
                     var c = n;
                     for (var k = 8; --k >= 0;)  //
-                        if ((c & 1) != 0)  { c = 0xedb88320 ^ (c >>> 1); } else { c = c >>> 1; }
+                        if ((c & 1) !== 0)  { c = 0xedb88320 ^ (c >>> 1); } else { c = c >>> 1; }
                     if (c < 0) {
                         b.writeInt32LE(c, 0);
                         c = b.readUInt32LE(0);
@@ -148,10 +148,10 @@ module.exports = (function() {
 
                         fs.open(path, 'w', 438, function(err, fd) {
                             if(err) {
-                                fs.chmod(path, 438, function(err) {
+                                fs.chmod(path, 438, function() {
                                     fs.open(path, 'w', 438, function(err, fd) {
-                                        fs.write(fd, content, 0, content.length, 0, function(err, written, buffer) {
-                                            fs.close(fd, function(err) {
+                                        fs.write(fd, content, 0, content.length, 0, function() {
+                                            fs.close(fd, function() {
                                                 fs.chmod(path, attr || 438, function() {
                                                     callback(true);
                                                 })
@@ -161,8 +161,8 @@ module.exports = (function() {
                                 })
                             } else {
                                 if(fd) {
-                                    fs.write(fd, content, 0, content.length, 0, function(err, written, buffer) {
-                                        fs.close(fd, function(err) {
+                                    fs.write(fd, content, 0, content.length, 0, function() {
+                                        fs.close(fd, function() {
                                             fs.chmod(path, attr || 438, function() {
                                                 callback(true);
                                             })
@@ -196,10 +196,10 @@ module.exports = (function() {
             if (Buffer.isBuffer(input)) {
                 return input;
             } else {
-                if (input.length == 0) {
-                    return new Buffer(0)
+                if (input.length === 0) {
+                    return Buffer.alloc(0)
                 }
-                return new Buffer(input, 'utf8');
+                return Buffer.alloc(input.length, input, 'utf8');
             }
         },
 
