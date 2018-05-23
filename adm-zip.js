@@ -19,7 +19,7 @@ module.exports = function (/*String*/input) {
 			_filename = input;
 			_zip = new ZipFile(input, Utils.Constants.FILE);
 		} else {
-			throw Utils.Errors.INVALID_FILENAME;
+			throw Utils.Errors.INVALID_FILENAME + ': ' + input;
 		}
 	} else if (input && Buffer.isBuffer(input)) { // load buffer
 		_zip = new ZipFile(input, Utils.Constants.BUFFER);
