@@ -113,7 +113,12 @@ module.exports = function (/*String*/input) {
 		readAsTextAsync: function (/*Object*/entry, /*Function*/callback, /*String - Optional*/encoding) {
 			var item = getEntry(entry);
 			if (item) {
-				item.getDataAsync(function (data) {
+				item.getDataAsync(function (data, err) {
+					if (err) {
+						callback(data, err);
+						return;
+					}
+
 					if (data && data.length) {
 						callback(data.toString(encoding || "utf8"));
 					} else {
@@ -470,8 +475,12 @@ module.exports = function (/*String*/input) {
 						callback(undefined);
 					return;
 				}
-				entry.getDataAsync(function (content) {
+				entry.getDataAsync(function (content, err) {
 					if (i <= 0) return;
+					if (err) {
+						callback(new Error(err));
+						return;
+					}
 					if (!content) {
 						i = 0;
 						callback(new Error(Utils.Errors.CANT_EXTRACT_FILE));
