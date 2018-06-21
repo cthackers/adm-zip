@@ -31,7 +31,8 @@ describe('adm-zip', () => {
             "./test/xxx/utes_test/New folder/somefile.txt"
         ].sort());
     })
-    it('zip.extractEntryTo()', () => {
+
+    it('zip.extractEntryTo(entry, destination, false, true)', () => {
         const destination = './test/xxx'
         const zip = new Zip('./test/assets/ultra.zip');
         var zipEntries = zip.getEntries();
@@ -43,12 +44,25 @@ describe('adm-zip', () => {
             "./test/xxx/hidden.txt",
             "./test/xxx/hidden_readonly.txt",
             "./test/xxx/New Text Document.txt",
-            "./test/xxx/ojects/adm-zip/test/xxx/attributes_test/New folder/hidden.txt",
-            "./test/xxx/ojects/adm-zip/test/xxx/attributes_test/New folder/hidden_readonly.txt",
-            "./test/xxx/ojects/adm-zip/test/xxx/attributes_test/New folder/readonly.txt",
             "./test/xxx/readonly.txt",
-            "./test/xxx/somefile.txt",
-            "./test/xxx/stormProjects/adm-zip/test/xxx/attributes_test/asd/New Text Document.txt"
+            "./test/xxx/somefile.txt"
+        ].sort());
+    })
+
+    it('zip.extractEntryTo(entry, destination, true, true)', () => {
+        const destination = './test/xxx'
+        const zip = new Zip('./test/assets/ultra.zip');
+        var zipEntries = zip.getEntries();
+        zipEntries.forEach(e => zip.extractEntryTo(e, destination, true, true));
+
+        const files = walk(destination)
+        expect(files.sort()).to.deep.equal([
+            "./test/xxx/attributes_test/asd/New Text Document.txt",
+            "./test/xxx/attributes_test/blank file.txt",
+            "./test/xxx/attributes_test/New folder/hidden.txt",
+            "./test/xxx/attributes_test/New folder/hidden_readonly.txt",
+            "./test/xxx/attributes_test/New folder/readonly.txt",
+            "./test/xxx/utes_test/New folder/somefile.txt"
         ].sort());
     })
 })

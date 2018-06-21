@@ -369,9 +369,9 @@ module.exports = function (/*String*/input) {
 					if (!content) {
 						throw Utils.Errors.CANT_EXTRACT_FILE;
 					}
-					var childName = sanitize(targetPath, child.entryName);
+					var childName = sanitize(targetPath, maintainEntryPath ? child.entryName : pth.basename(child.entryName));
 
-					Utils.writeFileTo(pth.resolve(targetPath, maintainEntryPath ? childName : childName.substr(entryName.length)), content, overwrite);
+					Utils.writeFileTo(childName, content, overwrite);
 				});
 				return true;
 			}
