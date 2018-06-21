@@ -358,7 +358,7 @@ module.exports = function (/*String*/input) {
 
 			var entryName = item.entryName;
 
-			var target = sanitize(targetPath, pth.resolve(targetPath, maintainEntryPath ? entryName : pth.basename(entryName)));
+			var target = sanitize(targetPath, maintainEntryPath ? entryName : pth.basename(entryName));
 
 			if (item.isDirectory) {
 				target = pth.resolve(target, "..");
