@@ -22,14 +22,14 @@ describe('adm-zip', () => {
         zip.extractAllTo(destination);
         const files = walk(destination)
 
-        expect(files).to.deep.equal([
+        expect(files.sort()).to.deep.equal([
             "./test/xxx/attributes_test/asd/New Text Document.txt",
             "./test/xxx/attributes_test/blank file.txt",
             "./test/xxx/attributes_test/New folder/hidden.txt",
             "./test/xxx/attributes_test/New folder/hidden_readonly.txt",
             "./test/xxx/attributes_test/New folder/readonly.txt",
             "./test/xxx/utes_test/New folder/somefile.txt"
-        ]);
+        ].sort());
     })
     it('zip.extractEntryTo()', () => {
         const destination = './test/xxx'
@@ -38,7 +38,7 @@ describe('adm-zip', () => {
         zipEntries.forEach(e => zip.extractEntryTo(e, destination, false, true));
 
         const files = walk(destination)
-        expect(files).to.deep.equal([
+        expect(files.sort()).to.deep.equal([
             "./test/xxx/blank file.txt",
             "./test/xxx/hidden.txt",
             "./test/xxx/hidden_readonly.txt",
@@ -49,7 +49,7 @@ describe('adm-zip', () => {
             "./test/xxx/readonly.txt",
             "./test/xxx/somefile.txt",
             "./test/xxx/stormProjects/adm-zip/test/xxx/attributes_test/asd/New Text Document.txt"
-        ]);
+        ].sort());
     })
 })
 
