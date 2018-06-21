@@ -14,5 +14,5 @@ install:
   - npm i -g npm@latest
   - npm install
 
-test:
-  -
+script:
+  - npm test
