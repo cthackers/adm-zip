@@ -65,6 +65,21 @@ describe('adm-zip', () => {
             "./test/xxx/utes_test/New folder/somefile.txt"
         ].sort());
     })
+
+    it('passes issue-237-Twizzeld test case', () => {
+        const zip = new Zip('./test/assets/issue-237-Twizzeld.zip');
+        const zipEntries = zip.getEntries();
+        zipEntries.forEach(function (zipEntry) {
+            if (!zipEntry.isDirectory) {
+                zip.extractEntryTo(zipEntry, './', false, true);
+                // This should create text.txt on the desktop.
+                // It will actually create two, but the first is overwritten by the second.
+            }
+        });
+        let text = fs.readFileSync('./text.txt').toString()
+        expect(text).to.equal('ride em cowboy!')
+        fs.unlinkSync('./text.txt')
+    })
 })
 
 function walk(dir) {
