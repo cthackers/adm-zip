@@ -68,7 +68,8 @@ module.exports = function (/*Buffer*/input) {
             case Utils.Constants.DEFLATED:
                 var inflater = new Methods.Inflater(compressedData);
                 if (!async) {
-                    inflater.inflate(data);
+                    var result = inflater.inflate(data);
+                    result.copy(data, 0);
                     if (!crc32OK(data)) {
                         console.warn(Utils.Errors.BAD_CRC + " " + _entryName.toString())
                     }
