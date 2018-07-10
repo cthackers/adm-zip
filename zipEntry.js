@@ -68,7 +68,8 @@ module.exports = function (/*Buffer*/input) {
             case Utils.Constants.DEFLATED:
                 var inflater = new Methods.Inflater(compressedData);
                 if (!async) {
-                    inflater.inflate(data);
+                    var result = inflater.inflate(data);
+                    result.copy(data, 0);
                     if (!crc32OK(data)) {
                         console.warn(Utils.Errors.BAD_CRC + " " + _entryName.toString())
                     }
@@ -226,7 +227,7 @@ module.exports = function (/*Buffer*/input) {
             uncompressedData = Utils.toBuffer(value);
             if (!_isDirectory && uncompressedData.length) {
                 _entryHeader.size = uncompressedData.length;
-                _entryHeader.method = Utils.Constants.STORED;
+                _entryHeader.method = Utils.Constants.DEFLATED;
                 _entryHeader.crc = Utils.crc32(value);
                 _entryHeader.changed = true;
             } else { // folders and blank files should be stored
