@@ -227,7 +227,7 @@ module.exports = function (/*Buffer*/input) {
             uncompressedData = Utils.toBuffer(value);
             if (!_isDirectory && uncompressedData.length) {
                 _entryHeader.size = uncompressedData.length;
-                _entryHeader.method = Utils.Constants.STORED;
+                _entryHeader.method = Utils.Constants.DEFLATED;
                 _entryHeader.crc = Utils.crc32(value);
                 _entryHeader.changed = true;
             } else { // folders and blank files should be stored
