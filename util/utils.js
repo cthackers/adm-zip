@@ -199,7 +199,7 @@ module.exports = (function() {
                 if (input.length === 0) {
                     return Buffer.alloc(0)
                 }
-                return Buffer.alloc(input.length, input, 'utf8');
+                return Buffer.from(input, 'utf8');
             }
         },
 
