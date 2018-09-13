@@ -191,14 +191,15 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 				// data header
 				entry.header.offset = dindex;
 				var dataHeader = entry.header.dataHeaderToBinary();
-				var c = entry.entryName + entry.extra.toString();
-				var postHeader = Buffer.alloc(c.length, c);
-				var dataLength = dataHeader.length + postHeader.length + compressedData.length;
+				var nameBuf = entry.rawEntryName;
+				var extraBuf = entry.extra;
+				var dataLength = dataHeader.length + nameBuf.length + extraBuf.length + compressedData.length;
 
 				dindex += dataLength;
 
 				dataBlock.push(dataHeader);
-				dataBlock.push(postHeader);
+				dataBlock.push(nameBuf);
+				dataBlock.push(extraBuf);
 				dataBlock.push(compressedData);
 
 				var entryHeader = entry.packHeader();
@@ -259,7 +260,7 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 				var self = arguments.callee;
 				if (entryList.length) {
 					var entry = entryList.pop();
-					var name = entry.entryName + entry.extra.toString();
+					var name = entry.entryName;
 					if (onItemStart) onItemStart(name);
 					entry.getCompressedDataAsync(function (compressedData) {
 						if (onItemEnd) onItemEnd(name);
@@ -267,13 +268,15 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 						entry.header.offset = dindex;
 						// data header
 						var dataHeader = entry.header.dataHeaderToBinary();
-						var postHeader = Buffer.alloc(name);
-						var dataLength = dataHeader.length + postHeader.length + compressedData.length;
+						var nameBuf = entry.rawEntryName;
+						var extraBuf = entry.extra;
+						var dataLength = dataHeader.length + nameBuf.length + extraBuf.length + compressedData.length;
 
 						dindex += dataLength;
 
 						dataBlock.push(dataHeader);
-						dataBlock.push(postHeader);
+						dataBlock.push(nameBuf);
+						dataBlock.push(extraBuf);
 						dataBlock.push(compressedData);
 
 						var entryHeader = entry.packHeader();
