@@ -6,17 +6,18 @@ var Utils = require("./util"),
 module.exports = function (/*Buffer*/input) {
 
     var _entryHeader = new Headers.EntryHeader(),
-        _entryName = Buffer.alloc(0),
+        _entryName = Buffer.alloc(0), //central directory name field data
         _comment = Buffer.alloc(0),
         _isDirectory = false,
         uncompressedData = null,
-        _extra = Buffer.alloc(0);
+        _extra = Buffer.alloc(0), //central directory extra field data
+        _dataExtra = Buffer.alloc(0), //local file header extra field data - may be different from central (ouch)
+        _dataEntryName = Buffer.alloc(0); //local file header name field data - can this be different from central?
 
     function getCompressedDataFromZip() {
         if (!input || !Buffer.isBuffer(input)) {
             return Buffer.alloc(0);
         }
-        _entryHeader.loadDataHeaderFromBinary(input);
         return input.slice(_entryHeader.realDataOffset, _entryHeader.realDataOffset + _entryHeader.compressedSize)
     }
 
@@ -197,6 +198,14 @@ module.exports = function (/*Buffer*/input) {
             var lastChar = _entryName[_entryName.length - 1];
             _isDirectory = (lastChar === 47) || (lastChar === 92);
             _entryHeader.fileNameLength = _entryName.length;
+            this.dataEntryName = val;
+        },
+
+        get dataEntryName () { return _dataEntryName.toString(); },
+        get rawDataEntryName () { return _dataEntryName; },
+        set dataEntryName (val) {
+            _dataEntryName = Utils.toBuffer(val);
+            _entryHeader.dataHeader.fnameLen = _dataEntryName.length;
         },
 
         get extra () { return _extra; },
@@ -204,6 +213,13 @@ module.exports = function (/*Buffer*/input) {
             _extra = val;
             _entryHeader.extraLength = val.length;
             parseExtra(val);
+            this.dataExtra = val;
+        },
+
+        get dataExtra () { return _dataExtra; },
+        set dataExtra (val) {
+            _dataExtra = val;
+            _entryHeader.dataHeader.extraLen = val.length;
         },
 
         get comment () { return _comment.toString(); },

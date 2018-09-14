@@ -1,6 +1,7 @@
 var ZipEntry = require("./zipEntry"),
 	Headers = require("./headers"),
-	Utils = require("./util");
+	Utils = require("./util"),
+	Constants = Utils.Constants;
 
 module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 	var entryList = [],
@@ -42,6 +43,13 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 
 			if (entry.header.commentLength)
 				entry.comment = inBuffer.slice(tmp, tmp + entry.header.commentLength);
+
+			entry.header.loadDataHeaderFromBinary(inBuffer);
+			var dataHeaderEnd = entry.header.offset + Constants.LOCHDR;
+			var dataFnameLen = entry.header.dataHeader.fnameLen;
+			var dataExtraLen = entry.header.dataHeader.extraLen;
+			entry.dataEntryName = inBuffer.slice(dataHeaderEnd, dataHeaderEnd + dataFnameLen);
+			entry.dataExtra = inBuffer.slice(dataHeaderEnd + dataFnameLen, dataHeaderEnd + dataFnameLen + dataExtraLen);
 
 			index += entry.header.entryHeaderSize;
 
@@ -191,8 +199,8 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 				// data header
 				entry.header.offset = dindex;
 				var dataHeader = entry.header.dataHeaderToBinary();
-				var nameBuf = entry.rawEntryName;
-				var extraBuf = entry.extra;
+				var nameBuf = entry.rawDataEntryName;
+				var extraBuf = entry.dataExtra;
 				var dataLength = dataHeader.length + nameBuf.length + extraBuf.length + compressedData.length;
 
 				dindex += dataLength;
@@ -268,8 +276,8 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 						entry.header.offset = dindex;
 						// data header
 						var dataHeader = entry.header.dataHeaderToBinary();
-						var nameBuf = entry.rawEntryName;
-						var extraBuf = entry.extra;
+						var nameBuf = entry.rawDataEntryName;
+						var extraBuf = entry.dataExtra;
 						var dataLength = dataHeader.length + nameBuf.length + extraBuf.length + compressedData.length;
 
 						dindex += dataLength;

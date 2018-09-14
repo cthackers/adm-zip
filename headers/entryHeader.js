@@ -20,7 +20,17 @@ module.exports = function () {
         _attr = 0,
         _offset = 0;
 
-    var _dataHeader = {};
+    var _dataHeader = {
+        version: 0x0A,
+        flags: 0,
+        method: 0,
+        time: 0,
+        crc: 0,
+        compressedSize: 0,
+        size: 0,
+        fnameLen: 0,
+        extraLen: 0
+    };
 
     function setTime(val) {
         val = new Date(val);
@@ -32,6 +42,7 @@ module.exports = function () {
             | val.getHours() << 11    // b11-15 hour
             | val.getMinutes() << 5   // b05-10 minute
             | val.getSeconds() >> 1;  // b00-04 seconds divided by 2
+        _dataHeader.time = _time;
     }
 
     setTime(+new Date());
@@ -41,13 +52,13 @@ module.exports = function () {
         set made (val) { _verMade = val; },
 
         get version () { return _version; },
-        set version (val) { _version = val },
+        set version (val) { _version = _dataHeader.version = val },
 
         get flags () { return _flags },
-        set flags (val) { _flags = val; },
+        set flags (val) { _flags = _dataHeader.flags = val; },
 
         get method () { return _method; },
-        set method (val) { _method = val; },
+        set method (val) { _method = _dataHeader.method = val; },
 
         get time () { return new Date(
             ((_time >> 25) & 0x7f) + 1980,
@@ -63,19 +74,19 @@ module.exports = function () {
         },
 
         get crc () { return _crc; },
-        set crc (val) { _crc = val; },
+        set crc (val) { _crc = _dataHeader.crc = val; },
 
         get compressedSize () { return _compressedSize; },
-        set compressedSize (val) { _compressedSize = val; },
+        set compressedSize (val) { _compressedSize = _dataHeader.compressedSize = val; },
 
         get size () { return _size; },
-        set size (val) { _size = val; },
+        set size (val) { _size = _dataHeader.size = val; },
 
         get fileNameLength () { return _fnameLen; },
-        set fileNameLength (val) { _fnameLen = val; },
+        set fileNameLength (val) { _fnameLen = _dataHeader.fnameLen = val; },
 
         get extraLength () { return _extraLen },
-        set extraLength (val) { _extraLen = val; },
+        set extraLength (val) { _extraLen = _dataHeader.extraLen = val; },
 
         get commentLength () { return _comLen },
         set commentLength (val) { _comLen = val },
@@ -177,23 +188,23 @@ module.exports = function () {
             // "PK\003\004"
             data.writeUInt32LE(Constants.LOCSIG, 0);
             // version needed to extract
-            data.writeUInt16LE(_version, Constants.LOCVER);
+            data.writeUInt16LE(_dataHeader.version, Constants.LOCVER);
             // general purpose bit flag
-            data.writeUInt16LE(_flags, Constants.LOCFLG);
+            data.writeUInt16LE(_dataHeader.flags, Constants.LOCFLG);
             // compression method
-            data.writeUInt16LE(_method, Constants.LOCHOW);
+            data.writeUInt16LE(_dataHeader.method, Constants.LOCHOW);
             // modification time (2 bytes time, 2 bytes date)
-            data.writeUInt32LE(_time, Constants.LOCTIM);
+            data.writeUInt32LE(_dataHeader.time, Constants.LOCTIM);
             // uncompressed file crc-32 value
-            data.writeUInt32LE(_crc, Constants.LOCCRC);
+            data.writeUInt32LE(_dataHeader.crc, Constants.LOCCRC);
             // compressed size
-            data.writeUInt32LE(_compressedSize, Constants.LOCSIZ);
+            data.writeUInt32LE(_dataHeader.compressedSize, Constants.LOCSIZ);
             // uncompressed size
-            data.writeUInt32LE(_size, Constants.LOCLEN);
+            data.writeUInt32LE(_dataHeader.size, Constants.LOCLEN);
             // filename length
-            data.writeUInt16LE(_fnameLen, Constants.LOCNAM);
+            data.writeUInt16LE(_dataHeader.fnameLen, Constants.LOCNAM);
             // extra field length
-            data.writeUInt16LE(_extraLen, Constants.LOCEXT);
+            data.writeUInt16LE(_dataHeader.extraLen, Constants.LOCEXT);
             return data;
         },
 
