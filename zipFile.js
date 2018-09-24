@@ -267,7 +267,7 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 						entry.header.offset = dindex;
 						// data header
 						var dataHeader = entry.header.dataHeaderToBinary();
-						var postHeader = Buffer.alloc(name);
+						var postHeader = Buffer.from(name);
 						var dataLength = dataHeader.length + postHeader.length + compressedData.length;
 
 						dindex += dataLength;
