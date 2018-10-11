@@ -24,7 +24,8 @@
     "methods",
     "util",
     "zipEntry.js",
-    "zipFile.js"
+    "zipFile.js",
+    "MIT-LICENSE.txt"
   ],
   "main": "adm-zip.js",
   "repository": {
