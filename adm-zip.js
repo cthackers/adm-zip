@@ -358,7 +358,7 @@ module.exports = function (/*String*/input) {
 
 			var entryName = item.entryName;
 
-			var target = sanitize(targetPath, pth.resolve(targetPath, maintainEntryPath ? entryName : pth.basename(entryName)));
+			var target = sanitize(targetPath, maintainEntryPath ? entryName : pth.basename(entryName));
 
 			if (item.isDirectory) {
 				target = pth.resolve(target, "..");
@@ -369,9 +369,9 @@ module.exports = function (/*String*/input) {
 					if (!content) {
 						throw Utils.Errors.CANT_EXTRACT_FILE;
 					}
-					var childName = sanitize(targetPath, child.entryName);
+					var childName = sanitize(targetPath, maintainEntryPath ? child.entryName : pth.basename(child.entryName));
 
-					Utils.writeFileTo(pth.resolve(targetPath, maintainEntryPath ? childName : childName.substr(entryName.length)), content, overwrite);
+					Utils.writeFileTo(childName, content, overwrite);
 				});
 				return true;
 			}
