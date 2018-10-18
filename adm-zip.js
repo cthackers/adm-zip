@@ -440,7 +440,11 @@ module.exports = function (/*String*/input) {
 					throw Utils.Errors.CANT_EXTRACT_FILE;
 				}
 				Utils.writeFileTo(entryName, content, overwrite);
-				fs.utimesSync(entryName, entry.header.time, entry.header.time)
+				try {
+					fs.utimesSync(entryName, entry.header.time, entry.header.time)
+				} catch (err) {
+					throw Utils.Errors.CANT_EXTRACT_FILE;
+				}
 			})
 		},
 
@@ -488,7 +492,11 @@ module.exports = function (/*String*/input) {
 					}
 
 					Utils.writeFileToAsync(sanitize(targetPath, entryName), content, overwrite, function (succ) {
-						fs.utimesSync(pth.resolve(targetPath, entryName), entry.header.time, entry.header.time);
+						try {
+							fs.utimesSync(pth.resolve(targetPath, entryName), entry.header.time, entry.header.time);
+						} catch (err) {
+							callback(new Error('Unable to set utimes'));
+						}
 						if (i <= 0) return;
 						if (!succ) {
 							i = 0;
