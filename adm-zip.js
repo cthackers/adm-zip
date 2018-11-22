@@ -288,6 +288,83 @@ module.exports = function (/*String*/input) {
 		},
 
 		/**
+		 * Asynchronous addLocalFile
+		 * @param localPath
+		 * @param callback
+		 * @param zipPath optional path inside zip
+		 * @param filter optional RegExp or Function if files match will
+		 *               be included.
+		 */
+		addLocalFolderAsync: function (/*String*/localPath, /*Function*/callback, /*String*/zipPath, /*RegExp|Function*/filter) {
+			if (filter === undefined) {
+				filter = function () {
+					return true;
+				};
+			} else if (filter instanceof RegExp) {
+				filter = function (filter) {
+					return function (filename) {
+						return filter.test(filename);
+					}
+				}(filter);
+			}
+
+			if (zipPath) {
+				zipPath = zipPath.split("\\").join("/");
+				if (zipPath.charAt(zipPath.length - 1) !== "/") {
+					zipPath += "/";
+				}
+			} else {
+				zipPath = "";
+			}
+			// normalize the path first
+			localPath = pth.normalize(localPath);
+			localPath = localPath.split("\\").join("/"); //windows fix
+			if (localPath.charAt(localPath.length - 1) !== "/")
+				localPath += "/";
+
+			var self = this;
+			fs.open(localPath, 'r', function (err, fd) {
+				if (err && err.code === 'ENOENT') {
+					callback(undefined, Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath));
+				} else if (err) {
+					callback(undefined, err);
+				} else {
+					var items = Utils.findFiles(localPath);
+					var i = -1;
+
+					var next = function () {
+						i += 1;
+						if (i < items.length) {
+							var p = items[i].split("\\").join("/").replace(new RegExp(localPath.replace(/(\(|\))/g, '\\$1'), 'i'), ""); //windows fix
+							if (filter(p)) {
+								if (p.charAt(p.length - 1) !== "/") {
+									fs.readFile(items[i], function (err, data) {
+										if (err) {
+											callback(undefined, err);
+										} else {
+											self.addFile(zipPath + p, data, '', 0);
+											next();
+										}
+									})
+								} else {
+									self.addFile(zipPath + p, Buffer.alloc(0), "", 0);
+									next();
+								}
+							} else {
+								next();
+							}
+
+						} else {
+							callback(true, undefined);
+						}
+					}
+
+					next();
+				}
+			});
+		},
+
+		/**
 		 * Allows you to create a entry (file or directory) in the zip file.
 		 * If you want to create a directory the entryName must end in / and a null buffer should be provided.
 		 * Comment and attributes are optional
