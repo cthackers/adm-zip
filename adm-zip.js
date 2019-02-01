@@ -336,6 +336,7 @@ module.exports = function (/*String*/input) {
 						i += 1;
 						if (i < items.length) {
 							var p = items[i].split("\\").join("/").replace(new RegExp(localPath.replace(/(\(|\))/g, '\\$1'), 'i'), ""); //windows fix
+							p = p.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x20-\x7E]/g, '') // accent fix
 							if (filter(p)) {
 								if (p.charAt(p.length - 1) !== "/") {
 									fs.readFile(items[i], function (err, data) {
