@@ -1,4 +1,5 @@
-node_modules/
-test/issue_*/unzipped/
+node_modules
+/test/issue_*/unzipped/
+xxx
 .idea
 *.iml
