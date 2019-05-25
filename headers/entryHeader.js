@@ -93,6 +93,16 @@ module.exports = function () {
         set offset (val) { _offset = val },
 
         get encripted () { return (_flags & 1) === 1 },
+        
+        get isUTF8() { return (this.flags & 0x800) !== 0 },
+        set isUTF8(/** Boolean */ val) {
+            // Bit 11 == 0x800
+            if (val){
+                this.flags |= 0x800;
+            }else{
+                this.flags &= 0xf7ff;   // Clear just 
+            }
+        },        
 
         get entryHeaderSize () {
             return Constants.CENHDR + _fnameLen + _extraLen + _comLen;
