@@ -190,10 +190,12 @@ module.exports = function (/*Buffer*/input) {
 
 
     return {
-        get entryName () { return _entryName.toString(); },
+        get entryName () { return _entryName.toString(_entryHeader.isUTF8 ? 'utf8' : 'latin1' ); },
         get rawEntryName() { return _entryName; },
         set entryName (val) {
             _entryName = Utils.toBuffer(val);
+	    // if input is string, then utf8 is hardcoded in Utils.toBuffer so now we set flag
+	    if (val && typeof val === 'string') _entryHeader.isUTF8 = true;
             var lastChar = _entryName[_entryName.length - 1];
             _isDirectory = (lastChar === 47) || (lastChar === 92);
             _entryHeader.fileNameLength = _entryName.length;
