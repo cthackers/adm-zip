@@ -48,6 +48,13 @@ module.exports = (function() {
         return files;
     }
 
+    function readBigUInt64LE(/*Buffer*/buffer, /*int*/index) {
+        var slice = Buffer.from(buffer.slice(index, index + 8));
+        slice.swap64();
+
+        return parseInt(`0x${ slice.toString('hex') }`);
+    }
+
     return {
         makeDir : function(/*String*/path) {
             mkdirSync(path);
@@ -202,6 +209,8 @@ module.exports = (function() {
                 return Buffer.from(input, 'utf8');
             }
         },
+
+        readBigUInt64LE,
 
         Constants : Constants,
         Errors : Errors

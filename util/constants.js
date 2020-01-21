@@ -47,6 +47,26 @@ module.exports = {
     ENDOFF           : 16, // offset of first CEN header
     ENDCOM           : 20, // zip file comment length
 
+    END64HDR         : 20, // zip64 END header size
+    END64SIG         : 0x07064b50, // zip64 Locator signature, "PK\006\007"
+    END64START       : 4, // number of the disk with the start of the zip64
+    END64OFF         : 8, // relative offset of the zip64 end of central directory
+    END64NUMDISKS    : 16, // total number of disks
+
+    ZIP64SIG         : 0x06064b50, // zip64 signature, "PK\006\006"
+    ZIP64HDR         : 56, // zip64 record minimum size
+    ZIP64LEAD        : 12, // leading bytes at the start of the record, not counted by the value stored in ZIP64SIZE
+    ZIP64SIZE        : 4, // zip64 size of the central directory record
+    ZIP64VEM         : 12, // zip64 version made by
+    ZIP64VER         : 14, // zip64 version needed to extract
+    ZIP64DSK         : 16, // zip64 number of this disk
+    ZIP64DSKDIR      : 20, // number of the disk with the start of the record directory
+    ZIP64SUB         : 24, // number of entries on this disk
+    ZIP64TOT         : 32, // total number of entries
+    ZIP64SIZB        : 40, // zip64 central directory size in bytes
+    ZIP64OFF         : 48, // offset of start of central directory with respect to the starting disk number
+    ZIP64EXTRA       : 56, // extensible data sector
+
     /* Compression methods */
     STORED           : 0, // no compression
     SHRUNK           : 1, // shrunk

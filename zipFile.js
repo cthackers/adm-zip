@@ -52,22 +52,43 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 
 	function readMainHeader() {
 		var i = inBuffer.length - Utils.Constants.ENDHDR, // END header size
-			n = Math.max(0, i - 0xFFFF), // 0xFFFF is the max zip file comment length
-			endOffset = -1; // Start offset of the END header
+			max = Math.max(0, i - 0xFFFF), // 0xFFFF is the max zip file comment length
+			n = max,
+			endStart = inBuffer.length,
+			endOffset = -1, // Start offset of the END header
+			commentEnd = 0; 
 
 		for (i; i >= n; i--) {
 			if (inBuffer[i] !== 0x50) continue; // quick check that the byte is 'P'
 			if (inBuffer.readUInt32LE(i) === Utils.Constants.ENDSIG) { // "PK\005\006"
 				endOffset = i;
+				commentEnd = i;
+				endStart = i + Utils.Constants.ENDHDR;
+				// We already found a regular signature, let's look just a bit further to check if there's any zip64 signature
+				n = i - Utils.Constants.END64HDR;
+				continue;
+			}
+
+			if (inBuffer.readUInt32LE(i) === Utils.Constants.END64SIG) {
+				// Found a zip64 signature, let's continue reading the whole zip64 record
+				n = max;
+				continue;
+			}
+
+			if (inBuffer.readUInt32LE(i) == Utils.Constants.ZIP64SIG) {
+				// Found the zip64 record, let's determine it's size
+				endOffset = i;
+				endStart = i + Utils.readBigUInt64LE(inBuffer, i + Utils.Constants.ZIP64SIZE) + Utils.Constants.ZIP64LEAD;
 				break;
 			}
 		}
+
 		if (!~endOffset)
 			throw Utils.Errors.INVALID_FORMAT;
 
-		mainHeader.loadFromBinary(inBuffer.slice(endOffset, endOffset + Utils.Constants.ENDHDR));
+		mainHeader.loadFromBinary(inBuffer.slice(endOffset, endStart));
 		if (mainHeader.commentLength) {
-			_comment = inBuffer.slice(endOffset + Utils.Constants.ENDHDR);
+			_comment = inBuffer.slice(commentEnd + Utils.Constants.ENDHDR);
 		}
 		readEntries();
 	}
