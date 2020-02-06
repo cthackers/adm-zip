@@ -9,7 +9,8 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 		filename = "",
 		fs = Utils.FileSystem.require(),
 		inBuffer = null,
-		mainHeader = new Headers.MainHeader();
+		mainHeader = new Headers.MainHeader(),
+		loadedEntries = false;
 
 	if (inputType === Utils.Constants.FILE) {
 		// is a filename
@@ -22,9 +23,28 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 		readMainHeader();
 	} else {
 		// none. is a new file
+		loadedEntries = true;
+	}
+
+	function iterateEntries(callback) {
+		const totalEntries = mainHeader.diskEntries; // total number of entries
+		let index = mainHeader.offset; // offset of first CEN header
+
+		for (let i = 0; i < totalEntries; i++) {
+			let tmp = index;
+			const entry = new ZipEntry(inBuffer);
+
+			entry.header = inBuffer.slice(tmp, tmp += Utils.Constants.CENHDR);
+			entry.entryName = inBuffer.slice(tmp, tmp += entry.header.fileNameLength);
+
+			index += entry.header.entryHeaderSize;
+
+			callback(entry);
+		}
 	}
 
 	function readEntries() {
+		loadedEntries = true;
 		entryTable = {};
 		entryList = new Array(mainHeader.diskEntries);  // total number of entries
 		var index = mainHeader.offset;  // offset of first CEN header
@@ -52,24 +72,45 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 
 	function readMainHeader() {
 		var i = inBuffer.length - Utils.Constants.ENDHDR, // END header size
-			n = Math.max(0, i - 0xFFFF), // 0xFFFF is the max zip file comment length
-			endOffset = -1; // Start offset of the END header
+			max = Math.max(0, i - 0xFFFF), // 0xFFFF is the max zip file comment length
+			n = max,
+			endStart = inBuffer.length,
+			endOffset = -1, // Start offset of the END header
+			commentEnd = 0; 
 
 		for (i; i >= n; i--) {
 			if (inBuffer[i] !== 0x50) continue; // quick check that the byte is 'P'
 			if (inBuffer.readUInt32LE(i) === Utils.Constants.ENDSIG) { // "PK\005\006"
 				endOffset = i;
+				commentEnd = i;
+				endStart = i + Utils.Constants.ENDHDR;
+				// We already found a regular signature, let's look just a bit further to check if there's any zip64 signature
+				n = i - Utils.Constants.END64HDR;
+				continue;
+			}
+
+			if (inBuffer.readUInt32LE(i) === Utils.Constants.END64SIG) {
+				// Found a zip64 signature, let's continue reading the whole zip64 record
+				n = max;
+				continue;
+			}
+
+			if (inBuffer.readUInt32LE(i) == Utils.Constants.ZIP64SIG) {
+				// Found the zip64 record, let's determine it's size
+				endOffset = i;
+				endStart = i + Utils.readBigUInt64LE(inBuffer, i + Utils.Constants.ZIP64SIZE) + Utils.Constants.ZIP64LEAD;
 				break;
 			}
 		}
+
 		if (!~endOffset)
 			throw Utils.Errors.INVALID_FORMAT;
 
-		mainHeader.loadFromBinary(inBuffer.slice(endOffset, endOffset + Utils.Constants.ENDHDR));
+		mainHeader.loadFromBinary(inBuffer.slice(endOffset, endStart));
 		if (mainHeader.commentLength) {
-			_comment = inBuffer.slice(endOffset + Utils.Constants.ENDHDR);
+			_comment = inBuffer.slice(commentEnd + Utils.Constants.ENDHDR);
 		}
-		readEntries();
+		// readEntries();
 	}
 
 	return {
@@ -78,6 +119,9 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 		 * @return Array
 		 */
 		get entries() {
+			if (!loadedEntries) {
+				readEntries();
+			}
 			return entryList;
 		},
 
@@ -93,6 +137,23 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 			_comment = val;
 		},
 
+		getEntryCount: function() {
+			if (!loadedEntries) {
+				return mainHeader.diskEntries;
+			}
+
+			return entryList.length;
+		},
+
+		forEach: function(callback) {
+			if (!loadedEntries) {
+				iterateEntries(callback);
+				return;
+			}
+
+			entryList.forEach(callback);
+		},
+
 		/**
 		 * Returns a reference to the entry with the given name or null if entry is inexistent
 		 *
@@ -100,6 +161,9 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 		 * @return ZipEntry
 		 */
 		getEntry: function (/*String*/entryName) {
+			if (!loadedEntries) {
+				readEntries();
+			}
 			return entryTable[entryName] || null;
 		},
 
@@ -109,6 +173,9 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 		 * @param entry
 		 */
 		setEntry: function (/*ZipEntry*/entry) {
+			if (!loadedEntries) {
+				readEntries();
+			}
 			entryList.push(entry);
 			entryTable[entry.entryName] = entry;
 			mainHeader.totalEntries = entryList.length;
@@ -121,6 +188,9 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 		 * @param entryName
 		 */
 		deleteEntry: function (/*String*/entryName) {
+			if (!loadedEntries) {
+				readEntries();
+			}
 			var entry = entryTable[entryName];
 			if (entry && entry.isDirectory) {
 				var _self = this;
@@ -142,6 +212,9 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 		 * @return Array
 		 */
 		getEntryChildren: function (/*ZipEntry*/entry) {
+			if (!loadedEntries) {
+				readEntries();
+			}
 			if (entry.isDirectory) {
 				var list = [],
 					name = entry.entryName,
@@ -163,6 +236,9 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 		 * @return Buffer
 		 */
 		compressToBuffer: function () {
+			if (!loadedEntries) {
+				readEntries();
+			}
 			if (entryList.length > 1) {
 				entryList.sort(function (a, b) {
 					var nameA = a.entryName.toLowerCase();
@@ -237,6 +313,9 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 		},
 
 		toAsyncBuffer: function (/*Function*/onSuccess, /*Function*/onFail, /*Function*/onItemStart, /*Function*/onItemEnd) {
+			if (!loadedEntries) {
+				readEntries();
+			}
 			if (entryList.length > 1) {
 				entryList.sort(function (a, b) {
 					var nameA = a.entryName.toLowerCase();

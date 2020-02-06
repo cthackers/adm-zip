@@ -339,6 +339,14 @@ module.exports = function (/*String*/input) {
 			return getEntry(name);
 		},
 
+		getEntryCount: function() {
+			return _zip.getEntryCount();
+		},
+
+		forEach: function(callback) {
+			return _zip.forEach(callback);
+		},
+
 		/**
 		 * Extracts the given entry to the given targetPath
 		 * If the entry is a directory inside the archive, the entire directory and it's subdirectories will be extracted
