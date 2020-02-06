@@ -10,7 +10,7 @@ var ZipEntry = require("./zipEntry"),
 var isWin = /^win/.test(process.platform);
 
 
-module.exports = function (/*String*/input) {
+module.exports = function (/**String*/input) {
 	var _zip = undefined,
 		_filename = "";
 
@@ -39,7 +39,7 @@ module.exports = function (/*String*/input) {
 		return pth.normalize(pth.join(prefix, pth.basename(name)));
 	}
 
-	function getEntry(/*Object*/entry) {
+	function getEntry(/**Object*/entry) {
 		if (entry && _zip) {
 			var item;
 			// If entry was given as a file name
@@ -63,7 +63,7 @@ module.exports = function (/*String*/input) {
 		 *
 		 * @return Buffer or Null in case of error
 		 */
-		readFile: function (/*Object*/entry) {
+		readFile: function (/**Object*/entry) {
 			var item = getEntry(entry);
 			return item && item.getData() || null;
 		},
@@ -75,7 +75,7 @@ module.exports = function (/*String*/input) {
 		 *
 		 * @return Buffer or Null in case of error
 		 */
-		readFileAsync: function (/*Object*/entry, /*Function*/callback) {
+		readFileAsync: function (/**Object*/entry, /**Function*/callback) {
 			var item = getEntry(entry);
 			if (item) {
 				item.getDataAsync(callback);
@@ -91,7 +91,7 @@ module.exports = function (/*String*/input) {
 		 *
 		 * @return String
 		 */
-		readAsText: function (/*Object*/entry, /*String - Optional*/encoding) {
+		readAsText: function (/**Object*/entry, /**String=*/encoding) {
 			var item = getEntry(entry);
 			if (item) {
 				var data = item.getData();
@@ -110,7 +110,7 @@ module.exports = function (/*String*/input) {
 		 *
 		 * @return String
 		 */
-		readAsTextAsync: function (/*Object*/entry, /*Function*/callback, /*String - Optional*/encoding) {
+		readAsTextAsync: function (/**Object*/entry, /**Function*/callback, /**String=*/encoding) {
 			var item = getEntry(entry);
 			if (item) {
 				item.getDataAsync(function (data, err) {
@@ -135,7 +135,7 @@ module.exports = function (/*String*/input) {
 		 *
 		 * @param entry
 		 */
-		deleteFile: function (/*Object*/entry) { // @TODO: test deleteFile
+		deleteFile: function (/**Object*/entry) { // @TODO: test deleteFile
 			var item = getEntry(entry);
 			if (item) {
 				_zip.deleteEntry(item.entryName);
@@ -147,7 +147,7 @@ module.exports = function (/*String*/input) {
 		 *
 		 * @param comment
 		 */
-		addZipComment: function (/*String*/comment) { // @TODO: test addZipComment
+		addZipComment: function (/**String*/comment) { // @TODO: test addZipComment
 			_zip.comment = comment;
 		},
 
@@ -167,7 +167,7 @@ module.exports = function (/*String*/input) {
 		 * @param entry
 		 * @param comment
 		 */
-		addZipEntryComment: function (/*Object*/entry, /*String*/comment) {
+		addZipEntryComment: function (/**Object*/entry, /**String*/comment) {
 			var item = getEntry(entry);
 			if (item) {
 				item.comment = comment;
@@ -180,7 +180,7 @@ module.exports = function (/*String*/input) {
 		 * @param entry
 		 * @return String
 		 */
-		getZipEntryComment: function (/*Object*/entry) {
+		getZipEntryComment: function (/**Object*/entry) {
 			var item = getEntry(entry);
 			if (item) {
 				return item.comment || '';
@@ -194,7 +194,7 @@ module.exports = function (/*String*/input) {
 		 * @param entry
 		 * @param content
 		 */
-		updateFile: function (/*Object*/entry, /*Buffer*/content) {
+		updateFile: function (/**Object*/entry, /**Buffer*/content) {
 			var item = getEntry(entry);
 			if (item) {
 				item.setData(content);
@@ -208,7 +208,7 @@ module.exports = function (/*String*/input) {
 		 * @param zipPath Optional path inside the zip
 		 * @param zipName Optional name for the file
 		 */
-		addLocalFile: function (/*String*/localPath, /*String*/zipPath, /*String*/zipName) {
+		addLocalFile: function (/**String*/localPath, /**String=*/zipPath, /**String=*/zipName) {
 			if (fs.existsSync(localPath)) {
 				if (zipPath) {
 					zipPath = zipPath.split("\\").join("/");
@@ -238,7 +238,7 @@ module.exports = function (/*String*/input) {
 		 * @param filter optional RegExp or Function if files match will
 		 *               be included.
 		 */
-		addLocalFolder: function (/*String*/localPath, /*String*/zipPath, /*RegExp|Function*/filter) {
+		addLocalFolder: function (/**String*/localPath, /**String=*/zipPath, /**=RegExp|Function*/filter) {
 			if (filter === undefined) {
 				filter = function () {
 					return true;
@@ -297,7 +297,7 @@ module.exports = function (/*String*/input) {
 		 * @param comment
 		 * @param attr
 		 */
-		addFile: function (/*String*/entryName, /*Buffer*/content, /*String*/comment, /*Number*/attr) {
+		addFile: function (/**String*/entryName, /**Buffer*/content, /**String*/comment, /**Number*/attr) {
 			var entry = new ZipEntry();
 			entry.entryName = entryName;
 			entry.comment = comment || "";
@@ -335,7 +335,7 @@ module.exports = function (/*String*/input) {
 		 * @param name
 		 * @return ZipEntry
 		 */
-		getEntry: function (/*String*/name) {
+		getEntry: function (/**String*/name) {
 			return getEntry(name);
 		},
 
@@ -360,7 +360,7 @@ module.exports = function (/*String*/input) {
 		 *
 		 * @return Boolean
 		 */
-		extractEntryTo: function (/*Object*/entry, /*String*/targetPath, /*Boolean*/maintainEntryPath, /*Boolean*/overwrite) {
+		extractEntryTo: function (/**Object*/entry, /**String*/targetPath, /**Boolean*/maintainEntryPath, /**Boolean*/overwrite) {
 			overwrite = overwrite || false;
 			maintainEntryPath = typeof maintainEntryPath === "undefined" ? true : maintainEntryPath;
 
@@ -432,7 +432,7 @@ module.exports = function (/*String*/input) {
 		 * @param overwrite If the file already exists at the target path, the file will be overwriten if this is true.
 		 *                  Default is FALSE
 		 */
-		extractAllTo: function (/*String*/targetPath, /*Boolean*/overwrite) {
+		extractAllTo: function (/**String*/targetPath, /**Boolean*/overwrite) {
 			overwrite = overwrite || false;
 			if (!_zip) {
 				throw Utils.Errors.NO_ZIP;
@@ -464,7 +464,7 @@ module.exports = function (/*String*/input) {
 		 *                  Default is FALSE
 		 * @param callback
 		 */
-		extractAllToAsync: function (/*String*/targetPath, /*Boolean*/overwrite, /*Function*/callback) {
+		extractAllToAsync: function (/**String*/targetPath, /**Boolean*/overwrite, /**Function*/callback) {
 			if (!callback) {
 				callback = function() {}
 			}
@@ -524,7 +524,7 @@ module.exports = function (/*String*/input) {
 		 * @param targetFileName
 		 * @param callback
 		 */
-		writeZip: function (/*String*/targetFileName, /*Function*/callback) {
+		writeZip: function (/**String*/targetFileName, /**Function*/callback) {
 			if (arguments.length === 1) {
 				if (typeof targetFileName === "function") {
 					callback = targetFileName;
@@ -549,7 +549,7 @@ module.exports = function (/*String*/input) {
 		 *
 		 * @return Buffer
 		 */
-		toBuffer: function (/*Function*/onSuccess, /*Function*/onFail, /*Function*/onItemStart, /*Function*/onItemEnd) {
+		toBuffer: function (/**Function=*/onSuccess, /**Function=*/onFail, /**Function=*/onItemStart, /**Function=*/onItemEnd) {
 			this.valueOf = 2;
 			if (typeof onSuccess === "function") {
 				_zip.toAsyncBuffer(onSuccess, onFail, onItemStart, onItemEnd);
