@@ -47,9 +47,10 @@ module.exports = function (/*Buffer*/input) {
         }
 
         var compressedData = getCompressedDataFromZip();
-       
+
         if (compressedData.length === 0) {
-            if (async && callback) callback(compressedData, Utils.Errors.NO_DATA);//si added error.
+            // File is empty, nothing to decompress.
+            if (async && callback) callback(compressedData);
             return compressedData;
         }
 
