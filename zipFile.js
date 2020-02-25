@@ -27,12 +27,12 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 	}
 
 	function iterateEntries(callback) {
-		const totalEntries = mainHeader.diskEntries; // total number of entries
-		let index = mainHeader.offset; // offset of first CEN header
+		var totalEntries = mainHeader.diskEntries; // total number of entries
+		var index = mainHeader.offset; // offset of first CEN header
 
-		for (let i = 0; i < totalEntries; i++) {
-			let tmp = index;
-			const entry = new ZipEntry(inBuffer);
+		for (var i = 0; i < totalEntries; i++) {
+			var tmp = index;
+			var entry = new ZipEntry(inBuffer);
 
 			entry.header = inBuffer.slice(tmp, tmp += Utils.Constants.CENHDR);
 			entry.entryName = inBuffer.slice(tmp, tmp += entry.header.fileNameLength);
@@ -76,7 +76,7 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 			n = max,
 			endStart = inBuffer.length,
 			endOffset = -1, // Start offset of the END header
-			commentEnd = 0; 
+			commentEnd = 0;
 
 		for (i; i >= n; i--) {
 			if (inBuffer[i] !== 0x50) continue; // quick check that the byte is 'P'

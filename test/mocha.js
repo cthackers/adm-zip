@@ -76,14 +76,14 @@ describe('adm-zip', () => {
                 // It will actually create two, but the first is overwritten by the second.
             }
         });
-        let text = fs.readFileSync('./text.txt').toString()
+        var text = fs.readFileSync('./text.txt').toString()
         expect(text).to.equal('ride em cowboy!')
         fs.unlinkSync('./text.txt')
     })
 })
 
 function walk(dir) {
-    let results = [];
+    var results = [];
     const list = fs.readdirSync(dir);
     list.forEach(function (file) {
         file = dir + '/' + file;
@@ -100,7 +100,7 @@ function walk(dir) {
 }
 
 function walkD(dir) {
-    let results = [];
+    var results = [];
     const list = fs.readdirSync(dir);
     list.forEach(function (file) {
         file = dir + '/' + file;
