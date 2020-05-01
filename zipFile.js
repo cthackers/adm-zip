@@ -304,7 +304,7 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 
 			var mh = mainHeader.toBinary();
 			if (_comment) {
-				_comment.copy(mh, Utils.Constants.ENDHDR); // add zip file comment
+				Buffer.from(_comment).copy(mh, Utils.Constants.ENDHDR); // add zip file comment
 			}
 
 			mh.copy(outBuffer, dindex); // write main header
