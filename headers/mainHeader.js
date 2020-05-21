@@ -35,7 +35,7 @@ module.exports = function () {
             if ((data.length !== Constants.ENDHDR || data.readUInt32LE(0) !== Constants.ENDSIG) &&
                 (data.length < Constants.ZIP64HDR || data.readUInt32LE(0) !== Constants.ZIP64SIG)) {
 
-                throw Utils.Errors.INVALID_END;
+                throw new Error(Utils.Errors.INVALID_END);
             }
 
             if (data.readUInt32LE(0) === Constants.ENDSIG) {
