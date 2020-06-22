@@ -31,19 +31,37 @@ module.exports = function () {
 
         loadFromBinary : function(/*Buffer*/data) {
             // data should be 22 bytes and start with "PK 05 06"
-            if (data.length !== Constants.ENDHDR || data.readUInt32LE(0) !== Constants.ENDSIG)
-                throw Utils.Errors.INVALID_END;
+            // or be 56+ bytes and start with "PK 06 06" for Zip64
+            if ((data.length !== Constants.ENDHDR || data.readUInt32LE(0) !== Constants.ENDSIG) &&
+                (data.length < Constants.ZIP64HDR || data.readUInt32LE(0) !== Constants.ZIP64SIG)) {
 
-            // number of entries on this volume
-            _volumeEntries = data.readUInt16LE(Constants.ENDSUB);
-            // total number of entries
-            _totalEntries = data.readUInt16LE(Constants.ENDTOT);
-            // central directory size in bytes
-            _size = data.readUInt32LE(Constants.ENDSIZ);
-            // offset of first CEN header
-            _offset = data.readUInt32LE(Constants.ENDOFF);
-            // zip file comment length
-            _commentLength = data.readUInt16LE(Constants.ENDCOM);
+                throw new Error(Utils.Errors.INVALID_END);
+            }
+
+            if (data.readUInt32LE(0) === Constants.ENDSIG) {
+                // number of entries on this volume
+                _volumeEntries = data.readUInt16LE(Constants.ENDSUB);
+                // total number of entries
+                _totalEntries = data.readUInt16LE(Constants.ENDTOT);
+                // central directory size in bytes
+                _size = data.readUInt32LE(Constants.ENDSIZ);
+                // offset of first CEN header
+                _offset = data.readUInt32LE(Constants.ENDOFF);
+                // zip file comment length
+                _commentLength = data.readUInt16LE(Constants.ENDCOM);
+            } else {
+                // number of entries on this volume
+                _volumeEntries = Utils.readBigUInt64LE(data, Constants.ZIP64SUB);
+                // total number of entries
+                _totalEntries = Utils.readBigUInt64LE(data, Constants.ZIP64TOT);
+                // central directory size in bytes
+                _size = Utils.readBigUInt64LE(data, Constants.ZIP64SIZ);
+                // offset of first CEN header
+                _offset = Utils.readBigUInt64LE(data, Constants.ZIP64OFF);
+
+                _commentLength = 0;
+            }
+
         },
 
         toBinary : function() {
