@@ -61,7 +61,7 @@ module.exports = function (/*Buffer*/input) {
                 compressedData.copy(data);
                 if (!crc32OK(data)) {
                     if (async && callback) callback(data, Utils.Errors.BAD_CRC);//si added error
-                    return Utils.Errors.BAD_CRC;
+                    throw new Error(Utils.Errors.BAD_CRC);
                 } else {//si added otherwise did not seem to return data.
                     if (async && callback) callback(data);
                     return data;
@@ -72,7 +72,7 @@ module.exports = function (/*Buffer*/input) {
                     var result = inflater.inflate(data);
                     result.copy(data, 0);
                     if (!crc32OK(data)) {
-                        console.warn(Utils.Errors.BAD_CRC + " " + _entryName.toString())
+                        throw new Error(Utils.Errors.BAD_CRC + " " + _entryName.toString());
                     }
                     return data;
                 } else {
@@ -88,7 +88,7 @@ module.exports = function (/*Buffer*/input) {
                 break;
             default:
                 if (async && callback) callback(Buffer.alloc(0), Utils.Errors.UNKNOWN_METHOD);
-                return Utils.Errors.UNKNOWN_METHOD;
+                throw new Error(Utils.Errors.UNKNOWN_METHOD);
         }
     }
 

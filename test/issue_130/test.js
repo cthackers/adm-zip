@@ -33,7 +33,7 @@ readZip.extractAllTo('unzipped', true);
 // assert the files
 var assert = function(content, expectedContent, errMsg) {
     if (content != expectedContent) {
-        throw errMsg;
+        throw new Error(errMsg);
     }
 }
 

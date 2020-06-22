@@ -76,7 +76,7 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 			n = max,
 			endStart = inBuffer.length,
 			endOffset = -1, // Start offset of the END header
-			commentEnd = 0; 
+			commentEnd = 0;
 
 		for (i; i >= n; i--) {
 			if (inBuffer[i] !== 0x50) continue; // quick check that the byte is 'P'
@@ -104,7 +104,7 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 		}
 
 		if (!~endOffset)
-			throw Utils.Errors.INVALID_FORMAT;
+			throw new Error(Utils.Errors.INVALID_FORMAT);
 
 		mainHeader.loadFromBinary(inBuffer.slice(endOffset, endStart));
 		if (mainHeader.commentLength) {
