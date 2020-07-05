@@ -19,7 +19,7 @@ module.exports = function (/**String*/input) {
 			_filename = input;
 			_zip = new ZipFile(input, Utils.Constants.FILE);
 		} else {
-			throw Utils.Errors.INVALID_FILENAME;
+			throw new Error(Utils.Errors.INVALID_FILENAME);
 		}
 	} else if (input && Buffer.isBuffer(input)) { // load buffer
 		_zip = new ZipFile(input, Utils.Constants.BUFFER);
@@ -226,7 +226,7 @@ module.exports = function (/**String*/input) {
 					this.addFile(zipPath + p, fs.readFileSync(localPath), "", 0)
 				}
 			} else {
-				throw Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath);
+				throw new Error(Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath));
 			}
 		},
 
@@ -272,7 +272,7 @@ module.exports = function (/**String*/input) {
 
 				if (items.length) {
 					items.forEach(function (path) {
-						var p = path.split("\\").join("/").replace(new RegExp(localPath.replace(/(\(|\))/g, '\\$1'), 'i'), ""); //windows fix
+						var p = path.split("\\").join("/").replace(new RegExp(localPath.replace(/(\(|\)|\$)/g, '\\$1'), 'i'), ""); //windows fix
 						if (filter(p)) {
 							if (p.charAt(p.length - 1) !== "/") {
 								self.addFile(zipPath + p, fs.readFileSync(path), "", 0)
@@ -283,7 +283,7 @@ module.exports = function (/**String*/input) {
 					});
 				}
 			} else {
-				throw Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath);
+				throw new Error(Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath));
 			}
 		},
 
@@ -444,7 +444,7 @@ module.exports = function (/**String*/input) {
 
 			var item = getEntry(entry);
 			if (!item) {
-				throw Utils.Errors.NO_ENTRY;
+				throw new Error(Utils.Errors.NO_ENTRY);
 			}
 
 			var entryName = item.entryName;
@@ -458,7 +458,7 @@ module.exports = function (/**String*/input) {
 					if (child.isDirectory) return;
 					var content = child.getData();
 					if (!content) {
-						throw Utils.Errors.CANT_EXTRACT_FILE;
+						throw new Error(Utils.Errors.CANT_EXTRACT_FILE);
 					}
 					var childName = sanitize(targetPath, maintainEntryPath ? child.entryName : pth.basename(child.entryName));
 
@@ -468,10 +468,10 @@ module.exports = function (/**String*/input) {
 			}
 
 			var content = item.getData();
-			if (!content) throw Utils.Errors.CANT_EXTRACT_FILE;
+			if (!content) throw new Error(Utils.Errors.CANT_EXTRACT_FILE);
 
 			if (fs.existsSync(target) && !overwrite) {
-				throw Utils.Errors.CANT_OVERRIDE;
+				throw new Error(Utils.Errors.CANT_OVERRIDE);
 			}
 			Utils.writeFileTo(target, content, overwrite);
 
@@ -513,7 +513,7 @@ module.exports = function (/**String*/input) {
 		extractAllTo: function (/**String*/targetPath, /**Boolean*/overwrite) {
 			overwrite = overwrite || false;
 			if (!_zip) {
-				throw Utils.Errors.NO_ZIP;
+				throw new Error(Utils.Errors.NO_ZIP);
 			}
 			_zip.entries.forEach(function (entry) {
 				var entryName = sanitize(targetPath, entry.entryName.toString());
@@ -523,13 +523,13 @@ module.exports = function (/**String*/input) {
 				}
 				var content = entry.getData();
 				if (!content) {
-					throw Utils.Errors.CANT_EXTRACT_FILE;
+					throw new Error(Utils.Errors.CANT_EXTRACT_FILE);
 				}
 				Utils.writeFileTo(entryName, content, overwrite);
 				try {
 					fs.utimesSync(entryName, entry.header.time, entry.header.time)
 				} catch (err) {
-					throw Utils.Errors.CANT_EXTRACT_FILE;
+					throw new Error(Utils.Errors.CANT_EXTRACT_FILE);
 				}
 			})
 		},

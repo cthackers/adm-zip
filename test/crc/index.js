@@ -26,7 +26,7 @@ describe('crc', () => {
         });
     });
 
-    it('Bad CRC', (done) => {
+    it('Bad CRC - async method returns err string', (done) => {
         const badZip = new Zip(path.join(__dirname, 'bad_crc.zip'));
         const entries = badZip.getEntries();
         assert(entries.length === 1, 'Bad CRC: Test archive contains exactly 1 file');
@@ -42,6 +42,24 @@ describe('crc', () => {
             assert(err, 'Bad CRC: error object present');
             done();
         });
+    });
+
+    it('Bad CRC - sync method throws an error object', (done) => {
+        const badZip = new Zip(path.join(__dirname, 'bad_crc.zip'));
+        const entries = badZip.getEntries();
+        const testFile = entries.filter(function (entry) {
+            return entry.entryName === 'lorem_ipsum.txt';
+        });
+        const testFileEntryName = testFile[0].entryName;
+
+        try {
+            badZip.readAsText(testFileEntryName);
+        } catch (e) {
+            assert(e.stack, 'Bad CRC: threw something other than an Error instance');
+            done();
+            return;
+        }
+        assert.fail('Bad CRC: did not throw exception');
     });
 
     it('CRC is not changed after re-created', () => {

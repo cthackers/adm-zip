@@ -1,13 +1,13 @@
 # ADM-ZIP for NodeJS with added support for electron original-fs
 
-ADM-ZIP is a pure JavaScript implementation for zip data compression for [NodeJS](http://nodejs.org/). 
+ADM-ZIP is a pure JavaScript implementation for zip data compression for [NodeJS](https://nodejs.org/). 
 
 # Installation
 
-With [npm](http://npmjs.org) do:
+With [npm](https://www.npmjs.com/) do:
 
     $ npm install adm-zip
-	
+
 ## What is it good for?
 The library allows you to:
 
@@ -62,4 +62,4 @@ There are no other nodeJS libraries that ADM-ZIP is dependent of
 
 For more detailed information please check out the [wiki](https://github.com/cthackers/adm-zip/wiki).
 
-[![build status](https://secure.travis-ci.org/cthackers/adm-zip.png)](http://travis-ci.org/cthackers/adm-zip)
+[![Build Status](https://travis-ci.org/cthackers/adm-zip.svg?branch=master)](https://travis-ci.org/cthackers/adm-zip)
