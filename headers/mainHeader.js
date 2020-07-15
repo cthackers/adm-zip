@@ -70,9 +70,9 @@ module.exports = function () {
             b.writeUInt32LE(Constants.ENDSIG, 0);
             b.writeUInt32LE(0, 4);
             // number of entries on this volume
-            b.writeUInt16LE(_volumeEntries, Constants.ENDSUB);
+            b.writeUInt32LE(_volumeEntries, Constants.ENDSUB);
             // total number of entries
-            b.writeUInt16LE(_totalEntries, Constants.ENDTOT);
+            b.writeUInt32LE(_totalEntries, Constants.ENDTOT);
             // central directory size in bytes
             b.writeUInt32LE(_size, Constants.ENDSIZ);
             // offset of first CEN header

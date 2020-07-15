@@ -39,13 +39,13 @@ module.exports = {
     CENOFF           : 42, // LOC header offset
 
     /* The entries in the end of central directory */
-    ENDHDR           : 22, // END header size
+    ENDHDR           : 26, // END header size
     ENDSIG           : 0x06054b50, // "PK\005\006"
     ENDSUB           : 8, // number of entries on this disk
-    ENDTOT           : 10, // total number of entries
-    ENDSIZ           : 12, // central directory size in bytes
-    ENDOFF           : 16, // offset of first CEN header
-    ENDCOM           : 20, // zip file comment length
+    ENDTOT           : 12, // total number of entries
+    ENDSIZ           : 16, // central directory size in bytes
+    ENDOFF           : 20, // offset of first CEN header
+    ENDCOM           : 24, // zip file comment length
 
     END64HDR         : 20, // zip64 END header size
     END64SIG         : 0x07064b50, // zip64 Locator signature, "PK\006\007"
