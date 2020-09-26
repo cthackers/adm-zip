@@ -133,8 +133,8 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 			return _comment.toString();
 		},
 		set comment(val) {
-			mainHeader.commentLength = val.length;
-			_comment = val;
+			_comment = Utils.toBuffer(val);
+			mainHeader.commentLength = _comment.length;
 		},
 
 		getEntryCount: function() {
