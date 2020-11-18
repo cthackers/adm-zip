@@ -54,6 +54,11 @@ module.exports = function (/*Buffer*/input) {
             return compressedData;
         }
 
+        if (_entryHeader.encripted){
+            if (async && callback) callback(Buffer.alloc(0), Utils.Errors.UNKNOWN_METHOD);
+            throw new Error(Utils.Errors.UNKNOWN_METHOD);
+        }
+
         var data = Buffer.alloc(_entryHeader.size);
 
         switch (_entryHeader.method) {
