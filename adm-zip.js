@@ -63,9 +63,9 @@ module.exports = function (/**String*/input) {
 		 *
 		 * @return Buffer or Null in case of error
 		 */
-		readFile: function (/**Object*/entry) {
+		readFile: function (/**Object*/entry, /*String, Buffer*/pass) {
 			var item = getEntry(entry);
-			return item && item.getData() || null;
+			return item && item.getData(pass) || null;
 		},
 
 		/**
@@ -482,7 +482,7 @@ module.exports = function (/**String*/input) {
 		 * Test the archive
 		 *
 		 */
-		test: function () {
+		test: function (pass) {
 			if (!_zip) {
 				return false;
 			}
@@ -492,7 +492,7 @@ module.exports = function (/**String*/input) {
 					if (entry.isDirectory) {
 						continue;
 					}
-					var content = _zip.entries[entry].getData();
+					var content = _zip.entries[entry].getData(pass);
 					if (!content) {
 						return false;
 					}
@@ -510,7 +510,7 @@ module.exports = function (/**String*/input) {
 		 * @param overwrite If the file already exists at the target path, the file will be overwriten if this is true.
 		 *                  Default is FALSE
 		 */
-		extractAllTo: function (/**String*/targetPath, /**Boolean*/overwrite) {
+		extractAllTo: function (/**String*/targetPath, /**Boolean*/overwrite, /*String, Buffer*/pass) {
 			overwrite = overwrite || false;
 			if (!_zip) {
 				throw new Error(Utils.Errors.NO_ZIP);
@@ -521,7 +521,7 @@ module.exports = function (/**String*/input) {
 					Utils.makeDir(entryName);
 					return;
 				}
-				var content = entry.getData();
+				var content = entry.getData(pass);
 				if (!content) {
 					throw new Error(Utils.Errors.CANT_EXTRACT_FILE);
 				}

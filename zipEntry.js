@@ -34,7 +34,7 @@ module.exports = function (/*Buffer*/input) {
         return true;
     }
 
-    function decompress(/*Boolean*/async, /*Function*/callback, /*String*/pass) {
+    function decompress(/*Boolean*/async, /*Function*/callback, /*String, Buffer*/pass) {
         if(typeof callback === 'undefined' && typeof async === 'string') {
             pass=async;
             async=void 0;
@@ -55,8 +55,10 @@ module.exports = function (/*Buffer*/input) {
         }
 
         if (_entryHeader.encripted){
-            if (async && callback) callback(Buffer.alloc(0), Utils.Errors.UNKNOWN_METHOD);
-            throw new Error(Utils.Errors.UNKNOWN_METHOD);
+            if ('string' !== typeof pass && !Buffer.isBuffer(pass)){
+                throw new Error('ADM-ZIP: Incompatible password parameter');
+            }
+            compressedData = Methods.ZipCrypto.decrypt(compressedData, _entryHeader, pass);
         }
 
         var data = Buffer.alloc(_entryHeader.size);
