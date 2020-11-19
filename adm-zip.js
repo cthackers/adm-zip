@@ -456,10 +456,11 @@ module.exports = function (/**String*/input) {
 		 *                          will be created in targetPath as well. Default is TRUE
 		 * @param overwrite If the file already exists at the target path, the file will be overwriten if this is true.
 		 *                  Default is FALSE
+         * @param outFileName String If set will override the filename of the extracted file (Only works if the entry is a file)
 		 *
 		 * @return Boolean
 		 */
-		extractEntryTo: function (/**Object*/entry, /**String*/targetPath, /**Boolean*/maintainEntryPath, /**Boolean*/overwrite) {
+		extractEntryTo: function (/**Object*/entry, /**String*/targetPath, /**Boolean*/maintainEntryPath, /**Boolean*/overwrite, /**String**/outFileName) {
 			overwrite = overwrite || false;
 			maintainEntryPath = typeof maintainEntryPath === "undefined" ? true : maintainEntryPath;
 
@@ -470,7 +471,10 @@ module.exports = function (/**String*/input) {
 
 			var entryName = item.entryName;
 
-			var target = sanitize(targetPath, maintainEntryPath ? entryName : pth.basename(entryName));
+			var target = sanitize(targetPath,
+                outFileName !== "" && !item.isDirectory ? outFileName :
+                    (maintainEntryPath ? entryName : pth.basename(entryName))
+            );
 
 			if (item.isDirectory) {
 				target = pth.resolve(target, "..");
