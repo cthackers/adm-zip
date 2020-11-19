@@ -225,7 +225,7 @@ module.exports = function (/**String*/input) {
 				var p = localPath.split("\\").join("/").split("/").pop();
 
 				// add file name into zippath
-				zipPath += (zipName) ? zipPath : p;
+				zipPath += (zipName) ? zipName : p;
 
 				// read file attributes 
 				const _attr = fs.statSync(localPath);
