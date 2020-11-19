@@ -208,23 +208,30 @@ module.exports = function (/**String*/input) {
 		 * @param zipPath Optional path inside the zip
 		 * @param zipName Optional name for the file
 		 */
-		addLocalFile: function (/**String*/localPath, /**String=*/zipPath, /**String=*/zipName) {
+		addLocalFile: function (/**String*/localPath, /**String=*/zipPath, /**String=*/zipName, /**String*/comment) {
 			if (fs.existsSync(localPath)) {
+				// prepare zippath
 				if (zipPath) {
+					// convert windows file separators
 					zipPath = zipPath.split("\\").join("/");
+					// add separator if it wasnt given
 					if (zipPath.charAt(zipPath.length - 1) !== "/") {
 						zipPath += "/";
 					}
 				} else {
 					zipPath = "";
 				}
+				// p - local file name
 				var p = localPath.split("\\").join("/").split("/").pop();
 
-				if (zipName) {
-					this.addFile(zipPath + zipName, fs.readFileSync(localPath), "", 0)
-				} else {
-					this.addFile(zipPath + p, fs.readFileSync(localPath), "", 0)
-				}
+				// add file name into zippath
+				zipPath += (zipName) ? zipPath : p;
+
+				// read file attributes 
+				const _attr = fs.statSync(localPath);
+
+				// add file into zip file
+				this.addFile(zipPath, fs.readFileSync(localPath), comment, _attr)
 			} else {
 				throw new Error(Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath));
 			}
@@ -376,19 +383,38 @@ module.exports = function (/**String*/input) {
 		 * @param attr
 		 */
 		addFile: function (/**String*/entryName, /**Buffer*/content, /**String*/comment, /**Number*/attr) {
+			// prepare new entry
 			var entry = new ZipEntry();
 			entry.entryName = entryName;
 			entry.comment = comment || "";
 
-			if (!attr) {
-				if (entry.isDirectory) {
-					attr = (0o40755 << 16) | 0x10; // (permissions drwxr-xr-x) + (MS-DOS directory flag)
-				} else {
-					attr = 0o644 << 16; // permissions -r-wr--r--
-				}
+			var isStat = ('object' === typeof attr) && (attr instanceof fs.Stats);
+
+			// last modification time from file stats
+			if (isStat){
+				entry.header.time = attr.mtime;
 			}
 
-			entry.attr = attr;
+			// Set file attribute
+			var fileattr = (entry.isDirectory) ? 0x10 : 0;  // (MS-DOS directory flag)
+
+			// extended attributes field for Unix
+			if('win32' !== process.platform){
+				// set file type either S_IFDIR / S_IFREG
+				var unix = (entry.isDirectory) ? 0x4000 : 0x8000;
+
+				if (isStat) { 										// File attributes from file stats
+					unix |= (0xfff & attr.mode) 
+				}else if ('number' === typeof attr){ 				// attr from given attr values
+					unix |= (0xfff & attr);
+				}else{												// Default values: 
+					unix |= (entry.isDirectory) ? 0o755 : 0o644;  	// permissions (drwxr-xr-x) or (-r-wr--r--)
+				}
+
+				fileattr = (fileattr | (unix << 16)) >>> 0;			// add attributes
+			}
+
+			entry.attr = fileattr;
 
 			entry.setData(content);
 			_zip.setEntry(entry);
