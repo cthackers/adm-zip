@@ -56,6 +56,16 @@ module.exports = function (/**String*/input) {
 		return null;
 	}
 
+    function fixPath(zipPath){
+        // convert windows file separators
+        zipPath = zipPath.split("\\").join("/");
+        // add separator if it wasnt given
+        if (zipPath.charAt(zipPath.length - 1) !== "/") {
+            zipPath += "/";
+        }        
+        return zipPath;
+    }
+
 	return {
 		/**
 		 * Extracts the given entry from the archive and returns the content as a Buffer object
@@ -210,17 +220,9 @@ module.exports = function (/**String*/input) {
 		 */
 		addLocalFile: function (/**String*/localPath, /**String=*/zipPath, /**String=*/zipName, /**String*/comment) {
 			if (fs.existsSync(localPath)) {
-				// prepare zippath
-				if (zipPath) {
-					// convert windows file separators
-					zipPath = zipPath.split("\\").join("/");
-					// add separator if it wasnt given
-					if (zipPath.charAt(zipPath.length - 1) !== "/") {
-						zipPath += "/";
-					}
-				} else {
-					zipPath = "";
-				}
+				// fix ZipPath
+				zipPath = (zipPath) ? fixPath(zipPath) : "";
+
 				// p - local file name
 				var p = localPath.split("\\").join("/").split("/").pop();
 
@@ -245,54 +247,47 @@ module.exports = function (/**String*/input) {
 		 * @param filter optional RegExp or Function if files match will
 		 *               be included.
 		 */
-		addLocalFolder: function (/**String*/localPath, /**String=*/zipPath, /**=RegExp|Function*/filter) {
-			if (filter === undefined) {
-				filter = function () {
-					return true;
-				};
-			} else if (filter instanceof RegExp) {
-				filter = function (filter) {
-					return function (filename) {
-						return filter.test(filename);
-					}
-				}(filter);
-			}
+        addLocalFolder: function (/**String*/localPath, /**String=*/zipPath, /**=RegExp|Function*/filter) {
+            // Prepare filter
+            if (filter instanceof RegExp) {                 // if filter is RegExp wrap it 
+                filter = (function (rx){
+                    return function (filename) {
+                        return rx.test(filename);
+                    }
+                })(filter);
+            } else if ('function' !== typeof filter) {       // if filter is not function we will replace it
+                filter = function () {
+                    return true;
+                };
+            }
 
-			if (zipPath) {
-				zipPath = zipPath.split("\\").join("/");
-				if (zipPath.charAt(zipPath.length - 1) !== "/") {
-					zipPath += "/";
-				}
-			} else {
-				zipPath = "";
-			}
-			// normalize the path first
-			localPath = pth.normalize(localPath);
-			localPath = localPath.split("\\").join("/"); //windows fix
-			if (localPath.charAt(localPath.length - 1) !== "/")
-				localPath += "/";
+            // fix ZipPath
+            zipPath = (zipPath) ? fixPath(zipPath) : "";
 
-			if (fs.existsSync(localPath)) {
+            // normalize the path first
+            localPath = pth.normalize(localPath);
 
-				var items = Utils.findFiles(localPath),
-					self = this;
+            if (fs.existsSync(localPath)) {
 
-				if (items.length) {
-					items.forEach(function (path) {
-						var p = path.split("\\").join("/").replace(new RegExp(localPath.replace(/(\(|\)|\$)/g, '\\$1'), 'i'), ""); //windows fix
-						if (filter(p)) {
-							if (p.charAt(p.length - 1) !== "/") {
-								self.addFile(zipPath + p, fs.readFileSync(path), "", 0)
-							} else {
-								self.addFile(zipPath + p, Buffer.alloc(0), "", 0)
-							}
-						}
-					});
-				}
-			} else {
-				throw new Error(Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath));
-			}
-		},
+                var items = Utils.findFiles(localPath),
+                    self = this;
+
+                if (items.length) {
+                    items.forEach(function (filepath) {
+                        var p = pth.relative(localPath, filepath).split("\\").join("/"); //windows fix
+                        if (filter(p)) {
+                            if (filepath.charAt(filepath.length - 1) !== pth.sep) {
+                                self.addFile(zipPath + p, fs.readFileSync(filepath), "", fs.statSync(filepath));
+                            } else {
+                                self.addFile(zipPath + p + '/', Buffer.alloc(0), "", 0);
+                            }
+                        }
+                    });
+                }
+            } else {
+                throw new Error(Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath));
+            }
+        },
 
 		/**
 		 * Asynchronous addLocalFile
