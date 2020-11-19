@@ -1,6 +1,6 @@
 exports.require = function() {
   var fs = require("fs");
-  if (process.versions['electron']) {
+  if (process && process.versions && process.versions['electron']) {
 	  try {
 	    originalFs = require("original-fs");
 	    if (Object.keys(originalFs).length > 0) {
