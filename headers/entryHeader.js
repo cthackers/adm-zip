@@ -3,7 +3,7 @@ var Utils = require("../util"),
 
 /* The central directory file header */
 module.exports = function () {
-    var _verMade = 0x0A,
+    var _verMade = 0x14,
         _version = 0x0A,
         _flags = 0,
         _method = 0,
@@ -19,6 +19,15 @@ module.exports = function () {
         _inattr = 0,
         _attr = 0,
         _offset = 0;
+
+    switch(process.platform){
+        case 'win32':
+            _verMade |= 0x0A00;
+        case 'darwin':
+            _verMade |= 0x1300;
+        default:
+            _verMade |= 0x0300;
+    }
 
     var _dataHeader = {};
 
@@ -47,7 +56,16 @@ module.exports = function () {
         set flags (val) { _flags = val; },
 
         get method () { return _method; },
-        set method (val) { _method = val; },
+        set method (val) {
+            switch (val){
+                case Constants.STORED:
+                    this.version = 10;
+                case Constants.DEFLATED:
+                default:
+                    this.version = 20;
+            }
+            _method = val;
+            },
 
         get time () { return new Date(
             ((_time >> 25) & 0x7f) + 1980,
