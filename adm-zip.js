@@ -56,15 +56,15 @@ module.exports = function (/**String*/input) {
 		return null;
 	}
 
-    function fixPath(zipPath){
-        // convert windows file separators
-        zipPath = zipPath.split("\\").join("/");
-        // add separator if it wasnt given
-        if (zipPath.charAt(zipPath.length - 1) !== "/") {
-            zipPath += "/";
-        }        
-        return zipPath;
-    }
+	function fixPath(zipPath){
+		// convert windows file separators
+		zipPath = zipPath.split("\\").join("/");
+		// add separator if it wasnt given
+		if (zipPath.charAt(zipPath.length - 1) !== "/") {
+			zipPath += "/";
+		}
+		return zipPath;
+	}
 
 	return {
 		/**
@@ -229,7 +229,7 @@ module.exports = function (/**String*/input) {
 				// add file name into zippath
 				zipPath += (zipName) ? zipName : p;
 
-				// read file attributes 
+				// read file attributes
 				const _attr = fs.statSync(localPath);
 
 				// add file into zip file
@@ -247,47 +247,47 @@ module.exports = function (/**String*/input) {
 		 * @param filter optional RegExp or Function if files match will
 		 *               be included.
 		 */
-        addLocalFolder: function (/**String*/localPath, /**String=*/zipPath, /**=RegExp|Function*/filter) {
-            // Prepare filter
-            if (filter instanceof RegExp) {                 // if filter is RegExp wrap it 
-                filter = (function (rx){
-                    return function (filename) {
-                        return rx.test(filename);
-                    }
-                })(filter);
-            } else if ('function' !== typeof filter) {       // if filter is not function we will replace it
-                filter = function () {
-                    return true;
-                };
-            }
+		addLocalFolder: function (/**String*/localPath, /**String=*/zipPath, /**=RegExp|Function*/filter) {
+			// Prepare filter
+			if (filter instanceof RegExp) {                 // if filter is RegExp wrap it
+				filter = (function (rx){
+					return function (filename) {
+						return rx.test(filename);
+					}
+				})(filter);
+			} else if ('function' !== typeof filter) {       // if filter is not function we will replace it
+				filter = function () {
+					return true;
+				};
+			}
 
-            // fix ZipPath
-            zipPath = (zipPath) ? fixPath(zipPath) : "";
+			// fix ZipPath
+			zipPath = (zipPath) ? fixPath(zipPath) : "";
 
-            // normalize the path first
-            localPath = pth.normalize(localPath);
+			// normalize the path first
+			localPath = pth.normalize(localPath);
 
-            if (fs.existsSync(localPath)) {
+			if (fs.existsSync(localPath)) {
 
-                var items = Utils.findFiles(localPath),
-                    self = this;
+				var items = Utils.findFiles(localPath),
+					self = this;
 
-                if (items.length) {
-                    items.forEach(function (filepath) {
-                        var p = pth.relative(localPath, filepath).split("\\").join("/"); //windows fix
-                        if (filter(p)) {
-                            if (filepath.charAt(filepath.length - 1) !== pth.sep) {
-                                self.addFile(zipPath + p, fs.readFileSync(filepath), "", fs.statSync(filepath));
-                            } else {
-                                self.addFile(zipPath + p + '/', Buffer.alloc(0), "", 0);
-                            }
-                        }
-                    });
-                }
-            } else {
-                throw new Error(Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath));
-            }
-        },
+				if (items.length) {
+					items.forEach(function (filepath) {
+						var p = pth.relative(localPath, filepath).split("\\").join("/"); //windows fix
+						if (filter(p)) {
+							if (filepath.charAt(filepath.length - 1) !== pth.sep) {
+								self.addFile(zipPath + p, fs.readFileSync(filepath), "", fs.statSync(filepath));
+							} else {
+								self.addFile(zipPath + p + '/', Buffer.alloc(0), "", 0);
+							}
+						}
+					});
+				}
+			} else {
+				throw new Error(Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath));
+			}
+		},
 
 		/**
 		 * Asynchronous addLocalFile
@@ -399,10 +399,10 @@ module.exports = function (/**String*/input) {
 				var unix = (entry.isDirectory) ? 0x4000 : 0x8000;
 
 				if (isStat) { 										// File attributes from file stats
-					unix |= (0xfff & attr.mode) 
+					unix |= (0xfff & attr.mode)
 				}else if ('number' === typeof attr){ 				// attr from given attr values
 					unix |= (0xfff & attr);
-				}else{												// Default values: 
+				}else{												// Default values:
 					unix |= (entry.isDirectory) ? 0o755 : 0o644;  	// permissions (drwxr-xr-x) or (-r-wr--r--)
 				}
 
@@ -456,7 +456,7 @@ module.exports = function (/**String*/input) {
 		 *                          will be created in targetPath as well. Default is TRUE
 		 * @param overwrite If the file already exists at the target path, the file will be overwriten if this is true.
 		 *                  Default is FALSE
-         * @param outFileName String If set will override the filename of the extracted file (Only works if the entry is a file)
+		 * @param outFileName String If set will override the filename of the extracted file (Only works if the entry is a file)
 		 *
 		 * @return Boolean
 		 */
@@ -472,9 +472,12 @@ module.exports = function (/**String*/input) {
 			var entryName = item.entryName;
 
 			var target = sanitize(targetPath,
-                outFileName !== "" && !item.isDirectory ? outFileName :
-                    (maintainEntryPath ? entryName : pth.basename(entryName))
-            );
+				!item.isDirectory && 'string' === typeof outFileName && outFileName !== ""
+					? outFileName
+					: maintainEntryPath
+						? entryName
+						: pth.basename(entryName)
+			);
 
 			if (item.isDirectory) {
 				target = pth.resolve(target, "..");
