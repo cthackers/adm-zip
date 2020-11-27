@@ -472,7 +472,7 @@ module.exports = function (/**String*/input) {
 			var entryName = item.entryName;
 
 			var target = sanitize(targetPath,
-                outFileName !== "" && !item.isDirectory ? outFileName :
+                outFileName && !item.isDirectory ? outFileName :
                     (maintainEntryPath ? entryName : pth.basename(entryName))
             );
 
