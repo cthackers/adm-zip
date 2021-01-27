@@ -9,6 +9,10 @@ var ZipEntry = require("./zipEntry"),
 
 var isWin = /^win/.test(process.platform);
 
+function canonical(p) {
+    var safeSuffix = pth.normalize(p).replace(/^(\.\.(\/|\\|$))+/, '');
+    return pth.join('./', safeSuffix);
+}
 
 module.exports = function (/**String*/input) {
 	var _zip = undefined,
@@ -469,12 +473,9 @@ module.exports = function (/**String*/input) {
 				throw new Error(Utils.Errors.NO_ENTRY);
 			}
 
-			var entryName = item.entryName;
+			var entryName = canonical(item.entryName);
 
-			var target = sanitize(targetPath,
-                outFileName && !item.isDirectory ? outFileName :
-                    (maintainEntryPath ? entryName : pth.basename(entryName))
-            );
+			var target = sanitize(targetPath,outFileName && !item.isDirectory ? outFileName : (maintainEntryPath ? entryName : pth.basename(entryName)));
 
 			if (item.isDirectory) {
 				target = pth.resolve(target, "..");
@@ -485,7 +486,8 @@ module.exports = function (/**String*/input) {
 					if (!content) {
 						throw new Error(Utils.Errors.CANT_EXTRACT_FILE);
 					}
-					var childName = sanitize(targetPath, maintainEntryPath ? child.entryName : pth.basename(child.entryName));
+					var name = canonical(child.entryName)
+					var childName = sanitize(targetPath, maintainEntryPath ? name : pth.basename(name));
 
 					Utils.writeFileTo(childName, content, overwrite);
 				});
@@ -541,7 +543,7 @@ module.exports = function (/**String*/input) {
 				throw new Error(Utils.Errors.NO_ZIP);
 			}
 			_zip.entries.forEach(function (entry) {
-				var entryName = sanitize(targetPath, entry.entryName.toString());
+				var entryName = sanitize(targetPath, canonical(entry.entryName.toString()));
 				if (entry.isDirectory) {
 					Utils.makeDir(entryName);
 					return;
@@ -582,7 +584,7 @@ module.exports = function (/**String*/input) {
 			entries.forEach(function (entry) {
 				if (i <= 0) return; // Had an error already
 
-				var entryName = pth.normalize(entry.entryName.toString());
+				var entryName = pth.normalize(canonical(entry.entryName.toString()));
 
 				if (entry.isDirectory) {
 					Utils.makeDir(sanitize(targetPath, entryName));

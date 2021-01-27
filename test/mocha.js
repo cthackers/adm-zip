@@ -23,13 +23,34 @@ describe('adm-zip', () => {
         const files = walk(destination)
 
         expect(files.sort()).to.deep.equal([
-            "./test/xxx/attributes_test/asd/New Text Document.txt",
-            "./test/xxx/attributes_test/blank file.txt",
-            "./test/xxx/attributes_test/New folder/hidden.txt",
-            "./test/xxx/attributes_test/New folder/hidden_readonly.txt",
-            "./test/xxx/attributes_test/New folder/readonly.txt",
-            "./test/xxx/utes_test/New folder/somefile.txt"
+            pth.normalize("./test/xxx/attributes_test/asd/New Text Document.txt"),
+            pth.normalize("./test/xxx/attributes_test/blank file.txt"),
+            pth.normalize("./test/xxx/attributes_test/New folder/hidden.txt"),
+            pth.normalize("./test/xxx/attributes_test/New folder/hidden_readonly.txt"),
+            pth.normalize("./test/xxx/attributes_test/New folder/readonly.txt"),
+            pth.normalize("./test/xxx/utes_test/New folder/somefile.txt")
         ].sort());
+    })
+
+    it('zip pathTraversal', () => {
+        const target = pth.join(destination, "test")
+        const zip = new Zip();
+        zip.addFile("../../../test1.ext", "content")
+        zip.addFile("folder/../../test2.ext", "content")
+        zip.addFile("test3.ext", "content")
+        const buf = zip.toBuffer()
+
+        const extract = new Zip(buf)
+        var zipEntries = zip.getEntries();
+        zipEntries.forEach(e => zip.extractEntryTo(e, destination, false, true));
+
+        extract.extractAllTo(target)
+        const files = walk(target)
+        expect(files.sort()).to.deep.equal([
+            pth.normalize('./test/xxx/test/test1.ext'),
+            pth.normalize('./test/xxx/test/test2.ext'),
+            pth.normalize('./test/xxx/test/test3.ext'),
+        ])
     })
 
     it('zip.extractEntryTo(entry, destination, false, true)', () => {
@@ -40,12 +61,12 @@ describe('adm-zip', () => {
 
         const files = walk(destination)
         expect(files.sort()).to.deep.equal([
-            "./test/xxx/blank file.txt",
-            "./test/xxx/hidden.txt",
-            "./test/xxx/hidden_readonly.txt",
-            "./test/xxx/New Text Document.txt",
-            "./test/xxx/readonly.txt",
-            "./test/xxx/somefile.txt"
+            pth.normalize("./test/xxx/blank file.txt"),
+            pth.normalize("./test/xxx/hidden.txt"),
+            pth.normalize("./test/xxx/hidden_readonly.txt"),
+            pth.normalize("./test/xxx/New Text Document.txt"),
+            pth.normalize("./test/xxx/readonly.txt"),
+            pth.normalize("./test/xxx/somefile.txt")
         ].sort());
     })
 
@@ -57,12 +78,12 @@ describe('adm-zip', () => {
 
         const files = walk(destination)
         expect(files.sort()).to.deep.equal([
-            "./test/xxx/attributes_test/asd/New Text Document.txt",
-            "./test/xxx/attributes_test/blank file.txt",
-            "./test/xxx/attributes_test/New folder/hidden.txt",
-            "./test/xxx/attributes_test/New folder/hidden_readonly.txt",
-            "./test/xxx/attributes_test/New folder/readonly.txt",
-            "./test/xxx/utes_test/New folder/somefile.txt"
+            pth.normalize("./test/xxx/attributes_test/asd/New Text Document.txt"),
+            pth.normalize("./test/xxx/attributes_test/blank file.txt"),
+            pth.normalize("./test/xxx/attributes_test/New folder/hidden.txt"),
+            pth.normalize("./test/xxx/attributes_test/New folder/hidden_readonly.txt"),
+            pth.normalize("./test/xxx/attributes_test/New folder/readonly.txt"),
+            pth.normalize("./test/xxx/utes_test/New folder/somefile.txt")
         ].sort());
     })
 
@@ -93,7 +114,7 @@ function walk(dir) {
             results = results.concat(walk(file));
         } else {
             /* Is a file */
-            results.push(file);
+            results.push(pth.normalize(file));
         }
     });
     return results;
