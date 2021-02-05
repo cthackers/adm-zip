@@ -488,8 +488,9 @@ module.exports = function (/**String*/input) {
 					}
 					var name = canonical(child.entryName)
 					var childName = sanitize(targetPath, maintainEntryPath ? name : pth.basename(name));
-
-					Utils.writeFileTo(childName, content, overwrite);
+					// The reverse operation for attr depend on method addFile() 
+					var fileAttr = child.attr ? (((child.attr >>> 0) | 0) >> 16) & 0xfff : 0;
+					Utils.writeFileTo(childName, content, overwrite, fileAttr);
 				});
 				return true;
 			}
@@ -500,7 +501,9 @@ module.exports = function (/**String*/input) {
 			if (fs.existsSync(target) && !overwrite) {
 				throw new Error(Utils.Errors.CANT_OVERRIDE);
 			}
-			Utils.writeFileTo(target, content, overwrite);
+			// The reverse operation for attr depend on method addFile() 
+			var fileAttr = item.attr ? (((item.attr >>> 0) | 0) >> 16) & 0xfff : 0;
+			Utils.writeFileTo(target, content, overwrite, fileAttr);
 
 			return true;
 		},
@@ -552,7 +555,9 @@ module.exports = function (/**String*/input) {
 				if (!content) {
 					throw new Error(Utils.Errors.CANT_EXTRACT_FILE);
 				}
-				Utils.writeFileTo(entryName, content, overwrite);
+				// The reverse operation for attr depend on method addFile() 
+				var fileAttr = entry.attr ? (((entry.attr >>> 0) | 0) >> 16) & 0xfff : 0;
+				Utils.writeFileTo(entryName, content, overwrite, fileAttr);
 				try {
 					fs.utimesSync(entryName, entry.header.time, entry.header.time)
 				} catch (err) {
@@ -604,7 +609,9 @@ module.exports = function (/**String*/input) {
 						return;
 					}
 
-					Utils.writeFileToAsync(sanitize(targetPath, entryName), content, overwrite, function (succ) {
+					// The reverse operation for attr depend on method addFile() 
+					var fileAttr = entry.attr ? (((entry.attr >>> 0) | 0) >> 16) & 0xfff : 0;
+					Utils.writeFileToAsync(sanitize(targetPath, entryName), content, overwrite, fileAttr, function (succ) {
 						try {
 							fs.utimesSync(pth.resolve(targetPath, entryName), entry.header.time, entry.header.time);
 						} catch (err) {
