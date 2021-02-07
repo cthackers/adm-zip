@@ -1,3 +1,3 @@
-exports.Deflater = require("./deflater");
-exports.Inflater = require("./inflater");
-exports.ZipCrypto = require("./zipcrypto");
+exports.Deflater = require('./deflater');
+exports.Inflater = require('./inflater');
+exports.ZipCrypto = require('./zipcrypto');

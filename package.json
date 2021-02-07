@@ -3,7 +3,12 @@
   "version": "0.5.2",
   "description": "Javascript implementation of zip for nodejs with support for electron original-fs. Allows user to create or extract zip files both in memory or to/from disk",
   "scripts": {
-    "test": "mocha test/mocha.js test/crc/index.js test/multibyte/test.js"
+    "test": "npm run test:format && npm run test:mocha",
+    "test:mocha": "mocha test/mocha.js test/crc/index.js test/multibyte/test.js",
+    "test:format": "npm run format:prettier:raw -- --check",
+    "format": "npm run format:prettier",
+    "format:prettier": "npm run format:prettier:raw -- --write",
+    "format:prettier:raw": "prettier \"**/*.{js,yml,json}\""
   },
   "keywords": [
     "zip",
@@ -38,6 +43,7 @@
   "devDependencies": {
     "chai": "^4.2.0",
     "mocha": "^8.2.1",
+    "prettier": "^2.2.1",
     "rimraf": "^3.0.2"
   }
 }

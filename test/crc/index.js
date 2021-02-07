@@ -1,12 +1,12 @@
 const assert = require('assert');
 const path = require('path');
 const Zip = require('../../adm-zip');
-const rimraf = require('rimraf')
+const rimraf = require('rimraf');
 
 describe('crc', () => {
-    const destination = __dirname + '/xxx'
+    const destination = __dirname + '/xxx';
 
-    beforeEach(done => rimraf(destination, done))
+    beforeEach((done) => rimraf(destination, done));
 
     it('Good CRC', (done) => {
         const goodZip = new Zip(path.join(__dirname, 'good_crc.zip'));

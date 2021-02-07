@@ -1,4 +1,4 @@
-var Utils = require("../util"),
+var Utils = require('../util'),
     Constants = Utils.Constants;
 
 /* The entries in the end of central directory */
@@ -10,31 +10,52 @@ module.exports = function () {
         _commentLength = 0;
 
     return {
-        get diskEntries () { return _volumeEntries },
-        set diskEntries (/*Number*/val) { _volumeEntries = _totalEntries = val; },
+        get diskEntries() {
+            return _volumeEntries;
+        },
+        set diskEntries(/*Number*/ val) {
+            _volumeEntries = _totalEntries = val;
+        },
 
-        get totalEntries () { return _totalEntries },
-        set totalEntries (/*Number*/val) { _totalEntries = _volumeEntries = val; },
+        get totalEntries() {
+            return _totalEntries;
+        },
+        set totalEntries(/*Number*/ val) {
+            _totalEntries = _volumeEntries = val;
+        },
 
-        get size () { return _size },
-        set size (/*Number*/val) { _size = val; },
+        get size() {
+            return _size;
+        },
+        set size(/*Number*/ val) {
+            _size = val;
+        },
 
-        get offset () { return _offset },
-        set offset (/*Number*/val) { _offset = val; },
+        get offset() {
+            return _offset;
+        },
+        set offset(/*Number*/ val) {
+            _offset = val;
+        },
 
-        get commentLength () { return _commentLength },
-        set commentLength (/*Number*/val) { _commentLength = val; },
+        get commentLength() {
+            return _commentLength;
+        },
+        set commentLength(/*Number*/ val) {
+            _commentLength = val;
+        },
 
-        get mainHeaderSize () {
+        get mainHeaderSize() {
             return Constants.ENDHDR + _commentLength;
         },
 
-        loadFromBinary : function(/*Buffer*/data) {
+        loadFromBinary: function (/*Buffer*/ data) {
             // data should be 22 bytes and start with "PK 05 06"
             // or be 56+ bytes and start with "PK 06 06" for Zip64
-            if ((data.length !== Constants.ENDHDR || data.readUInt32LE(0) !== Constants.ENDSIG) &&
-                (data.length < Constants.ZIP64HDR || data.readUInt32LE(0) !== Constants.ZIP64SIG)) {
-
+            if (
+                (data.length !== Constants.ENDHDR || data.readUInt32LE(0) !== Constants.ENDSIG) &&
+                (data.length < Constants.ZIP64HDR || data.readUInt32LE(0) !== Constants.ZIP64SIG)
+            ) {
                 throw new Error(Utils.Errors.INVALID_END);
             }
 
@@ -61,11 +82,10 @@ module.exports = function () {
 
                 _commentLength = 0;
             }
-
         },
 
-        toBinary : function() {
-           var b = Buffer.alloc(Constants.ENDHDR + _commentLength);
+        toBinary: function () {
+            var b = Buffer.alloc(Constants.ENDHDR + _commentLength);
             // "PK 05 06" signature
             b.writeUInt32LE(Constants.ENDSIG, 0);
             b.writeUInt32LE(0, 4);
@@ -80,19 +100,21 @@ module.exports = function () {
             // zip file comment length
             b.writeUInt16LE(_commentLength, Constants.ENDCOM);
             // fill comment memory with spaces so no garbage is left there
-            b.fill(" ", Constants.ENDHDR);
+            b.fill(' ', Constants.ENDHDR);
 
             return b;
         },
 
-        toString : function() {
-            return '{\n' +
-                '\t"diskEntries" : ' + _volumeEntries + ",\n" +
-                '\t"totalEntries" : ' + _totalEntries + ",\n" +
-                '\t"size" : ' + _size + " bytes,\n" +
-                '\t"offset" : 0x' + _offset.toString(16).toUpperCase() + ",\n" +
-                '\t"commentLength" : 0x' + _commentLength + "\n" +
-            '}';
+        toString: function () {
+            return [
+                '{',
+                '\t"diskEntries" : ' + _volumeEntries + ',',
+                '\t"totalEntries" : ' + _totalEntries + ',',
+                '\t"size" : ' + _size + ' bytes,',
+                '\t"offset" : 0x' + _offset.toString(16).toUpperCase() + ',',
+                '\t"commentLength" : 0x' + _commentLength,
+                '}'
+            ].join('\n');
         }
-    }
+    };
 };
