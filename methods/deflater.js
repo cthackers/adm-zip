@@ -1,5 +1,5 @@
 module.exports = function (/*Buffer*/ inbuf) {
-    var zlib = require('zlib');
+    var zlib = require("zlib");
 
     var opts = { chunkSize: (parseInt(inbuf.length / 1024) + 1) * 1024 };
 
@@ -12,11 +12,11 @@ module.exports = function (/*Buffer*/ inbuf) {
             var tmp = zlib.createDeflateRaw(opts),
                 parts = [],
                 total = 0;
-            tmp.on('data', function (data) {
+            tmp.on("data", function (data) {
                 parts.push(data);
                 total += data.length;
             });
-            tmp.on('end', function () {
+            tmp.on("end", function () {
                 var buf = Buffer.alloc(total),
                     written = 0;
                 buf.fill(0);

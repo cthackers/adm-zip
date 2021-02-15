@@ -1,24 +1,24 @@
-var Utils = require('./util');
+var Utils = require("./util");
 var fs = Utils.FileSystem.require(),
-    pth = require('path');
+    pth = require("path");
 
 fs.existsSync = fs.existsSync || pth.existsSync;
 
-var ZipEntry = require('./zipEntry'),
-    ZipFile = require('./zipFile');
+var ZipEntry = require("./zipEntry"),
+    ZipFile = require("./zipFile");
 
 var isWin = /^win/.test(process.platform);
 
 function canonical(p) {
-    var safeSuffix = pth.normalize(p).replace(/^(\.\.(\/|\\|$))+/, '');
-    return pth.join('./', safeSuffix);
+    var safeSuffix = pth.normalize(p).replace(/^(\.\.(\/|\\|$))+/, "");
+    return pth.join("./", safeSuffix);
 }
 
 module.exports = function (/**String*/ input) {
     var _zip = undefined,
-        _filename = '';
+        _filename = "";
 
-    if (input && typeof input === 'string') {
+    if (input && typeof input === "string") {
         // load zip file
         if (fs.existsSync(input)) {
             _filename = input;
@@ -36,7 +36,7 @@ module.exports = function (/**String*/ input) {
 
     function sanitize(prefix, name) {
         prefix = pth.resolve(pth.normalize(prefix));
-        var parts = name.split('/');
+        var parts = name.split("/");
         for (var i = 0, l = parts.length; i < l; i++) {
             var path = pth.normalize(pth.join(prefix, parts.slice(i, l).join(pth.sep)));
             if (path.indexOf(prefix) === 0) {
@@ -50,12 +50,12 @@ module.exports = function (/**String*/ input) {
         if (entry && _zip) {
             var item;
             // If entry was given as a file name
-            if (typeof entry === 'string') item = _zip.getEntry(entry);
+            if (typeof entry === "string") item = _zip.getEntry(entry);
             // if entry was given as a ZipEntry object
             if (
-                typeof entry === 'object' &&
-                typeof entry.entryName !== 'undefined' &&
-                typeof entry.header !== 'undefined'
+                typeof entry === "object" &&
+                typeof entry.entryName !== "undefined" &&
+                typeof entry.header !== "undefined"
             )
                 item = _zip.getEntry(entry.entryName);
 
@@ -68,10 +68,10 @@ module.exports = function (/**String*/ input) {
 
     function fixPath(zipPath) {
         // convert windows file separators
-        zipPath = zipPath.split('\\').join('/');
+        zipPath = zipPath.split("\\").join("/");
         // add separator if it wasnt given
-        if (zipPath.charAt(zipPath.length - 1) !== '/') {
-            zipPath += '/';
+        if (zipPath.charAt(zipPath.length - 1) !== "/") {
+            zipPath += "/";
         }
         return zipPath;
     }
@@ -100,7 +100,7 @@ module.exports = function (/**String*/ input) {
             if (item) {
                 item.getDataAsync(callback);
             } else {
-                callback(null, 'getEntry failed for:' + entry);
+                callback(null, "getEntry failed for:" + entry);
             }
         },
 
@@ -116,10 +116,10 @@ module.exports = function (/**String*/ input) {
             if (item) {
                 var data = item.getData();
                 if (data && data.length) {
-                    return data.toString(encoding || 'utf8');
+                    return data.toString(encoding || "utf8");
                 }
             }
-            return '';
+            return "";
         },
 
         /**
@@ -140,13 +140,13 @@ module.exports = function (/**String*/ input) {
                     }
 
                     if (data && data.length) {
-                        callback(data.toString(encoding || 'utf8'));
+                        callback(data.toString(encoding || "utf8"));
                     } else {
-                        callback('');
+                        callback("");
                     }
                 });
             } else {
-                callback('');
+                callback("");
             }
         },
 
@@ -179,7 +179,7 @@ module.exports = function (/**String*/ input) {
          * @return String
          */
         getZipComment: function () {
-            return _zip.comment || '';
+            return _zip.comment || "";
         },
 
         /**
@@ -205,9 +205,9 @@ module.exports = function (/**String*/ input) {
         getZipEntryComment: function (/**Object*/ entry) {
             var item = getEntry(entry);
             if (item) {
-                return item.comment || '';
+                return item.comment || "";
             }
-            return '';
+            return "";
         },
 
         /**
@@ -238,10 +238,10 @@ module.exports = function (/**String*/ input) {
         ) {
             if (fs.existsSync(localPath)) {
                 // fix ZipPath
-                zipPath = zipPath ? fixPath(zipPath) : '';
+                zipPath = zipPath ? fixPath(zipPath) : "";
 
                 // p - local file name
-                var p = localPath.split('\\').join('/').split('/').pop();
+                var p = localPath.split("\\").join("/").split("/").pop();
 
                 // add file name into zippath
                 zipPath += zipName ? zipName : p;
@@ -252,7 +252,7 @@ module.exports = function (/**String*/ input) {
                 // add file into zip file
                 this.addFile(zipPath, fs.readFileSync(localPath), comment, _attr);
             } else {
-                throw new Error(Utils.Errors.FILE_NOT_FOUND.replace('%s', localPath));
+                throw new Error(Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath));
             }
         },
 
@@ -273,7 +273,7 @@ module.exports = function (/**String*/ input) {
                         return rx.test(filename);
                     };
                 })(filter);
-            } else if ('function' !== typeof filter) {
+            } else if ("function" !== typeof filter) {
                 // if filter is not function we will replace it
                 filter = function () {
                     return true;
@@ -281,7 +281,7 @@ module.exports = function (/**String*/ input) {
             }
 
             // fix ZipPath
-            zipPath = zipPath ? fixPath(zipPath) : '';
+            zipPath = zipPath ? fixPath(zipPath) : "";
 
             // normalize the path first
             localPath = pth.normalize(localPath);
@@ -292,18 +292,18 @@ module.exports = function (/**String*/ input) {
 
                 if (items.length) {
                     items.forEach(function (filepath) {
-                        var p = pth.relative(localPath, filepath).split('\\').join('/'); //windows fix
+                        var p = pth.relative(localPath, filepath).split("\\").join("/"); //windows fix
                         if (filter(p)) {
                             if (filepath.charAt(filepath.length - 1) !== pth.sep) {
-                                self.addFile(zipPath + p, fs.readFileSync(filepath), '', fs.statSync(filepath));
+                                self.addFile(zipPath + p, fs.readFileSync(filepath), "", fs.statSync(filepath));
                             } else {
-                                self.addFile(zipPath + p + '/', Buffer.alloc(0), '', 0);
+                                self.addFile(zipPath + p + "/", Buffer.alloc(0), "", 0);
                             }
                         }
                     });
                 }
             } else {
-                throw new Error(Utils.Errors.FILE_NOT_FOUND.replace('%s', localPath));
+                throw new Error(Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath));
             }
         },
 
@@ -334,22 +334,22 @@ module.exports = function (/**String*/ input) {
             }
 
             if (zipPath) {
-                zipPath = zipPath.split('\\').join('/');
-                if (zipPath.charAt(zipPath.length - 1) !== '/') {
-                    zipPath += '/';
+                zipPath = zipPath.split("\\").join("/");
+                if (zipPath.charAt(zipPath.length - 1) !== "/") {
+                    zipPath += "/";
                 }
             } else {
-                zipPath = '';
+                zipPath = "";
             }
             // normalize the path first
             localPath = pth.normalize(localPath);
-            localPath = localPath.split('\\').join('/'); //windows fix
-            if (localPath.charAt(localPath.length - 1) !== '/') localPath += '/';
+            localPath = localPath.split("\\").join("/"); //windows fix
+            if (localPath.charAt(localPath.length - 1) !== "/") localPath += "/";
 
             var self = this;
-            fs.open(localPath, 'r', function (err, fd) {
-                if (err && err.code === 'ENOENT') {
-                    callback(undefined, Utils.Errors.FILE_NOT_FOUND.replace('%s', localPath));
+            fs.open(localPath, "r", function (err, fd) {
+                if (err && err.code === "ENOENT") {
+                    callback(undefined, Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath));
                 } else if (err) {
                     callback(undefined, err);
                 } else {
@@ -360,25 +360,25 @@ module.exports = function (/**String*/ input) {
                         i += 1;
                         if (i < items.length) {
                             var p = items[i]
-                                .split('\\')
-                                .join('/')
-                                .replace(new RegExp(localPath.replace(/(\(|\))/g, '\\$1'), 'i'), ''); //windows fix
+                                .split("\\")
+                                .join("/")
+                                .replace(new RegExp(localPath.replace(/(\(|\))/g, "\\$1"), "i"), ""); //windows fix
                             p = p
-                                .normalize('NFD')
-                                .replace(/[\u0300-\u036f]/g, '')
-                                .replace(/[^\x20-\x7E]/g, ''); // accent fix
+                                .normalize("NFD")
+                                .replace(/[\u0300-\u036f]/g, "")
+                                .replace(/[^\x20-\x7E]/g, ""); // accent fix
                             if (filter(p)) {
-                                if (p.charAt(p.length - 1) !== '/') {
+                                if (p.charAt(p.length - 1) !== "/") {
                                     fs.readFile(items[i], function (err, data) {
                                         if (err) {
                                             callback(undefined, err);
                                         } else {
-                                            self.addFile(zipPath + p, data, '', 0);
+                                            self.addFile(zipPath + p, data, "", 0);
                                             next();
                                         }
                                     });
                                 } else {
-                                    self.addFile(zipPath + p, Buffer.alloc(0), '', 0);
+                                    self.addFile(zipPath + p, Buffer.alloc(0), "", 0);
                                     next();
                                 }
                             } else {
@@ -408,9 +408,9 @@ module.exports = function (/**String*/ input) {
             // prepare new entry
             var entry = new ZipEntry();
             entry.entryName = entryName;
-            entry.comment = comment || '';
+            entry.comment = comment || "";
 
-            var isStat = 'object' === typeof attr && attr instanceof fs.Stats;
+            var isStat = "object" === typeof attr && attr instanceof fs.Stats;
 
             // last modification time from file stats
             if (isStat) {
@@ -421,14 +421,14 @@ module.exports = function (/**String*/ input) {
             var fileattr = entry.isDirectory ? 0x10 : 0; // (MS-DOS directory flag)
 
             // extended attributes field for Unix
-            if ('win32' !== process.platform) {
+            if ("win32" !== process.platform) {
                 // set file type either S_IFDIR / S_IFREG
                 var unix = entry.isDirectory ? 0x4000 : 0x8000;
 
                 if (isStat) {
                     // File attributes from file stats
                     unix |= 0xfff & attr.mode;
-                } else if ('number' === typeof attr) {
+                } else if ("number" === typeof attr) {
                     // attr from given attr values
                     unix |= 0xfff & attr;
                 } else {
@@ -498,7 +498,7 @@ module.exports = function (/**String*/ input) {
             /**String**/ outFileName
         ) {
             overwrite = overwrite || false;
-            maintainEntryPath = typeof maintainEntryPath === 'undefined' ? true : maintainEntryPath;
+            maintainEntryPath = typeof maintainEntryPath === "undefined" ? true : maintainEntryPath;
 
             var item = getEntry(entry);
             if (!item) {
@@ -513,7 +513,7 @@ module.exports = function (/**String*/ input) {
             );
 
             if (item.isDirectory) {
-                target = pth.resolve(target, '..');
+                target = pth.resolve(target, "..");
                 var children = _zip.getEntryChildren(item);
                 children.forEach(function (child) {
                     if (child.isDirectory) return;
@@ -654,12 +654,12 @@ module.exports = function (/**String*/ input) {
                             try {
                                 fs.utimesSync(pth.resolve(targetPath, entryName), entry.header.time, entry.header.time);
                             } catch (err) {
-                                callback(new Error('Unable to set utimes'));
+                                callback(new Error("Unable to set utimes"));
                             }
                             if (i <= 0) return;
                             if (!succ) {
                                 i = 0;
-                                callback(new Error('Unable to write'));
+                                callback(new Error("Unable to write"));
                                 return;
                             }
                             if (--i === 0) callback(undefined);
@@ -677,9 +677,9 @@ module.exports = function (/**String*/ input) {
          */
         writeZip: function (/**String*/ targetFileName, /**Function*/ callback) {
             if (arguments.length === 1) {
-                if (typeof targetFileName === 'function') {
+                if (typeof targetFileName === "function") {
                     callback = targetFileName;
-                    targetFileName = '';
+                    targetFileName = "";
                 }
             }
 
@@ -691,7 +691,7 @@ module.exports = function (/**String*/ input) {
             var zipData = _zip.compressToBuffer();
             if (zipData) {
                 var ok = Utils.writeFileTo(targetFileName, zipData, true);
-                if (typeof callback === 'function') callback(!ok ? new Error('failed') : null, '');
+                if (typeof callback === "function") callback(!ok ? new Error("failed") : null, "");
             }
         },
 
@@ -707,7 +707,7 @@ module.exports = function (/**String*/ input) {
             /**Function=*/ onItemEnd
         ) {
             this.valueOf = 2;
-            if (typeof onSuccess === 'function') {
+            if (typeof onSuccess === "function") {
                 _zip.toAsyncBuffer(onSuccess, onFail, onItemStart, onItemEnd);
                 return null;
             }

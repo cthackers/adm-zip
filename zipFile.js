@@ -1,12 +1,12 @@
-var ZipEntry = require('./zipEntry'),
-    Headers = require('./headers'),
-    Utils = require('./util');
+var ZipEntry = require("./zipEntry"),
+    Headers = require("./headers"),
+    Utils = require("./util");
 
 module.exports = function (/*String|Buffer*/ input, /*Number*/ inputType) {
     var entryList = [],
         entryTable = {},
         _comment = Buffer.alloc(0),
-        filename = '',
+        filename = "",
         fs = Utils.FileSystem.require(),
         inBuffer = null,
         mainHeader = new Headers.MainHeader(),

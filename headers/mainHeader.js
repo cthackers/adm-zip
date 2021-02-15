@@ -1,4 +1,4 @@
-var Utils = require('../util'),
+var Utils = require("../util"),
     Constants = Utils.Constants;
 
 /* The entries in the end of central directory */
@@ -100,21 +100,21 @@ module.exports = function () {
             // zip file comment length
             b.writeUInt16LE(_commentLength, Constants.ENDCOM);
             // fill comment memory with spaces so no garbage is left there
-            b.fill(' ', Constants.ENDHDR);
+            b.fill(" ", Constants.ENDHDR);
 
             return b;
         },
 
         toString: function () {
             return [
-                '{',
-                '\t"diskEntries" : ' + _volumeEntries + ',',
-                '\t"totalEntries" : ' + _totalEntries + ',',
-                '\t"size" : ' + _size + ' bytes,',
-                '\t"offset" : 0x' + _offset.toString(16).toUpperCase() + ',',
+                "{",
+                '\t"diskEntries" : ' + _volumeEntries + ",",
+                '\t"totalEntries" : ' + _totalEntries + ",",
+                '\t"size" : ' + _size + " bytes,",
+                '\t"offset" : 0x' + _offset.toString(16).toUpperCase() + ",",
                 '\t"commentLength" : 0x' + _commentLength,
-                '}'
-            ].join('\n');
+                "}"
+            ].join("\n");
         }
     };
 };

@@ -1,4 +1,4 @@
-var Utils = require('../util'),
+var Utils = require("../util"),
     Constants = Utils.Constants;
 
 /* The central directory file header */
@@ -20,9 +20,9 @@ module.exports = function () {
         _offset = 0;
 
     switch (process.platform) {
-        case 'win32':
+        case "win32":
             _verMade |= 0x0a00;
-        case 'darwin':
+        case "darwin":
             _verMade |= 0x1300;
         default:
             _verMade |= 0x0300;
@@ -313,25 +313,25 @@ module.exports = function () {
 
         toString: function () {
             return [
-                '{',
-                '\t"made" : ' + _verMade + ',',
-                '\t"version" : ' + _version + ',',
-                '\t"flags" : ' + _flags + ',',
-                '\t"method" : ' + Utils.methodToString(_method) + ',',
-                '\t"time" : ' + this.time + ',',
-                '\t"crc" : 0x' + _crc.toString(16).toUpperCase() + ',',
-                '\t"compressedSize" : ' + _compressedSize + ' bytes,',
-                '\t"size" : ' + _size + ' bytes,',
-                '\t"fileNameLength" : ' + _fnameLen + ',',
-                '\t"extraLength" : ' + _extraLen + ' bytes,',
-                '\t"commentLength" : ' + _comLen + ' bytes,',
-                '\t"diskNumStart" : ' + _diskStart + ',',
-                '\t"inAttr" : ' + _inattr + ',',
-                '\t"attr" : ' + _attr + ',',
-                '\t"offset" : ' + _offset + ',',
-                '\t"entryHeaderSize" : ' + (Constants.CENHDR + _fnameLen + _extraLen + _comLen) + ' bytes',
-                '}'
-            ].join('\n');
+                "{",
+                '\t"made" : ' + _verMade + ",",
+                '\t"version" : ' + _version + ",",
+                '\t"flags" : ' + _flags + ",",
+                '\t"method" : ' + Utils.methodToString(_method) + ",",
+                '\t"time" : ' + this.time + ",",
+                '\t"crc" : 0x' + _crc.toString(16).toUpperCase() + ",",
+                '\t"compressedSize" : ' + _compressedSize + " bytes,",
+                '\t"size" : ' + _size + " bytes,",
+                '\t"fileNameLength" : ' + _fnameLen + ",",
+                '\t"extraLength" : ' + _extraLen + " bytes,",
+                '\t"commentLength" : ' + _comLen + " bytes,",
+                '\t"diskNumStart" : ' + _diskStart + ",",
+                '\t"inAttr" : ' + _inattr + ",",
+                '\t"attr" : ' + _attr + ",",
+                '\t"offset" : ' + _offset + ",",
+                '\t"entryHeaderSize" : ' + (Constants.CENHDR + _fnameLen + _extraLen + _comLen) + " bytes",
+                "}"
+            ].join("\n");
         }
     };
 };

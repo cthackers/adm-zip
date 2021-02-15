@@ -16,5 +16,6 @@ indent_size = 2
 
 [*.js]
 trim_trailing_whitespace = true
+quote_type = double
 indent_style = space
 indent_size = 4

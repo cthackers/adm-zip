@@ -1,10 +1,10 @@
-var fs = require('./fileSystem').require(),
-    pth = require('path');
+var fs = require("./fileSystem").require(),
+    pth = require("path");
 
 fs.existsSync = fs.existsSync || pth.existsSync;
 
 module.exports = function (/*String*/ path) {
-    var _path = path || '',
+    var _path = path || "",
         _permissions = 0,
         _obj = newAttr(),
         _stat = null;
@@ -27,9 +27,9 @@ module.exports = function (/*String*/ path) {
         _obj.atime = _stat.atime;
         _obj.executable = (0o111 & _stat.mode) != 0; // file is executable who ever har right not just owner
         _obj.readonly = (0o200 & _stat.mode) == 0; // readonly if owner has no write right
-        _obj.hidden = pth.basename(_path)[0] === '.';
+        _obj.hidden = pth.basename(_path)[0] === ".";
     } else {
-        console.warn('Invalid path: ' + _path);
+        console.warn("Invalid path: " + _path);
     }
 
     return {
@@ -63,16 +63,16 @@ module.exports = function (/*String*/ path) {
 
         toString: function () {
             return [
-                '{',
-                '\t"path" : "' + _path + ',',
-                '\t"isDirectory" : ' + _obj.directory + ',',
-                '\t"isReadOnly" : ' + _obj.readonly + ',',
-                '\t"isHidden" : ' + _obj.hidden + ',',
-                '\t"isExecutable" : ' + _obj.executable + ',',
-                '\t"mTime" : ' + _obj.mtime + ',',
+                "{",
+                '\t"path" : "' + _path + ",",
+                '\t"isDirectory" : ' + _obj.directory + ",",
+                '\t"isReadOnly" : ' + _obj.readonly + ",",
+                '\t"isHidden" : ' + _obj.hidden + ",",
+                '\t"isExecutable" : ' + _obj.executable + ",",
+                '\t"mTime" : ' + _obj.mtime + ",",
                 '\t"aTime" : ' + _obj.atime,
-                '}'
-            ].join('\n');
+                "}"
+            ].join("\n");
         }
     };
 };

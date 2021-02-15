@@ -36,7 +36,7 @@ function make_decrypter(/*Buffer*/ pwd) {
     // return decrypter function
     return function (/*Buffer*/ data) {
         if (!Buffer.isBuffer(data)) {
-            throw 'decrypter needs Buffer';
+            throw "decrypter needs Buffer";
         }
         // result - we create new Buffer for results
         const result = Buffer.alloc(data.length);
@@ -67,7 +67,7 @@ function decrypt(/*Buffer*/ data, /*Object*/ header, /*String, Buffer*/ pwd) {
 
     // does password meet expectations
     if (check !== testbyte) {
-        throw 'ADM-ZIP: Wrong Password';
+        throw "ADM-ZIP: Wrong Password";
     }
 
     // decode content

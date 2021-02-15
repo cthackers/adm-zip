@@ -1,7 +1,7 @@
-var Utils = require('./util'),
-    Headers = require('./headers'),
+var Utils = require("./util"),
+    Headers = require("./headers"),
     Constants = Utils.Constants,
-    Methods = require('./methods');
+    Methods = require("./methods");
 
 module.exports = function (/*Buffer*/ input) {
     var _entryHeader = new Headers.EntryHeader(),
@@ -34,7 +34,7 @@ module.exports = function (/*Buffer*/ input) {
     }
 
     function decompress(/*Boolean*/ async, /*Function*/ callback, /*String, Buffer*/ pass) {
-        if (typeof callback === 'undefined' && typeof async === 'string') {
+        if (typeof callback === "undefined" && typeof async === "string") {
             pass = async;
             async = void 0;
         }
@@ -54,8 +54,8 @@ module.exports = function (/*Buffer*/ input) {
         }
 
         if (_entryHeader.encripted) {
-            if ('string' !== typeof pass && !Buffer.isBuffer(pass)) {
-                throw new Error('ADM-ZIP: Incompatible password parameter');
+            if ("string" !== typeof pass && !Buffer.isBuffer(pass)) {
+                throw new Error("ADM-ZIP: Incompatible password parameter");
             }
             compressedData = Methods.ZipCrypto.decrypt(compressedData, _entryHeader, pass);
         }
@@ -79,7 +79,7 @@ module.exports = function (/*Buffer*/ input) {
                     var result = inflater.inflate(data);
                     result.copy(data, 0);
                     if (!crc32OK(data)) {
-                        throw new Error(Utils.Errors.BAD_CRC + ' ' + _entryName.toString());
+                        throw new Error(Utils.Errors.BAD_CRC + " " + _entryName.toString());
                     }
                     return data;
                 } else {
@@ -232,9 +232,9 @@ module.exports = function (/*Buffer*/ input) {
             return _isDirectory
                 ? n
                       .substr(n.length - 1)
-                      .split('/')
+                      .split("/")
                       .pop()
-                : n.split('/').pop();
+                : n.split("/").pop();
         },
         get isDirectory() {
             return _isDirectory;
@@ -313,19 +313,19 @@ module.exports = function (/*Buffer*/ input) {
             // encode to string
             const entryName = _entryName.toString();
             // format name
-            const name = _isDirectory ? entryName.replace(/\/$/, '').split('/').pop() : entryName.split('/').pop();
+            const name = _isDirectory ? entryName.replace(/\/$/, "").split("/").pop() : entryName.split("/").pop();
 
             return [
-                '{',
+                "{",
                 '\t"entryName" : "' + entryName + '",',
                 '\t"name" : "' + name + '",',
                 '\t"comment" : "' + _comment.toString() + '",',
-                '\t"isDirectory" : ' + _isDirectory + ',',
-                '\t"header" : ' + _entryHeader.toString().replace(/\t/gm, '\t\t').replace(/}/gm, '\t}') + ',',
-                '\t"compressedData" : <' + ((input && input.length + ' bytes buffer') || 'null') + '>',
-                '\t"data" : <' + ((uncompressedData && uncompressedData.length + ' bytes buffer') || 'null') + '>',
-                '}'
-            ].join('\n');
+                '\t"isDirectory" : ' + _isDirectory + ",",
+                '\t"header" : ' + _entryHeader.toString().replace(/\t/gm, "\t\t").replace(/}/gm, "\t}") + ",",
+                '\t"compressedData" : <' + ((input && input.length + " bytes buffer") || "null") + ">",
+                '\t"data" : <' + ((uncompressedData && uncompressedData.length + " bytes buffer") || "null") + ">",
+                "}"
+            ].join("\n");
         }
     };
 };

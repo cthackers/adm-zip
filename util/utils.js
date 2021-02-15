@@ -1,18 +1,18 @@
-var fs = require('./fileSystem').require(),
-    pth = require('path');
+var fs = require("./fileSystem").require(),
+    pth = require("path");
 
 fs.existsSync = fs.existsSync || pth.existsSync;
 
 module.exports = (function () {
     var crcTable = [],
-        Constants = require('./constants'),
-        Errors = require('./errors'),
+        Constants = require("./constants"),
+        Errors = require("./errors"),
         PATH_SEPARATOR = pth.sep;
 
     function mkdirSync(/*String*/ path) {
         var resolvedPath = path.split(PATH_SEPARATOR)[0];
         path.split(PATH_SEPARATOR).forEach(function (name) {
-            if (!name || name.substr(-1, 1) === ':') return;
+            if (!name || name.substr(-1, 1) === ":") return;
             resolvedPath += PATH_SEPARATOR + name;
             var stat;
             try {
@@ -20,12 +20,12 @@ module.exports = (function () {
             } catch (e) {
                 fs.mkdirSync(resolvedPath);
             }
-            if (stat && stat.isFile()) throw Errors.FILE_IN_THE_WAY.replace('%s', resolvedPath);
+            if (stat && stat.isFile()) throw Errors.FILE_IN_THE_WAY.replace("%s", resolvedPath);
         });
     }
 
     function findSync(/*String*/ dir, /*RegExp*/ pattern, /*Boolean*/ recoursive) {
-        if (typeof pattern === 'boolean') {
+        if (typeof pattern === "boolean") {
             recoursive = pattern;
             pattern = undefined;
         }
@@ -37,7 +37,7 @@ module.exports = (function () {
                 files = files.concat(findSync(path, pattern, recoursive));
 
             if (!pattern || pattern.test(path)) {
-                files.push(pth.normalize(path) + (fs.statSync(path).isDirectory() ? PATH_SEPARATOR : ''));
+                files.push(pth.normalize(path) + (fs.statSync(path).isDirectory() ? PATH_SEPARATOR : ""));
             }
         });
         return files;
@@ -47,7 +47,7 @@ module.exports = (function () {
         var slice = Buffer.from(buffer.slice(index, index + 8));
         slice.swap64();
 
-        return parseInt(`0x${slice.toString('hex')}`);
+        return parseInt(`0x${slice.toString("hex")}`);
     }
 
     return {
@@ -56,7 +56,7 @@ module.exports = (function () {
         },
 
         crc32: function (buf) {
-            if (typeof buf === 'string') {
+            if (typeof buf === "string") {
                 buf = Buffer.alloc(buf.length, buf);
             }
             var b = Buffer.alloc(4);
@@ -89,11 +89,11 @@ module.exports = (function () {
         methodToString: function (/*Number*/ method) {
             switch (method) {
                 case Constants.STORED:
-                    return 'STORED (' + method + ')';
+                    return "STORED (" + method + ")";
                 case Constants.DEFLATED:
-                    return 'DEFLATED (' + method + ')';
+                    return "DEFLATED (" + method + ")";
                 default:
-                    return 'UNSUPPORTED (' + method + ')';
+                    return "UNSUPPORTED (" + method + ")";
             }
         },
 
@@ -113,10 +113,10 @@ module.exports = (function () {
 
             var fd;
             try {
-                fd = fs.openSync(path, 'w', 438); // 0666
+                fd = fs.openSync(path, "w", 438); // 0666
             } catch (e) {
                 fs.chmodSync(path, 438);
-                fd = fs.openSync(path, 'w', 438);
+                fd = fs.openSync(path, "w", 438);
             }
             if (fd) {
                 try {
@@ -138,7 +138,7 @@ module.exports = (function () {
             /*Number*/ attr,
             /*Function*/ callback
         ) {
-            if (typeof attr === 'function') {
+            if (typeof attr === "function") {
                 callback = attr;
                 attr = undefined;
             }
@@ -155,10 +155,10 @@ module.exports = (function () {
                     fs.exists(folder, function (exists) {
                         if (!exists) mkdirSync(folder);
 
-                        fs.open(path, 'w', 438, function (err, fd) {
+                        fs.open(path, "w", 438, function (err, fd) {
                             if (err) {
                                 fs.chmod(path, 438, function () {
-                                    fs.open(path, 'w', 438, function (err, fd) {
+                                    fs.open(path, "w", 438, function (err, fd) {
                                         fs.write(fd, content, 0, content.length, 0, function () {
                                             fs.close(fd, function () {
                                                 fs.chmod(path, attr || 438, function () {
@@ -204,7 +204,7 @@ module.exports = (function () {
                 if (input.length === 0) {
                     return Buffer.alloc(0);
                 }
-                return Buffer.from(input, 'utf8');
+                return Buffer.from(input, "utf8");
             }
         },
 
