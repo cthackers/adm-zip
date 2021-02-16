@@ -9,12 +9,8 @@ describe("adm-zip", () => {
 
     const destination = "./test/xxx";
 
-    afterEach((done) => {
-        rimraf(destination, (err) => {
-            if (err) return done(err);
-            return done();
-        });
-    });
+    // clean up folder content
+    afterEach((done) => rimraf(destination, done));
 
     it("zip.extractAllTo()", () => {
         const zip = new Zip("./test/assets/ultra.zip");
