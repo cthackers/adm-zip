@@ -275,7 +275,7 @@ module.exports = function (/*Buffer*/input) {
             var header = _entryHeader.entryHeaderToBinary();
             var addpos = Utils.Constants.CENHDR;
             // 2. add file name
-            _entryName.copy(header, Utils.Constants.CENHDR);
+            _entryName.copy(header, addpos);
             addpos += _entryName.length;
             // 3. add extra data
             if (_entryHeader.extraLength) {
@@ -302,4 +302,3 @@ module.exports = function (/*Buffer*/input) {
         }
     }
 };
-
