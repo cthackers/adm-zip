@@ -62,9 +62,9 @@ module.exports = function (/**String*/input) {
 
     function fixPath(zipPath){
         // convert windows file separators and normalize
-		zipPath = pth.posix.normalize(zipPath.split("\\").join("/"));
-		// cleanup, remove invalid folder names
-		var names = zipPath.split("/").filter((c) => c !== "" && c !== "." && c !== "..");
+        zipPath = pth.posix.normalize(zipPath.split("\\").join("/"));
+        // cleanup, remove invalid folder names
+        var names = zipPath.split("/").filter((c) => c !== "" && c !== "." && c !== "..");
         // if we have name we return it
         return names.length ? names.join("/") + "/" : "";
     }
