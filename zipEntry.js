@@ -245,17 +245,17 @@ module.exports = function (/*Buffer*/input) {
 
         getData : function(pass) {
             if (_entryHeader.changed) {
-				return uncompressedData;
-			} else {
-				return decompress(false, null, pass);
+                return uncompressedData;
+            } else {
+                return decompress(false, null, pass);
             }
         },
 
         getDataAsync : function(/*Function*/callback, pass) {
-			if (_entryHeader.changed) {
-				callback(uncompressedData)
-			} else {
-				decompress(true, callback, pass)
+            if (_entryHeader.changed) {
+                callback(uncompressedData);
+            } else {
+                decompress(true, callback, pass);
             }
         },
 
@@ -271,14 +271,20 @@ module.exports = function (/*Buffer*/input) {
         },
 
         packHeader : function() {
+            // 1. create header (buffer)
             var header = _entryHeader.entryHeaderToBinary();
-            // add
-            _entryName.copy(header, Utils.Constants.CENHDR);
+            var addpos = Utils.Constants.CENHDR;
+            // 2. add file name
+            _entryName.copy(header, addpos);
+            addpos += _entryName.length;
+            // 3. add extra data
             if (_entryHeader.extraLength) {
-                _extra.copy(header, Utils.Constants.CENHDR + _entryName.length)
+                _extra.copy(header, addpos);
+                addpos += _entryHeader.extraLength;
             }
+            // 4. add file comment
             if (_entryHeader.commentLength) {
-                _comment.copy(header, Utils.Constants.CENHDR + _entryName.length + _entryHeader.extraLength, _comment.length);
+                _comment.copy(header, addpos);
             }
             return header;
         },
