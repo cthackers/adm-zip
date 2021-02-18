@@ -1,4 +1,4 @@
-0.5.2 / 2020-11-27
+0.5.2 / 2021-01-27
 ==================
  * Fixed path traversal issue (GHSL-2020-198)
 
@@ -74,7 +74,7 @@
  * Fixed #176 (cthackers)
  * Fixed wrong date on files (issue #203) (cthackers)
 
-0.4.10 / 2020-05-12
+0.4.10 / 2018-05-13
 ===================
  * Fixed bugs introduced with 0.4.9 (File Formats)
  * Fix issue #218 (Jean-Marc Collin)
