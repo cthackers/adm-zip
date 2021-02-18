@@ -367,6 +367,18 @@ module.exports = function (/**String*/input) {
             });
         },
 
+        addLocalFolderPromise: function (/*String*/ localPath, /* object */ options) {
+            return new Promise((resolve, reject) => {
+                const { filter, zipPath } = Object.assign({}, options);
+                this.addLocalFolderAsync(localPath,
+                    (done, err) => {
+                        if (err) reject(err);
+                        if (done) resolve(this);
+                    }, zipPath, filter
+                );
+            });
+        },
+
 		/**
 		 * Allows you to create a entry (file or directory) in the zip file.
 		 * If you want to create a directory the entryName must end in / and a null buffer should be provided.
@@ -651,6 +663,27 @@ module.exports = function (/**String*/input) {
 				if (typeof callback === 'function') callback(!ok ? new Error("failed") : null, "");
 			}
 		},
+
+        writeZipPromise: function (/**String*/ targetFileName, /* object */ options) {
+            const { overwrite, perm } = Object.assign({}, options);
+
+            return new Promise((resolve, reject) => {
+                // find file name
+                if (!targetFileName && _filename) targetFileName = _filename;
+                if (!targetFileName) reject("ADM-ZIP: ZIP File Name Missing");
+
+                this.toBufferPromise().then((zipData) => {
+                    const ret = (done) => (done ? resolve(done) : reject("ADM-ZIP: Wasn't able to write zip file"));
+                    Utils.writeFileToAsync(targetFileName, zipData, overwrite, perm, ret);
+                }, reject);
+            });
+        },
+
+        toBufferPromise: function () {
+            return new Promise((resolve, reject) => {
+                _zip.toAsyncBuffer(resolve, reject);
+            });
+        },
 
 		/**
 		 * Returns the content of the entire zip file as a Buffer object
