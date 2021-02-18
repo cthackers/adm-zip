@@ -665,7 +665,7 @@ module.exports = function (/**String*/input) {
 		},
 
         writeZipPromise: function (/**String*/ targetFileName, /* object */ options) {
-            const { overwrite, perm } = Object.assign({}, options);
+            const { overwrite, perm } = Object.assign({ overwrite: true }, options);
 
             return new Promise((resolve, reject) => {
                 // find file name
