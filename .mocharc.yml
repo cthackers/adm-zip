@@ -1,0 +1,17 @@
+# add colors to reporters
+colors: true
+
+# auto exit if test hangs
+exit: true
+
+# default reporter
+#reporter: spec
+reporter: list
+
+# test files
+spec:
+  - test/mocha.js
+  - test/crc/index.js
+  - test/multibyte/test.js
+  - test/**/*.test.js
+  - test/header.js
