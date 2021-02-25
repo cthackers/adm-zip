@@ -10,8 +10,9 @@ var ZipEntry = require("./zipEntry"),
 var isWin = /^win/.test(process.platform);
 
 function canonical(p) {
-    var safeSuffix = pth.normalize(p).replace(/^(\.\.(\/|\\|$))+/, '');
-    return pth.join('./', safeSuffix);
+    // trick normalize think path is absolute
+    var safeSuffix = pth.posix.normalize('/' + p.split("\\").join("/"));
+    return pth.join('.', safeSuffix);
 }
 
 module.exports = function (/**String*/input) {
@@ -61,12 +62,9 @@ module.exports = function (/**String*/input) {
 	}
 
     function fixPath(zipPath){
+        const { join, normalize } = pth.posix;
         // convert windows file separators and normalize
-        zipPath = pth.posix.normalize(zipPath.split("\\").join("/"));
-        // cleanup, remove invalid folder names
-        var names = zipPath.split("/").filter((c) => c !== "" && c !== "." && c !== "..");
-        // if we have name we return it
-        return names.length ? names.join("/") + "/" : "";
+        return join('.', normalize('/' + zipPath.split("\\").join("/") + '/'));
     }
 
 	return {
