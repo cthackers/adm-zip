@@ -11,8 +11,8 @@ var isWin = /^win/.test(process.platform);
 
 function canonical(p) {
     // trick normalize think path is absolute
-    var safeSuffix = pth.posix.normalize('/' + p.split("\\").join("/"));
-    return pth.join('.', safeSuffix);
+    var safeSuffix = pth.posix.normalize("/" + p.split("\\").join("/"));
+    return pth.join(".", safeSuffix);
 }
 
 module.exports = function (/**String*/input) {
@@ -62,9 +62,9 @@ module.exports = function (/**String*/input) {
 	}
 
     function fixPath(zipPath){
-        const { join, normalize } = pth.posix;
+        const { join, normalize, sep } = pth.posix;
         // convert windows file separators and normalize
-        return join('.', normalize('/' + zipPath.split("\\").join("/") + '/'));
+        return join(".", normalize(sep + zipPath.split("\\").join(sep) + sep));
     }
 
 	return {
