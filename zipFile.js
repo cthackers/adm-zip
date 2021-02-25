@@ -1,30 +1,24 @@
-var ZipEntry = require("./zipEntry"),
-	Headers = require("./headers"),
-	Utils = require("./util");
+const ZipEntry = require("./zipEntry");
+const Headers = require("./headers");
+const Utils = require("./util");
 
-module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
-	var entryList = [],
-		entryTable = {},
-		_comment = Buffer.alloc(0),
-		filename = "",
-		fs = Utils.FileSystem.require(),
-		inBuffer = null,
-		mainHeader = new Headers.MainHeader(),
-		loadedEntries = false;
+module.exports = function (/*Buffer|null*/inBuffer, /** object */options) {
+    var entryList = [],
+        entryTable = {},
+        _comment = Buffer.alloc(0),
+        mainHeader = new Headers.MainHeader(),
+        loadedEntries = false;
 
-	if (inputType === Utils.Constants.FILE) {
-		// is a filename
-		filename = input;
-		inBuffer = fs.readFileSync(filename);
-		readMainHeader();
-	} else if (inputType === Utils.Constants.BUFFER) {
-		// is a memory buffer
-		inBuffer = input;
-		readMainHeader();
-	} else {
-		// none. is a new file
-		loadedEntries = true;
-	}
+    // assign options
+    const opts = Object.assign(Object.create(null), options);
+
+    if (inBuffer){
+        // is a memory buffer
+        readMainHeader(opts.readEntries);
+    } else {
+        // none. is a new file
+        loadedEntries = true;
+    }
 
 	function iterateEntries(callback) {
 		const totalEntries = mainHeader.diskEntries; // total number of entries
@@ -70,7 +64,7 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 		}
 	}
 
-	function readMainHeader() {
+    function readMainHeader(/*Boolean*/ readNow) {
 		var i = inBuffer.length - Utils.Constants.ENDHDR, // END header size
 			max = Math.max(0, i - 0xFFFF), // 0xFFFF is the max zip file comment length
 			n = max,
@@ -110,8 +104,8 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 		if (mainHeader.commentLength) {
 			_comment = inBuffer.slice(commentEnd + Utils.Constants.ENDHDR);
 		}
-		// readEntries();
-	}
+        if (readNow) readEntries();
+    }
 
 	return {
 		/**
@@ -309,7 +303,7 @@ module.exports = function (/*String|Buffer*/input, /*Number*/inputType) {
 
 			mh.copy(outBuffer, dindex); // write main header
 
-			return outBuffer
+			return outBuffer;
 		},
 
 		toAsyncBuffer: function (/*Function*/onSuccess, /*Function*/onFail, /*Function*/onItemStart, /*Function*/onItemEnd) {

@@ -1,47 +1,75 @@
-var Utils = require("./util");
-var fs = Utils.FileSystem.require(),
-	pth = require("path");
+const Utils = require("./util");
+const pth = require("path");
+const ZipEntry = require("./zipEntry");
+const ZipFile = require("./zipFile");
 
+const fs = Utils.FileSystem.require();
 fs.existsSync = fs.existsSync || pth.existsSync;
 
-var ZipEntry = require("./zipEntry"),
-	ZipFile = require("./zipFile");
-
-var isWin = /^win/.test(process.platform);
+const defaultOptions = {
+    // read entries during load (initial loading may be slower)
+    readEntries: false,
+    // default method is none
+    method: Utils.Constants.NONE
+}
 
 function canonical(p) {
     var safeSuffix = pth.normalize(p).replace(/^(\.\.(\/|\\|$))+/, '');
     return pth.join('./', safeSuffix);
 }
 
-module.exports = function (/**String*/input) {
-	var _zip = undefined,
-		_filename = "";
+module.exports = function (/**String*/input, /** object */options) {
+    let inBuffer = null;
 
-	if (input && typeof input === "string") { // load zip file
-		if (fs.existsSync(input)) {
-			_filename = input;
-			_zip = new ZipFile(input, Utils.Constants.FILE);
-		} else {
-			throw new Error(Utils.Errors.INVALID_FILENAME);
-		}
-	} else if (input && Buffer.isBuffer(input)) { // load buffer
-		_zip = new ZipFile(input, Utils.Constants.BUFFER);
-	} else { // create new zip file
-		_zip = new ZipFile(null, Utils.Constants.NONE);
-	}
+    // create object based default options, allowing them to be overwritten
+    const opts = Object.assign(Object.create( null ), defaultOptions);
 
-	function sanitize(prefix, name) {
-		prefix = pth.resolve(pth.normalize(prefix));
-		var parts = name.split('/');
-		for (var i = 0, l = parts.length; i < l; i++) {
-			var path = pth.normalize(pth.join(prefix, parts.slice(i, l).join(pth.sep)));
-			if (path.indexOf(prefix) === 0) {
-				return path;
-			}
-		}
-		return pth.normalize(pth.join(prefix, pth.basename(name)));
-	}
+    // test input variable
+    if (input && "object" === typeof input){
+        // if value is not buffer we accept it to be object with options
+        if (!(input instanceof Uint8Array)){
+            Object.assign(opts, input);
+            input = opts.input ? opts.input : undefined;
+            if (opts.input) delete opts.input;
+        }
+
+        // if input is buffer
+        if (input instanceof Uint8Array){
+            inBuffer = input;
+            opts.method = Utils.Constants.BUFFER;
+            input = undefined;
+        }
+    }
+
+    // assign options
+    Object.assign(opts, options);
+
+    // if input is file name we retrieve its content
+    if (input && "string" === typeof input) {
+        // load zip file
+        if (fs.existsSync(input)) {
+            opts.method = Utils.Constants.FILE;
+            opts.filename = input;
+            inBuffer = fs.readFileSync(input);
+        } else {
+            throw new Error(Utils.Errors.INVALID_FILENAME);
+        }
+    }
+
+    // create variable
+    const _zip = new ZipFile(inBuffer, opts);
+
+    function sanitize(prefix, name) {
+        prefix = pth.resolve(pth.normalize(prefix));
+        var parts = name.split('/');
+        for (var i = 0, l = parts.length; i < l; i++) {
+            var path = pth.normalize(pth.join(prefix, parts.slice(i, l).join(pth.sep)));
+            if (path.indexOf(prefix) === 0) {
+                return path;
+            }
+        }
+        return pth.normalize(pth.join(prefix, pth.basename(name)));
+    }
 
 	function getEntry(/**Object*/entry) {
 		if (entry && _zip) {
@@ -384,10 +412,10 @@ module.exports = function (/**String*/input) {
 		 * If you want to create a directory the entryName must end in / and a null buffer should be provided.
 		 * Comment and attributes are optional
 		 *
-		 * @param entryName
-		 * @param content
-		 * @param comment
-		 * @param attr
+		 * @param {string} entryName
+		 * @param {Buffer | string} content - file content as buffer or utf8 coded string
+		 * @param {string} comment - file comment
+		 * @param {number | object} attr - number as unix file permissions, object as filesystem Stats object
 		 */
 		addFile: function (/**String*/entryName, /**Buffer*/content, /**String*/comment, /**Number*/attr) {
 			// prepare new entry
@@ -652,8 +680,8 @@ module.exports = function (/**String*/input) {
 				}
 			}
 
-			if (!targetFileName && _filename) {
-				targetFileName = _filename;
+			if (!targetFileName && opts.filename) {
+				targetFileName = opts.filename;
 			}
 			if (!targetFileName) return;
 
@@ -669,7 +697,7 @@ module.exports = function (/**String*/input) {
 
             return new Promise((resolve, reject) => {
                 // find file name
-                if (!targetFileName && _filename) targetFileName = _filename;
+                if (!targetFileName && opts.filename) targetFileName = opts.filename;
                 if (!targetFileName) reject("ADM-ZIP: ZIP File Name Missing");
 
                 this.toBufferPromise().then((zipData) => {

@@ -4,7 +4,6 @@ var Utils = require("./util"),
     Methods = require("./methods");
 
 module.exports = function (/*Buffer*/input) {
-
     var _entryHeader = new Headers.EntryHeader(),
         _entryName = Buffer.alloc(0),
         _comment = Buffer.alloc(0),
@@ -90,7 +89,7 @@ module.exports = function (/*Buffer*/input) {
                         } else { //si added otherwise did not seem to return data.
                             if (callback) callback(data);
                         }
-                    })
+                    });
                 }
                 break;
             default:
@@ -132,7 +131,7 @@ module.exports = function (/*Buffer*/input) {
                             _entryHeader.compressedSize = data.length;
                             data.copy(compressedData);
                             callback && callback(compressedData);
-                        })
+                        });
                     }
                     deflater = null;
                     break;
