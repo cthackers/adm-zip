@@ -1,3 +1,13 @@
+0.5.4 / 2021-03-08
+==================
+* Fixed relative paths
+* Added zipcrypto encryption
+* Lower verMade for macOS when generating zip file
+
+0.5.3 / 2021-02-07
+==================
+* Fixed filemode when unzipping
+
 0.5.2 / 2021-01-27
 ==================
  * Fixed path traversal issue (GHSL-2020-198)
