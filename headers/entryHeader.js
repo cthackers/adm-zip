@@ -23,8 +23,6 @@ module.exports = function () {
     switch(process.platform){
         case 'win32':
             _verMade |= 0x0A00;
-        case 'darwin':
-            _verMade |= 0x1300;
         default:
             _verMade |= 0x0300;
     }
