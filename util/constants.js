@@ -98,9 +98,9 @@ module.exports = {
     FLG_MSK          : 4096, // mask header values
 
     /* Load type */
-    FILE             : 0,
+    FILE             : 2,
     BUFFER           : 1,
-    NONE             : 2,
+    NONE             : 0,
 
     /* 4.5 Extensible data fields */
     EF_ID            : 0,
