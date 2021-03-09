@@ -62,7 +62,7 @@ module.exports = (function() {
 
         crc32 : function(buf) {
             if (typeof buf === 'string') {
-                buf = Buffer.alloc(buf.length, buf);
+                buf = Buffer.from(buf);
             }
             var b = Buffer.alloc(4);
             if (!crcTable.length) {
