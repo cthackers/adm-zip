@@ -5,7 +5,6 @@ exports.require = function () {
       import("original-fs").then((originalFs) => {
         if (Object.keys(originalFs).length > 0) {
           fs = originalFs;
-          console.log(something.something);
         }
       });
     } catch (e) {}
