@@ -405,53 +405,58 @@ module.exports = function (/**String*/input, /** object */options) {
             });
         },
 
-		/**
-		 * Allows you to create a entry (file or directory) in the zip file.
-		 * If you want to create a directory the entryName must end in / and a null buffer should be provided.
-		 * Comment and attributes are optional
-		 *
-		 * @param {string} entryName
-		 * @param {Buffer | string} content - file content as buffer or utf8 coded string
-		 * @param {string} comment - file comment
-		 * @param {number | object} attr - number as unix file permissions, object as filesystem Stats object
-		 */
-		addFile: function (/**String*/entryName, /**Buffer*/content, /**String*/comment, /**Number*/attr) {
-			// prepare new entry
-			var entry = new ZipEntry();
-			entry.entryName = entryName;
-			entry.comment = comment || "";
+        /**
+         * Allows you to create a entry (file or directory) in the zip file.
+         * If you want to create a directory the entryName must end in / and a null buffer should be provided.
+         * Comment and attributes are optional
+         *
+         * @param {string} entryName
+         * @param {Buffer | string} content - file content as buffer or utf8 coded string
+         * @param {string} comment - file comment
+         * @param {number | object} attr - number as unix file permissions, object as filesystem Stats object
+         */
+        addFile: function (/**String*/ entryName, /**Buffer*/ content, /**String*/ comment, /**Number*/ attr) {
+            let entry = getEntry(entryName);
+            const update = entry != null;
 
-			var isStat = ('object' === typeof attr) && (attr instanceof fs.Stats);
+            // prepare new entry
+            if (!update){
+                entry = new ZipEntry();
+                entry.entryName = entryName;
+            }
+            entry.comment = comment || "";
 
-			// last modification time from file stats
-			if (isStat){
-				entry.header.time = attr.mtime;
-			}
+            const isStat = ('object' === typeof attr) && (attr instanceof fs.Stats);
 
-			// Set file attribute
-			var fileattr = (entry.isDirectory) ? 0x10 : 0;  // (MS-DOS directory flag)
+            // last modification time from file stats
+            if (isStat){
+                entry.header.time = attr.mtime;
+            }
 
-			// extended attributes field for Unix
-			if('win32' !== process.platform){
-				// set file type either S_IFDIR / S_IFREG
-				var unix = (entry.isDirectory) ? 0x4000 : 0x8000;
+            // Set file attribute
+            var fileattr = (entry.isDirectory) ? 0x10 : 0;  // (MS-DOS directory flag)
 
-				if (isStat) { 										// File attributes from file stats
-					unix |= (0xfff & attr.mode);
-				}else if ('number' === typeof attr){ 				// attr from given attr values
-					unix |= (0xfff & attr);
-				}else{												// Default values:
-					unix |= (entry.isDirectory) ? 0o755 : 0o644;  	// permissions (drwxr-xr-x) or (-r-wr--r--)
-				}
+            // extended attributes field for Unix
+            if('win32' !== process.platform){
+                // set file type either S_IFDIR / S_IFREG
+                let unix = (entry.isDirectory) ? 0x4000 : 0x8000;
 
-				fileattr = (fileattr | (unix << 16)) >>> 0;			// add attributes
-			}
+                if (isStat) {                                       // File attributes from file stats
+                    unix |= (0xfff & attr.mode);
+                }else if ('number' === typeof attr){                // attr from given attr values
+                    unix |= (0xfff & attr);
+                }else{                                              // Default values:
+                    unix |= (entry.isDirectory) ? 0o755 : 0o644;    // permissions (drwxr-xr-x) or (-r-wr--r--)
+                }
 
-			entry.attr = fileattr;
+                fileattr = (fileattr | (unix << 16)) >>> 0;         // add attributes
+            }
 
-			entry.setData(content);
-			_zip.setEntry(entry);
-		},
+            entry.attr = fileattr;
+
+            entry.setData(content);
+            if (!update) _zip.setEntry(entry);
+        },
 
 		/**
 		 * Returns an array of ZipEntry objects representing the files and folders inside the archive
