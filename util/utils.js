@@ -11,6 +11,18 @@ module.exports = (function() {
 
         PATH_SEPARATOR = pth.sep;
 
+    function genCRCTable() {
+        for (let n = 0; n < 256; n++) {
+            let c = n;
+            for (let k = 8; --k >= 0; )
+                if ((c & 1) !== 0) {
+                    c = 0xedb88320 ^ (c >>> 1);
+                } else {
+                    c = c >>> 1;
+                }
+            crcTable[n] = c >>> 0;
+        }
+    }
 
     function mkdirSync(/*String*/path) {
         var resolvedPath = path.split(PATH_SEPARATOR)[0];
@@ -60,28 +72,17 @@ module.exports = (function() {
             mkdirSync(path);
         },
 
-        crc32 : function(buf) {
-            if (typeof buf === 'string') {
-                buf = Buffer.from(buf);
+        crc32: function (buf) {
+            if (typeof buf === "string") {
+                buf = Buffer.from(buf, "utf8");
             }
-            var b = Buffer.alloc(4);
-            if (!crcTable.length) {
-                for (var n = 0; n < 256; n++) {
-                    var c = n;
-                    for (var k = 8; --k >= 0;)  //
-                        if ((c & 1) !== 0)  { c = 0xedb88320 ^ (c >>> 1); } else { c = c >>> 1; }
-                    if (c < 0) {
-                        b.writeInt32LE(c, 0);
-                        c = b.readUInt32LE(0);
-                    }
-                    crcTable[n] = c;
-                }
-            }
-            var crc = 0, off = 0, len = buf.length, c1 = ~crc;
-            while(--len >= 0) c1 = crcTable[(c1 ^ buf[off++]) & 0xff] ^ (c1 >>> 8);
-            crc = ~c1;
-            b.writeInt32LE(crc & 0xffffffff, 0);
-            return b.readUInt32LE(0);
+            // Generate crcTable
+            if (!crcTable.length) genCRCTable();
+
+            var off = 0, len = buf.length, crc = ~0;
+            while (--len >= 0) crc = crcTable[(crc ^ buf[off++]) & 0xff] ^ (crc >>> 8);
+            // xor and cast as uint32 number
+            return ~crc >>> 0;
         },
 
         methodToString : function(/*Number*/method) {
