@@ -197,52 +197,68 @@ module.exports = function (/*Buffer*/input) {
 
 
     return {
-        get entryName () { return _entryName.toString(); },
-        get rawEntryName() { return _entryName; },
-        set entryName (val) {
+        get entryName() {
+            return _entryName.toString();
+        },
+        get rawEntryName() {
+            return _entryName;
+        },
+        set entryName(val) {
             _entryName = Utils.toBuffer(val);
             var lastChar = _entryName[_entryName.length - 1];
-            _isDirectory = (lastChar === 47) || (lastChar === 92);
+            _isDirectory = lastChar === 47 || lastChar === 92;
             _entryHeader.fileNameLength = _entryName.length;
         },
 
-        get extra () { return _extra; },
-        set extra (val) {
+        get extra() {
+            return _extra;
+        },
+        set extra(val) {
             _extra = val;
             _entryHeader.extraLength = val.length;
             parseExtra(val);
         },
 
-        get comment () { return _comment.toString(); },
-        set comment (val) {
+        get comment() {
+            return _comment.toString();
+        },
+        set comment(val) {
             _comment = Utils.toBuffer(val);
             _entryHeader.commentLength = _comment.length;
         },
 
-        get name () { var n = _entryName.toString(); return _isDirectory ? n.substr(n.length - 1).split("/").pop() : n.split("/").pop(); },
-        get isDirectory () { return _isDirectory },
-
-        getCompressedData : function() {
-            return compress(false, null)
+        get name() {
+            var n = _entryName.toString();
+            return _isDirectory
+                ? n.substr(n.length - 1).split("/").pop()
+                : n.split("/").pop();
+        },
+        get isDirectory() {
+            return _isDirectory;
         },
 
-        getCompressedDataAsync : function(/*Function*/callback) {
-            compress(true, callback)
+        getCompressedData: function () {
+            return compress(false, null);
         },
 
-        setData : function(value) {
+        getCompressedDataAsync: function (/*Function*/ callback) {
+            compress(true, callback);
+        },
+
+        setData: function (value) {
             uncompressedData = Utils.toBuffer(value);
             if (!_isDirectory && uncompressedData.length) {
                 _entryHeader.size = uncompressedData.length;
                 _entryHeader.method = Utils.Constants.DEFLATED;
                 _entryHeader.crc = Utils.crc32(value);
                 _entryHeader.changed = true;
-            } else { // folders and blank files should be stored
+            } else {
+                // folders and blank files should be stored
                 _entryHeader.method = Utils.Constants.STORED;
             }
         },
 
-        getData : function(pass) {
+        getData: function (pass) {
             if (_entryHeader.changed) {
                 return uncompressedData;
             } else {
@@ -250,7 +266,7 @@ module.exports = function (/*Buffer*/input) {
             }
         },
 
-        getDataAsync : function(/*Function*/callback, pass) {
+        getDataAsync: function (/*Function*/ callback, pass) {
             if (_entryHeader.changed) {
                 callback(uncompressedData);
             } else {
@@ -258,10 +274,14 @@ module.exports = function (/*Buffer*/input) {
             }
         },
 
-        set attr(attr) { _entryHeader.attr = attr; },
-        get attr() { return _entryHeader.attr; },
+        set attr(attr) {
+            _entryHeader.attr = attr;
+        },
+        get attr() {
+            return _entryHeader.attr;
+        },
 
-        set header(/*Buffer*/data) {
+        set header(/*Buffer*/ data) {
             _entryHeader.loadFromBinary(data);
         },
 
@@ -269,7 +289,7 @@ module.exports = function (/*Buffer*/input) {
             return _entryHeader;
         },
 
-        packHeader : function() {
+        packHeader: function () {
             // 1. create header (buffer)
             var header = _entryHeader.entryHeaderToBinary();
             var addpos = Utils.Constants.CENHDR;
@@ -288,16 +308,24 @@ module.exports = function (/*Buffer*/input) {
             return header;
         },
 
-        toString : function() {
-            return '{\n' +
-                '\t"entryName" : "' + _entryName.toString() + "\",\n" +
-                '\t"name" : "' + (_isDirectory ? _entryName.toString().replace(/\/$/, '').split("/").pop() : _entryName.toString().split("/").pop()) + "\",\n" +
-                '\t"comment" : "' + _comment.toString() + "\",\n" +
-                '\t"isDirectory" : ' + _isDirectory + ",\n" +
-                '\t"header" : ' + _entryHeader.toString().replace(/\t/mg, "\t\t").replace(/}/mg, "\t}")  + ",\n" +
-                '\t"compressedData" : <' + (input && input.length  + " bytes buffer" || "null") + ">\n" +
-                '\t"data" : <' + (uncompressedData && uncompressedData.length  + " bytes buffer" || "null") + ">\n" +
-                '}';
+        toJSON: function () {
+            const bytes = function (nr) {
+                return "<" + ((nr && nr.length + " bytes buffer") || "null") + ">";
+            };
+
+            return {
+                entryName: this.entryName,
+                name: this.name,
+                comment: this.comment,
+                isDirectory: this.isDirectory,
+                header: _entryHeader.toJSON(),
+                compressedData: bytes(input),
+                data: bytes(uncompressedData)
+            };
+        },
+
+        toString: function () {
+            return JSON.stringify(this.toJSON(), null, "\t");
         }
-    }
+    };
 };
