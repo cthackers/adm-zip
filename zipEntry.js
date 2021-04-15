@@ -3,7 +3,7 @@ var Utils = require("./util"),
     Constants = Utils.Constants,
     Methods = require("./methods");
 
-module.exports = function (/*Buffer*/input) {
+module.exports = function (/*Buffer*/ input) {
     var _entryHeader = new Headers.EntryHeader(),
         _entryName = Buffer.alloc(0),
         _comment = Buffer.alloc(0),
@@ -16,15 +16,15 @@ module.exports = function (/*Buffer*/input) {
             return Buffer.alloc(0);
         }
         _entryHeader.loadDataHeaderFromBinary(input);
-        return input.slice(_entryHeader.realDataOffset, _entryHeader.realDataOffset + _entryHeader.compressedSize)
+        return input.slice(_entryHeader.realDataOffset, _entryHeader.realDataOffset + _entryHeader.compressedSize);
     }
 
     function crc32OK(data) {
         // if bit 3 (0x08) of the general-purpose flags field is set, then the CRC-32 and file sizes are not known when the header is written
         if ((_entryHeader.flags & 0x8) !== 0x8) {
-           if (Utils.crc32(data) !== _entryHeader.dataHeader.crc) {
-               return false;
-           }
+            if (Utils.crc32(data) !== _entryHeader.dataHeader.crc) {
+                return false;
+            }
         } else {
             // @TODO: load and check data descriptor header
             // The fields in the local header are filled with zero, and the CRC-32 and size are appended in a 12-byte structure
@@ -33,10 +33,10 @@ module.exports = function (/*Buffer*/input) {
         return true;
     }
 
-    function decompress(/*Boolean*/async, /*Function*/callback, /*String, Buffer*/pass) {
-        if(typeof callback === 'undefined' && typeof async === 'string') {
-            pass=async;
-            async=void 0;
+    function decompress(/*Boolean*/ async, /*Function*/ callback, /*String, Buffer*/ pass) {
+        if (typeof callback === "undefined" && typeof async === "string") {
+            pass = async;
+            async = void 0;
         }
         if (_isDirectory) {
             if (async && callback) {
@@ -53,9 +53,9 @@ module.exports = function (/*Buffer*/input) {
             return compressedData;
         }
 
-        if (_entryHeader.encripted){
-            if ('string' !== typeof pass && !Buffer.isBuffer(pass)){
-                throw new Error('ADM-ZIP: Incompatible password parameter');
+        if (_entryHeader.encripted) {
+            if ("string" !== typeof pass && !Buffer.isBuffer(pass)) {
+                throw new Error("ADM-ZIP: Incompatible password parameter");
             }
             compressedData = Methods.ZipCrypto.decrypt(compressedData, _entryHeader, pass);
         }
@@ -66,9 +66,10 @@ module.exports = function (/*Buffer*/input) {
             case Utils.Constants.STORED:
                 compressedData.copy(data);
                 if (!crc32OK(data)) {
-                    if (async && callback) callback(data, Utils.Errors.BAD_CRC);//si added error
+                    if (async && callback) callback(data, Utils.Errors.BAD_CRC); //si added error
                     throw new Error(Utils.Errors.BAD_CRC);
-                } else {//si added otherwise did not seem to return data.
+                } else {
+                    //si added otherwise did not seem to return data.
                     if (async && callback) callback(data);
                     return data;
                 }
@@ -82,11 +83,12 @@ module.exports = function (/*Buffer*/input) {
                     }
                     return data;
                 } else {
-                    inflater.inflateAsync(function(result) {
+                    inflater.inflateAsync(function (result) {
                         result.copy(data, 0);
                         if (!crc32OK(data)) {
                             if (callback) callback(data, Utils.Errors.BAD_CRC); //si added error
-                        } else { //si added otherwise did not seem to return data.
+                        } else {
+                            //si added otherwise did not seem to return data.
                             if (callback) callback(data);
                         }
                     });
@@ -98,7 +100,7 @@ module.exports = function (/*Buffer*/input) {
         }
     }
 
-    function compress(/*Boolean*/async, /*Function*/callback) {
+    function compress(/*Boolean*/ async, /*Function*/ callback) {
         if ((!uncompressedData || !uncompressedData.length) && Buffer.isBuffer(input)) {
             // no data set or the data wasn't changed to require recompression
             if (async && callback) callback(getCompressedDataFromZip());
@@ -119,14 +121,13 @@ module.exports = function (/*Buffer*/input) {
                     return compressedData;
                 default:
                 case Utils.Constants.DEFLATED:
-
                     var deflater = new Methods.Deflater(uncompressedData);
                     if (!async) {
                         var deflated = deflater.deflate();
                         _entryHeader.compressedSize = deflated.length;
                         return deflated;
                     } else {
-                        deflater.deflateAsync(function(data) {
+                        deflater.deflateAsync(function (data) {
                             compressedData = Buffer.alloc(data.length);
                             _entryHeader.compressedSize = data.length;
                             data.copy(compressedData);
@@ -152,14 +153,14 @@ module.exports = function (/*Buffer*/input) {
     function parseExtra(data) {
         var offset = 0;
         var signature, size, part;
-        while(offset<data.length) {
+        while (offset < data.length) {
             signature = data.readUInt16LE(offset);
             offset += 2;
             size = data.readUInt16LE(offset);
             offset += 2;
-            part = data.slice(offset, offset+size);
+            part = data.slice(offset, offset + size);
             offset += size;
-            if(Constants.ID_ZIP64 === signature) {
+            if (Constants.ID_ZIP64 === signature) {
                 parseZip64ExtendedInformation(part);
             }
         }
@@ -169,32 +170,31 @@ module.exports = function (/*Buffer*/input) {
     function parseZip64ExtendedInformation(data) {
         var size, compressedSize, offset, diskNumStart;
 
-        if(data.length >= Constants.EF_ZIP64_SCOMP) {
+        if (data.length >= Constants.EF_ZIP64_SCOMP) {
             size = readUInt64LE(data, Constants.EF_ZIP64_SUNCOMP);
-            if(_entryHeader.size === Constants.EF_ZIP64_OR_32) {
+            if (_entryHeader.size === Constants.EF_ZIP64_OR_32) {
                 _entryHeader.size = size;
             }
         }
-        if(data.length >= Constants.EF_ZIP64_RHO) {
+        if (data.length >= Constants.EF_ZIP64_RHO) {
             compressedSize = readUInt64LE(data, Constants.EF_ZIP64_SCOMP);
-            if(_entryHeader.compressedSize === Constants.EF_ZIP64_OR_32) {
+            if (_entryHeader.compressedSize === Constants.EF_ZIP64_OR_32) {
                 _entryHeader.compressedSize = compressedSize;
             }
         }
-        if(data.length >= Constants.EF_ZIP64_DSN) {
+        if (data.length >= Constants.EF_ZIP64_DSN) {
             offset = readUInt64LE(data, Constants.EF_ZIP64_RHO);
-            if(_entryHeader.offset === Constants.EF_ZIP64_OR_32) {
+            if (_entryHeader.offset === Constants.EF_ZIP64_OR_32) {
                 _entryHeader.offset = offset;
             }
         }
-        if(data.length >= Constants.EF_ZIP64_DSN+4) {
+        if (data.length >= Constants.EF_ZIP64_DSN + 4) {
             diskNumStart = data.readUInt32LE(Constants.EF_ZIP64_DSN);
-            if(_entryHeader.diskNumStart === Constants.EF_ZIP64_OR_16) {
+            if (_entryHeader.diskNumStart === Constants.EF_ZIP64_OR_16) {
                 _entryHeader.diskNumStart = diskNumStart;
             }
         }
     }
-
 
     return {
         get entryName() {
@@ -230,7 +230,10 @@ module.exports = function (/*Buffer*/input) {
         get name() {
             var n = _entryName.toString();
             return _isDirectory
-                ? n.substr(n.length - 1).split("/").pop()
+                ? n
+                      .substr(n.length - 1)
+                      .split("/")
+                      .pop()
                 : n.split("/").pop();
         },
         get isDirectory() {

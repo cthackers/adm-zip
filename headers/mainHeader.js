@@ -52,7 +52,10 @@ module.exports = function () {
         loadFromBinary: function (/*Buffer*/ data) {
             // data should be 22 bytes and start with "PK 05 06"
             // or be 56+ bytes and start with "PK 06 06" for Zip64
-            if ((data.length !== Constants.ENDHDR || data.readUInt32LE(0) !== Constants.ENDSIG) && (data.length < Constants.ZIP64HDR || data.readUInt32LE(0) !== Constants.ZIP64SIG)) {
+            if (
+                (data.length !== Constants.ENDHDR || data.readUInt32LE(0) !== Constants.ENDSIG) &&
+                (data.length < Constants.ZIP64HDR || data.readUInt32LE(0) !== Constants.ZIP64SIG)
+            ) {
                 throw new Error(Utils.Errors.INVALID_END);
             }
 

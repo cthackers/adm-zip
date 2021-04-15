@@ -6,7 +6,6 @@ const fs = require("fs");
 const rimraf = require("rimraf");
 
 describe("adm-zip", () => {
-
     const destination = "./test/xxx";
 
     // clean up folder content
@@ -17,14 +16,16 @@ describe("adm-zip", () => {
         zip.extractAllTo(destination);
         const files = walk(destination);
 
-        expect(files.sort()).to.deep.equal([
-            pth.normalize("./test/xxx/attributes_test/asd/New Text Document.txt"),
-            pth.normalize("./test/xxx/attributes_test/blank file.txt"),
-            pth.normalize("./test/xxx/attributes_test/New folder/hidden.txt"),
-            pth.normalize("./test/xxx/attributes_test/New folder/hidden_readonly.txt"),
-            pth.normalize("./test/xxx/attributes_test/New folder/readonly.txt"),
-            pth.normalize("./test/xxx/utes_test/New folder/somefile.txt")
-        ].sort());
+        expect(files.sort()).to.deep.equal(
+            [
+                pth.normalize("./test/xxx/attributes_test/asd/New Text Document.txt"),
+                pth.normalize("./test/xxx/attributes_test/blank file.txt"),
+                pth.normalize("./test/xxx/attributes_test/New folder/hidden.txt"),
+                pth.normalize("./test/xxx/attributes_test/New folder/hidden_readonly.txt"),
+                pth.normalize("./test/xxx/attributes_test/New folder/readonly.txt"),
+                pth.normalize("./test/xxx/utes_test/New folder/somefile.txt")
+            ].sort()
+        );
     });
 
     it("zip pathTraversal", () => {
@@ -37,49 +38,49 @@ describe("adm-zip", () => {
 
         const extract = new Zip(buf);
         var zipEntries = zip.getEntries();
-        zipEntries.forEach(e => zip.extractEntryTo(e, destination, false, true));
+        zipEntries.forEach((e) => zip.extractEntryTo(e, destination, false, true));
 
         extract.extractAllTo(target);
         const files = walk(target);
-        expect(files.sort()).to.deep.equal([
-            pth.normalize("./test/xxx/test/test1.ext"),
-            pth.normalize("./test/xxx/test/test2.ext"),
-            pth.normalize("./test/xxx/test/test3.ext"),
-        ]);
+        expect(files.sort()).to.deep.equal([pth.normalize("./test/xxx/test/test1.ext"), pth.normalize("./test/xxx/test/test2.ext"), pth.normalize("./test/xxx/test/test3.ext")]);
     });
 
     it("zip.extractEntryTo(entry, destination, false, true)", () => {
         const destination = "./test/xxx";
         const zip = new Zip("./test/assets/ultra.zip");
         var zipEntries = zip.getEntries();
-        zipEntries.forEach(e => zip.extractEntryTo(e, destination, false, true));
+        zipEntries.forEach((e) => zip.extractEntryTo(e, destination, false, true));
 
         const files = walk(destination);
-        expect(files.sort()).to.deep.equal([
-            pth.normalize("./test/xxx/blank file.txt"),
-            pth.normalize("./test/xxx/hidden.txt"),
-            pth.normalize("./test/xxx/hidden_readonly.txt"),
-            pth.normalize("./test/xxx/New Text Document.txt"),
-            pth.normalize("./test/xxx/readonly.txt"),
-            pth.normalize("./test/xxx/somefile.txt")
-        ].sort());
+        expect(files.sort()).to.deep.equal(
+            [
+                pth.normalize("./test/xxx/blank file.txt"),
+                pth.normalize("./test/xxx/hidden.txt"),
+                pth.normalize("./test/xxx/hidden_readonly.txt"),
+                pth.normalize("./test/xxx/New Text Document.txt"),
+                pth.normalize("./test/xxx/readonly.txt"),
+                pth.normalize("./test/xxx/somefile.txt")
+            ].sort()
+        );
     });
 
     it("zip.extractEntryTo(entry, destination, true, true)", () => {
         const destination = "./test/xxx";
         const zip = new Zip("./test/assets/ultra.zip");
         var zipEntries = zip.getEntries();
-        zipEntries.forEach(e => zip.extractEntryTo(e, destination, true, true));
+        zipEntries.forEach((e) => zip.extractEntryTo(e, destination, true, true));
 
         const files = walk(destination);
-        expect(files.sort()).to.deep.equal([
-            pth.normalize("./test/xxx/attributes_test/asd/New Text Document.txt"),
-            pth.normalize("./test/xxx/attributes_test/blank file.txt"),
-            pth.normalize("./test/xxx/attributes_test/New folder/hidden.txt"),
-            pth.normalize("./test/xxx/attributes_test/New folder/hidden_readonly.txt"),
-            pth.normalize("./test/xxx/attributes_test/New folder/readonly.txt"),
-            pth.normalize("./test/xxx/utes_test/New folder/somefile.txt")
-        ].sort());
+        expect(files.sort()).to.deep.equal(
+            [
+                pth.normalize("./test/xxx/attributes_test/asd/New Text Document.txt"),
+                pth.normalize("./test/xxx/attributes_test/blank file.txt"),
+                pth.normalize("./test/xxx/attributes_test/New folder/hidden.txt"),
+                pth.normalize("./test/xxx/attributes_test/New folder/hidden_readonly.txt"),
+                pth.normalize("./test/xxx/attributes_test/New folder/readonly.txt"),
+                pth.normalize("./test/xxx/utes_test/New folder/somefile.txt")
+            ].sort()
+        );
     });
 
     it("passes issue-237-Twizzeld test case", () => {

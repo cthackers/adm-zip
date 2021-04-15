@@ -1,7 +1,7 @@
+"use strict";
+
 // node crypt, we use it for generate salt
 const { randomFillSync } = require("crypto");
-
-"use strict";
 
 // generate CRC32 lookup table
 const crctable = new Uint32Array(256).map((t, crc) => {

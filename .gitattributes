@@ -1,0 +1,4 @@
+# Enforce Unix newlines in repo
+* text=auto eol=lf
+
+*.zip binary
