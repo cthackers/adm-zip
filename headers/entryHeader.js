@@ -19,12 +19,7 @@ module.exports = function () {
         _attr = 0,
         _offset = 0;
 
-    switch (process.platform) {
-        case "win32":
-            _verMade |= 0x0a00;
-        default:
-            _verMade |= 0x0300;
-    }
+    _verMade |= Utils.isWin ? 0x0a00 : 0x0300;
 
     var _dataHeader = {};
 
