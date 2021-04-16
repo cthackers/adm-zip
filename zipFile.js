@@ -12,6 +12,8 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
     // assign options
     const opts = Object.assign(Object.create(null), options);
 
+    const { noSort } = opts;
+
     if (inBuffer) {
         // is a memory buffer
         readMainHeader(opts.readEntries);
@@ -103,6 +105,12 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             _comment = inBuffer.slice(commentEnd + Utils.Constants.ENDHDR);
         }
         if (readNow) readEntries();
+    }
+
+    function sortEntries() {
+        if (entryList.length > 1 && !noSort) {
+            entryList.sort((a, b) => a.entryName.toLowerCase().localeCompare(b.entryName.toLowerCase()));
+        }
     }
 
     return {
@@ -231,19 +239,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             if (!loadedEntries) {
                 readEntries();
             }
-            if (entryList.length > 1) {
-                entryList.sort(function (a, b) {
-                    var nameA = a.entryName.toLowerCase();
-                    var nameB = b.entryName.toLowerCase();
-                    if (nameA < nameB) {
-                        return -1;
-                    }
-                    if (nameA > nameB) {
-                        return 1;
-                    }
-                    return 0;
-                });
-            }
+            sortEntries();
 
             var totalSize = 0,
                 dataBlock = [],
@@ -308,19 +304,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             if (!loadedEntries) {
                 readEntries();
             }
-            if (entryList.length > 1) {
-                entryList.sort(function (a, b) {
-                    var nameA = a.entryName.toLowerCase();
-                    var nameB = b.entryName.toLowerCase();
-                    if (nameA > nameB) {
-                        return -1;
-                    }
-                    if (nameA < nameB) {
-                        return 1;
-                    }
-                    return 0;
-                });
-            }
+            sortEntries();
 
             var totalSize = 0,
                 dataBlock = [],

@@ -95,6 +95,36 @@ describe("adm-zip", () => {
         expect(text).to.equal("ride em cowboy!");
         fs.unlinkSync("./text.txt");
     });
+
+    it("testing noSort option", () => {
+        const content = "test";
+        const comment = "comment";
+        let temp = null;
+
+        // is sorting working - value "false"
+        const zip1 = new Zip({ noSort: false });
+        zip1.addFile("a.txt", content, comment);
+        zip1.addFile("c.txt", content, comment);
+        zip1.addFile("b.txt", content, comment);
+        zip1.addFile("a.txt", content, comment);
+        temp = zip1.toBuffer();
+
+        const zip1Entries = zip1.getEntries().map((e) => e.entryName);
+        expect(zip1Entries).to.deep.equal(["a.txt", "b.txt", "c.txt"]);
+
+        // skip sorting - value "true"
+        const zip2 = new Zip({ noSort: true });
+        zip1.addFile("a.txt", content, comment);
+        zip2.addFile("c.txt", content, comment);
+        zip2.addFile("b.txt", content, comment);
+        zip2.addFile("a.txt", content, comment);
+        temp = zip2.toBuffer();
+
+        const zip2Entries = zip2.getEntries().map((e) => e.entryName);
+        expect(zip2Entries).to.deep.equal(["c.txt", "b.txt", "a.txt"]);
+
+        var g = 9;
+    });
 });
 
 function walk(dir) {
