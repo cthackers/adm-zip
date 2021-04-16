@@ -450,7 +450,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
             var fileattr = entry.isDirectory ? 0x10 : 0; // (MS-DOS directory flag)
 
             // extended attributes field for Unix
-            if ("win32" !== process.platform) {
+            if (!Utils.isWin) {
                 // set file type either S_IFDIR / S_IFREG
                 let unix = entry.isDirectory ? 0x4000 : 0x8000;
 

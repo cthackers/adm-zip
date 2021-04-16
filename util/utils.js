@@ -1,7 +1,9 @@
-var fs = require("./fileSystem").require(),
-    pth = require("path");
+const fs = require("./fileSystem").require();
+const pth = require("path");
 
 fs.existsSync = fs.existsSync || pth.existsSync;
+
+const isWin = typeof process === "object" && "win32" === process.platform;
 
 module.exports = (function () {
     var crcTable = [],
@@ -193,6 +195,8 @@ module.exports = (function () {
                 return Buffer.from(input, "utf8");
             }
         },
+
+        isWin, // Do we have windows system
 
         readBigUInt64LE,
 
