@@ -3,7 +3,7 @@ sudo: false
 language: node_js
 
 node_js:
-  - 'stable'
+  - "stable"
   - 12
   - 10
 

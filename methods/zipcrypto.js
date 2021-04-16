@@ -1,7 +1,8 @@
-// node crypt, we use it for generate salt
-const { randomFillSync } = require("crypto");
-
 "use strict";
+
+// node crypt, we use it for generate salt
+// eslint-disable-next-line node/no-unsupported-features/node-builtins
+const { randomFillSync } = require("crypto");
 
 // generate CRC32 lookup table
 const crctable = new Uint32Array(256).map((t, crc) => {

@@ -74,7 +74,9 @@ describe("headers", () => {
             });
 
             // test toString function (remove CR from CRLF)
-            expect(mainh.toString().replace(/\r/g, "")).to.equal('{\n\t"diskEntries": 0,\n\t"totalEntries": 0,\n\t"size": "0 bytes",\n\t"offset": "0x0000",\n\t"commentLength": 0\n}');
+            expect(mainh.toString().replace(/\r/g, "")).to.equal(
+                '{\n\t"diskEntries": 0,\n\t"totalEntries": 0,\n\t"size": "0 bytes",\n\t"offset": "0x0000",\n\t"commentLength": 0\n}'
+            );
         });
     });
 

@@ -3,8 +3,8 @@ var Utils = require("../util"),
 
 /* The central directory file header */
 module.exports = function () {
-    var _verMade = 0x14,
-        _version = 10,
+    var _verMade = 0x14, // v2.0
+        _version = 10, // v1.0
         _flags = 0,
         _method = 0,
         _time = 0,
@@ -306,8 +306,6 @@ module.exports = function () {
             const bytes = function (nr) {
                 return nr + " bytes";
             };
-
-            const yy = this.time;
 
             return {
                 made: _verMade,
