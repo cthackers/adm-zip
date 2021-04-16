@@ -7,6 +7,8 @@ const fs = Utils.FileSystem.require();
 fs.existsSync = fs.existsSync || pth.existsSync;
 
 const defaultOptions = {
+    // option "noSort" : if true it disables files sorting
+    noSort: false,
     // read entries during load (initial loading may be slower)
     readEntries: false,
     // default method is none
