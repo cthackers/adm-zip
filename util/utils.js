@@ -117,8 +117,6 @@ module.exports = (function () {
             if (fd) {
                 try {
                     fs.writeSync(fd, content, 0, content.length, 0);
-                } catch (e) {
-                    throw e;
                 } finally {
                     fs.closeSync(fd);
                 }
@@ -133,11 +131,11 @@ module.exports = (function () {
                 attr = undefined;
             }
 
-            fs.exists(path, function (exists) {
-                if (exists && !overwrite) return callback(false);
+            fs.exists(path, function (exist) {
+                if (exist && !overwrite) return callback(false);
 
                 fs.stat(path, function (err, stat) {
-                    if (exists && stat.isDirectory()) {
+                    if (exist && stat.isDirectory()) {
                         return callback(false);
                     }
 
@@ -158,20 +156,18 @@ module.exports = (function () {
                                         });
                                     });
                                 });
-                            } else {
-                                if (fd) {
-                                    fs.write(fd, content, 0, content.length, 0, function () {
-                                        fs.close(fd, function () {
-                                            fs.chmod(path, attr || 438, function () {
-                                                callback(true);
-                                            });
+                            } else if (fd) {
+                                fs.write(fd, content, 0, content.length, 0, function () {
+                                    fs.close(fd, function () {
+                                        fs.chmod(path, attr || 438, function () {
+                                            callback(true);
                                         });
                                     });
-                                } else {
-                                    fs.chmod(path, attr || 438, function () {
-                                        callback(true);
-                                    });
-                                }
+                                });
+                            } else {
+                                fs.chmod(path, attr || 438, function () {
+                                    callback(true);
+                                });
                             }
                         });
                     });

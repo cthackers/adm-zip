@@ -299,8 +299,8 @@ module.exports = function (/**String*/ input, /** object */ options) {
             localPath = pth.normalize(localPath);
 
             if (fs.existsSync(localPath)) {
-                var items = Utils.findFiles(localPath),
-                    self = this;
+                const items = Utils.findFiles(localPath);
+                const self = this;
 
                 if (items.length) {
                     items.forEach(function (filepath) {
@@ -396,9 +396,16 @@ module.exports = function (/**String*/ input, /** object */ options) {
             });
         },
 
-        addLocalFolderPromise: function (/*String*/ localPath, /* object */ options) {
+        /**
+         *
+         * @param {string} localPath - path where files will be extracted
+         * @param {object} props - optional properties
+         * @param {string} props.zipPath - optional path inside zip
+         * @param {regexp, function} props.filter - RegExp or Function if files match will be included.
+         */
+        addLocalFolderPromise: function (/*String*/ localPath, /* object */ props) {
             return new Promise((resolve, reject) => {
-                const { filter, zipPath } = Object.assign({}, options);
+                const { filter, zipPath } = Object.assign({}, props);
                 this.addLocalFolderAsync(
                     localPath,
                     (done, err) => {
@@ -473,11 +480,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
          * @return Array
          */
         getEntries: function () {
-            if (_zip) {
-                return _zip.entries;
-            } else {
-                return [];
-            }
+            return _zip ? _zip.entries : [];
         },
 
         /**
@@ -661,7 +664,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
                     Utils.writeFileToAsync(sanitize(targetPath, entryName), content, overwrite, fileAttr, function (succ) {
                         try {
                             fs.utimesSync(pth.resolve(targetPath, entryName), entry.header.time, entry.header.time);
-                        } catch (err) {
+                        } catch (er) {
                             callback(new Error("Unable to set utimes"));
                         }
                         if (i <= 0) return;
@@ -702,8 +705,8 @@ module.exports = function (/**String*/ input, /** object */ options) {
             }
         },
 
-        writeZipPromise: function (/**String*/ targetFileName, /* object */ options) {
-            const { overwrite, perm } = Object.assign({ overwrite: true }, options);
+        writeZipPromise: function (/**String*/ targetFileName, /* object */ props) {
+            const { overwrite, perm } = Object.assign({ overwrite: true }, props);
 
             return new Promise((resolve, reject) => {
                 // find file name

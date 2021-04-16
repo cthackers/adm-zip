@@ -88,7 +88,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                 continue;
             }
 
-            if (inBuffer.readUInt32LE(i) == Utils.Constants.ZIP64SIG) {
+            if (inBuffer.readUInt32LE(i) === Utils.Constants.ZIP64SIG) {
                 // Found the zip64 record, let's determine it's size
                 endOffset = i;
                 endStart = i + Utils.readBigUInt64LE(inBuffer, i + Utils.Constants.ZIP64SIZE) + Utils.Constants.ZIP64LEAD;

@@ -46,7 +46,6 @@ describe("adm-zip", () => {
     });
 
     it("zip.extractEntryTo(entry, destination, false, true)", () => {
-        const destination = "./test/xxx";
         const zip = new Zip("./test/assets/ultra.zip");
         var zipEntries = zip.getEntries();
         zipEntries.forEach((e) => zip.extractEntryTo(e, destination, false, true));
@@ -65,7 +64,6 @@ describe("adm-zip", () => {
     });
 
     it("zip.extractEntryTo(entry, destination, true, true)", () => {
-        const destination = "./test/xxx";
         const zip = new Zip("./test/assets/ultra.zip");
         var zipEntries = zip.getEntries();
         zipEntries.forEach((e) => zip.extractEntryTo(e, destination, true, true));

@@ -31,7 +31,7 @@
 
     // assert the files
     var assert = function (content, expectedContent, errMsg) {
-        if (content != expectedContent) {
+        if (content !== expectedContent) {
             throw new Error(errMsg);
         }
     };
