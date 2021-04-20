@@ -106,7 +106,7 @@ function make_encrypter(pwd: Buffer | string) {
     };
 }
 
-export function decrypt(data: Buffer, header: any, pwd: string | Buffer) {
+export function decrypt(data: string | number | boolean | Buffer | null | undefined, header: any, pwd: string | Buffer) {
     if (!data || !Buffer.isBuffer(data) || data.length < 12) {
         return Buffer.alloc(0);
     }
@@ -127,7 +127,7 @@ export function decrypt(data: Buffer, header: any, pwd: string | Buffer) {
 }
 
 // lets add way to populate salt, NOT RECOMMENDED for production but maybe useful for testing general functionality
-export function _salter(data: Buffer | "node") {
+export function _salter(data?: Buffer | "node") {
     if (Buffer.isBuffer(data) && data.length >= 12) {
         // be aware - currently salting buffer data is modified
         config.genSalt = function () {
@@ -142,7 +142,7 @@ export function _salter(data: Buffer | "node") {
     }
 }
 
-export function encrypt(data: Buffer | string, header: any, pwd: string | Buffer, oldlike = false) {
+export function encrypt(data: Buffer | string | any, header: any, pwd: string | Buffer, oldlike = false) {
     // 1. test data if data is not Buffer we make buffer from it
     if (data == null) data = Buffer.alloc(0);
     // if data is not buffer be make buffer from it

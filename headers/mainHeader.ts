@@ -1,5 +1,4 @@
-var Utils = require("../util"),
-    Constants = Utils.Constants;
+import { Constants, Errors, readBigUInt64LE } from "../util";
 
 /* The entries in the end of central directory */
 export function MainHeader() {
@@ -56,7 +55,7 @@ export function MainHeader() {
                 (data.length !== Constants.ENDHDR || data.readUInt32LE(0) !== Constants.ENDSIG) &&
                 (data.length < Constants.ZIP64HDR || data.readUInt32LE(0) !== Constants.ZIP64SIG)
             ) {
-                throw new Error(Utils.Errors.INVALID_END);
+                throw new Error(Errors.INVALID_END);
             }
 
             if (data.readUInt32LE(0) === Constants.ENDSIG) {
@@ -72,13 +71,13 @@ export function MainHeader() {
                 _commentLength = data.readUInt16LE(Constants.ENDCOM);
             } else {
                 // number of entries on this volume
-                _volumeEntries = Utils.readBigUInt64LE(data, Constants.ZIP64SUB);
+                _volumeEntries = readBigUInt64LE(data, Constants.ZIP64SUB);
                 // total number of entries
-                _totalEntries = Utils.readBigUInt64LE(data, Constants.ZIP64TOT);
+                _totalEntries = readBigUInt64LE(data, Constants.ZIP64TOT);
                 // central directory size in bytes
-                _size = Utils.readBigUInt64LE(data, Constants.ZIP64SIZ);
+                _size = readBigUInt64LE(data, Constants.ZIP64SIZB); //Before it was ZIP64SIZ. Please Check
                 // offset of first CEN header
-                _offset = Utils.readBigUInt64LE(data, Constants.ZIP64OFF);
+                _offset = readBigUInt64LE(data, Constants.ZIP64OFF);
 
                 _commentLength = 0;
             }

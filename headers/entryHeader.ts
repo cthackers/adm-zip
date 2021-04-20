@@ -48,7 +48,7 @@ export function EntryHeader() {
 
     return {
 
-        changed: undefined,
+        changed: undefined as undefined | boolean,
         get made() {
             return _verMade;
         },
