@@ -2,7 +2,7 @@ var Utils = require("../util"),
     Constants = Utils.Constants;
 
 /* The entries in the end of central directory */
-module.exports = function () {
+export function MainHeader() {
     var _volumeEntries = 0,
         _totalEntries = 0,
         _size = 0,
@@ -49,7 +49,7 @@ module.exports = function () {
             return Constants.ENDHDR + _commentLength;
         },
 
-        loadFromBinary: function (/*Buffer*/ data) {
+        loadFromBinary: function (data: Buffer) {
             // data should be 22 bytes and start with "PK 05 06"
             // or be 56+ bytes and start with "PK 06 06" for Zip64
             if (
@@ -107,7 +107,7 @@ module.exports = function () {
 
         toJSON: function () {
             // creates 0x0000 style output
-            const offset = function (nr, len) {
+            const offset = function (nr: number, len: number) {
                 let offs = nr.toString(16).toUpperCase();
                 while (offs.length < len) offs = "0" + offs;
                 return "0x" + offs;

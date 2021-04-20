@@ -1,8 +1,7 @@
-var Utils = require("../util"),
-    Constants = Utils.Constants;
+import { Constants } from "../util";
 
 /* The central directory file header */
-module.exports = function () {
+export function EntryHeader() {
     var _verMade = 0x14, // v2.0
         _version = 10, // v1.0
         _flags = 0,
@@ -21,10 +20,20 @@ module.exports = function () {
 
     _verMade |= Utils.isWin ? 0x0a00 : 0x0300;
 
-    var _dataHeader = {};
+    var _dataHeader: {
+        fnameLen?: number
+        extraLen?: number
+        version?: number
+        flags?: number
+        method?: number
+        time?: number
+        crc?: number
+        compressedSize?: number
+        size?: number
+    } = {};
 
-    function setTime(val) {
-        val = new Date(val);
+    function setTime(value: number | Date) {
+        const val = new Date(value);
         _time =
             (((val.getFullYear() - 1980) & 0x7f) << 25) | // b09-16 years from 1980
             ((val.getMonth() + 1) << 21) | // b05-08 month
@@ -159,14 +168,14 @@ module.exports = function () {
         },
 
         get realDataOffset() {
-            return _offset + Constants.LOCHDR + _dataHeader.fnameLen + _dataHeader.extraLen;
+            return _offset + Constants.LOCHDR + (_dataHeader.fnameLen ?? 0) + (_dataHeader.extraLen ?? 0);
         },
 
         get dataHeader() {
             return _dataHeader;
         },
 
-        loadDataHeaderFromBinary: function (/*Buffer*/ input) {
+        loadDataHeaderFromBinary: function (input: Buffer) {
             var data = input.slice(_offset, _offset + Constants.LOCHDR);
             // 30 bytes and should start with "PK\003\004"
             if (data.readUInt32LE(0) !== Constants.LOCSIG) {
@@ -194,7 +203,7 @@ module.exports = function () {
             };
         },
 
-        loadFromBinary: function (/*Buffer*/ data) {
+        loadFromBinary: function (data: Buffer) {
             // data should be 46 bytes and start with "PK 01 02"
             if (data.length !== Constants.CENHDR || data.readUInt32LE(0) !== Constants.CENSIG) {
                 throw new Error(Utils.Errors.INVALID_CEN);
@@ -298,7 +307,7 @@ module.exports = function () {
         },
 
         toJSON: function () {
-            const bytes = function (nr) {
+            const bytes = function (nr: number) {
                 return nr + " bytes";
             };
 
