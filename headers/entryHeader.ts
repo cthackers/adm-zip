@@ -1,4 +1,4 @@
-import { Constants } from "../util";
+import { Constants, Errors, isWin, methodToString } from "../util";
 
 /* The central directory file header */
 export function EntryHeader() {
@@ -18,7 +18,7 @@ export function EntryHeader() {
         _attr = 0,
         _offset = 0;
 
-    _verMade |= Utils.isWin ? 0x0a00 : 0x0300;
+    _verMade |= isWin ? 0x0a00 : 0x0300;
 
     var _dataHeader: {
         fnameLen?: number
@@ -47,6 +47,8 @@ export function EntryHeader() {
     setTime(+new Date());
 
     return {
+
+        changed: undefined,
         get made() {
             return _verMade;
         },
@@ -179,7 +181,7 @@ export function EntryHeader() {
             var data = input.slice(_offset, _offset + Constants.LOCHDR);
             // 30 bytes and should start with "PK\003\004"
             if (data.readUInt32LE(0) !== Constants.LOCSIG) {
-                throw new Error(Utils.Errors.INVALID_LOC);
+                throw new Error(Errors.INVALID_LOC);
             }
             _dataHeader = {
                 // version needed to extract
@@ -206,7 +208,7 @@ export function EntryHeader() {
         loadFromBinary: function (data: Buffer) {
             // data should be 46 bytes and start with "PK 01 02"
             if (data.length !== Constants.CENHDR || data.readUInt32LE(0) !== Constants.CENSIG) {
-                throw new Error(Utils.Errors.INVALID_CEN);
+                throw new Error(Errors.INVALID_CEN);
             }
             // version made by
             _verMade = data.readUInt16LE(Constants.CENVEM);
@@ -315,7 +317,7 @@ export function EntryHeader() {
                 made: _verMade,
                 version: _version,
                 flags: _flags,
-                method: Utils.methodToString(_method),
+                method: methodToString(_method),
                 time: this.time,
                 crc: "0x" + _crc.toString(16).toUpperCase(),
                 compressedSize: bytes(_compressedSize),
