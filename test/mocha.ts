@@ -1,9 +1,9 @@
-const { expect } = require("chai");
-const Attr = require("../util").FileAttr;
-const Zip = require("../adm-zip");
-const pth = require("path");
-const fs = require("fs");
-const rimraf = require("rimraf");
+import { expect } from "chai";
+
+import { AdmZip as Zip } from "../adm-zip";
+import pth from "path";
+import fs from "fs";
+import rimraf from "rimraf";
 
 describe("adm-zip", () => {
     const destination = "./test/xxx";
@@ -42,7 +42,7 @@ describe("adm-zip", () => {
 
         extract.extractAllTo(target);
         const files = walk(target);
-        expect(files.sort()).to.deep.equal([pth.normalize("./test/xxx/test/test1.ext"), pth.normalize("./test/xxx/test/test2.ext"), pth.normalize("./test/xxx/test/test3.ext")]);
+        expect(files.sort()).to.deep.equal([ pth.normalize("./test/xxx/test/test1.ext"), pth.normalize("./test/xxx/test/test2.ext"), pth.normalize("./test/xxx/test/test3.ext") ]);
     });
 
     it("zip.extractEntryTo(entry, destination, false, true)", () => {
@@ -99,10 +99,10 @@ describe("adm-zip", () => {
     it("testing noSort option", () => {
         const content = "test";
         const comment = "comment";
-        let temp = null;
+        let temp: Buffer | null = null;
 
         // is sorting working - value "false"
-        const zip1 = new Zip({ noSort: false });
+        const zip1 = new Zip(undefined, { noSort: false });
         zip1.addFile("a.txt", content, comment);
         zip1.addFile("c.txt", content, comment);
         zip1.addFile("b.txt", content, comment);
@@ -110,10 +110,10 @@ describe("adm-zip", () => {
         temp = zip1.toBuffer();
 
         const zip1Entries = zip1.getEntries().map((e) => e.entryName);
-        expect(zip1Entries).to.deep.equal(["a.txt", "b.txt", "c.txt"]);
+        expect(zip1Entries).to.deep.equal([ "a.txt", "b.txt", "c.txt" ]);
 
         // skip sorting - value "true"
-        const zip2 = new Zip({ noSort: true });
+        const zip2 = new Zip(undefined, { noSort: true });
         zip1.addFile("a.txt", content, comment);
         zip2.addFile("c.txt", content, comment);
         zip2.addFile("b.txt", content, comment);
@@ -121,14 +121,14 @@ describe("adm-zip", () => {
         temp = zip2.toBuffer();
 
         const zip2Entries = zip2.getEntries().map((e) => e.entryName);
-        expect(zip2Entries).to.deep.equal(["c.txt", "b.txt", "a.txt"]);
+        expect(zip2Entries).to.deep.equal([ "c.txt", "b.txt", "a.txt" ]);
 
         var g = 9;
     });
 });
 
 function walk(dir) {
-    let results = [];
+    let results: string[] = [];
     const list = fs.readdirSync(dir);
     list.forEach(function (file) {
         file = dir + "/" + file;
@@ -145,7 +145,7 @@ function walk(dir) {
 }
 
 function walkD(dir) {
-    let results = [];
+    let results: string[] = [];
     const list = fs.readdirSync(dir);
     list.forEach(function (file) {
         file = dir + "/" + file;

@@ -1,12 +1,9 @@
-"use strict";
-
+import { AdmZip } from "../../adm-zip";
+import * as fs from "fs";
+import * as path from "path";
 (function () {
-    var fs = require("fs");
-    var path = require("path");
-    var Zip = require("../../adm-zip");
-
     // init the final zip file
-    var writeZip = new Zip();
+    var writeZip = new AdmZip();
 
     // file in root folder
     writeZip.addFile("root_file.txt", "root");
@@ -24,7 +21,7 @@
     writeZip.writeZip("test.zip");
 
     // read zip from disk
-    var readZip = new Zip("test.zip");
+    var readZip = new AdmZip("test.zip");
 
     // unpack everything
     readZip.extractAllTo("unzipped", true);
