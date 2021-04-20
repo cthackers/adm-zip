@@ -1,12 +1,10 @@
-const fs = require("./fileSystem").require();
-const pth = require("path");
+import * as fs from "fs";
+import pth from "path";
 
-fs.existsSync = fs.existsSync || pth.existsSync;
-
-module.exports = function (/*String*/ path) {
+export function FileAttr(path: string) {
     var _path = path || "",
         _obj = newAttr(),
-        _stat = null;
+        _stat: any = null;
 
     function newAttr() {
         return {
@@ -26,7 +24,7 @@ module.exports = function (/*String*/ path) {
         _obj.atime = _stat.atime;
         _obj.executable = (0o111 & _stat.mode) !== 0; // file is executable who ever har right not just owner
         _obj.readonly = (0o200 & _stat.mode) === 0; // readonly if owner has no write right
-        _obj.hidden = pth.basename(_path)[0] === ".";
+        _obj.hidden = pth.basename(_path)[ 0 ] === ".";
     } else {
         console.warn("Invalid path: " + _path);
     }
@@ -56,9 +54,9 @@ module.exports = function (/*String*/ path) {
             return _obj.executable;
         },
 
-        decodeAttributes: function () {},
+        decodeAttributes: function () { },
 
-        encodeAttributes: function () {},
+        encodeAttributes: function () { },
 
         toJSON: function () {
             return {
