@@ -6,7 +6,7 @@ export default function (/*Buffer|null*/ inBuffer, /** object */ options) {
     var entryList = [],
         entryTable = {},
         _comment = Buffer.alloc(0),
-        mainHeader = MainHeader(),
+        mainHeader = new MainHeader(),
         loadedEntries = false;
 
     // assign options
