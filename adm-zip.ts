@@ -1,5 +1,5 @@
 import { Constants, FileSystem, isWin, Errors, findFiles, writeFileTo, makeDir, writeFileToAsync } from "./util";
-const fs = FileSystem.fileSystem();
+const fs: typeof import('fs') = FileSystem.fileSystem();
 import pth from "path";
 import ZipEntry from "./zipEntry";
 import ZipFile from "./zipFile";
@@ -258,19 +258,20 @@ export class AdmZip {
      *
      * @param localPath
      * @param zipPath optional path inside zip
-     * @param filter optional RegExp or Function if files match will
+     * @param Filter optional RegExp or Function if files match will
      *               be included.
      */
-    addLocalFolder(localPath: string, zipPath?: string, filter?: RegExp | ((filename: string) => boolean)) {
+    addLocalFolder(localPath: string, zipPath?: string, Filter?: RegExp | ((filename: string) => boolean)) {
         // Prepare filter
-        if (filter instanceof RegExp) {
+        let filter: ((filename: string) => boolean) | undefined = undefined;
+        if (Filter instanceof RegExp) {
             // if filter is RegExp wrap it
             filter = (function (rx) {
                 return function (filename: string) {
                     return rx.test(filename);
                 };
-            })(filter);
-        } else if ("function" !== typeof filter) {
+            })(Filter);
+        } else if ("function" !== typeof Filter) {
             // if filter is not function we will replace it
             filter = function () {
                 return true;
@@ -290,7 +291,7 @@ export class AdmZip {
             if (items.length) {
                 items.forEach(function (filepath: string) {
                     var p = pth.relative(localPath, filepath).split("\\").join("/"); //windows fix
-                    if (filter && typeof filter == "function" && filter(p)) {
+                    if (filter?.(p)) {
                         var stats = fs.statSync(filepath);
                         if (stats.isFile()) {
                             self.addFile(zipPath + p, fs.readFileSync(filepath), "", stats);

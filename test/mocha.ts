@@ -122,12 +122,10 @@ describe("adm-zip", () => {
 
         const zip2Entries = zip2.getEntries().map((e) => e.entryName);
         expect(zip2Entries).to.deep.equal([ "c.txt", "b.txt", "a.txt" ]);
-
-        var g = 9;
     });
 });
 
-function walk(dir) {
+function walk(dir: string) {
     let results: string[] = [];
     const list = fs.readdirSync(dir);
     list.forEach(function (file) {
@@ -144,17 +142,17 @@ function walk(dir) {
     return results;
 }
 
-function walkD(dir) {
-    let results: string[] = [];
-    const list = fs.readdirSync(dir);
-    list.forEach(function (file) {
-        file = dir + "/" + file;
-        const stat = fs.statSync(file);
-        if (stat && stat.isDirectory()) {
-            /* Recurse into a subdirectory */
-            results = results.concat(walk(file));
-            results.push(file);
-        }
-    });
-    return results;
-}
+// function walkD(dir) {
+//     let results: string[] = [];
+//     const list = fs.readdirSync(dir);
+//     list.forEach(function (file) {
+//         file = dir + "/" + file;
+//         const stat = fs.statSync(file);
+//         if (stat && stat.isDirectory()) {
+//             /* Recurse into a subdirectory */
+//             results = results.concat(walk(file));
+//             results.push(file);
+//         }
+//     });
+//     return results;
+// }

@@ -1,8 +1,9 @@
-const { expect } = require("chai");
+import { expect } from "chai";
+import { MainHeader as mainHeader } from "../headers/mainHeader";
+import { EntryHeader as entryHeader } from "../headers/entryHeader";
 
 describe("headers", () => {
     describe("main-header", () => {
-        const mainHeader = require("../headers/mainHeader");
         // empty zip file
         const empty = Buffer.from("504b0506000000000000000000000000000000000000", "hex");
         const readBuf = Buffer.from("504b050600000000cac0cefaed0b0000eeffc0000000", "hex");
@@ -80,7 +81,6 @@ describe("headers", () => {
     });
 
     describe("entry-header", () => {
-        const entryHeader = require("../headers/entryHeader");
         const datestamp = [ 1981, 3, 1, 12, 10, 10 ];
         const readBuf = Buffer.from("504b0102140014000008080045618102efbeadde0001000000020000000000000000000000000000000000000000", "hex");
 
