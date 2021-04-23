@@ -1,5 +1,5 @@
 const { expect } = require("chai");
-const Attr = require("../util").FileAttr;
+//const Attr = require("../util").FileAttr;
 const Zip = require("../adm-zip");
 const pth = require("path");
 const fs = require("fs");
@@ -34,15 +34,29 @@ describe("adm-zip", () => {
         zip.addFile("../../../test1.ext", "content");
         zip.addFile("folder/../../test2.ext", "content");
         zip.addFile("test3.ext", "content");
-        const buf = zip.toBuffer();
 
-        const extract = new Zip(buf);
-        var zipEntries = zip.getEntries();
-        zipEntries.forEach((e) => zip.extractEntryTo(e, destination, false, true));
+        const extract = new Zip(zip.toBuffer());
+        zip.getEntries().forEach((e) => zip.extractEntryTo(e, destination, false, true));
 
         extract.extractAllTo(target);
         const files = walk(target);
         expect(files.sort()).to.deep.equal([pth.normalize("./test/xxx/test/test1.ext"), pth.normalize("./test/xxx/test/test2.ext"), pth.normalize("./test/xxx/test/test3.ext")]);
+    });
+
+    it("zip.addFile - add directory", () => {
+        const zip1 = new Zip();
+        zip1.addFile("dir11/", null);
+        zip1.addFile("dir12/", undefined);
+        zip1.addFile("dir13/", "");
+        zip1.addFile("dir11/dir21/");
+        zip1.addFile("dir11/dir22/");
+        zip1.addFile("dir12/dir23/");
+        zip1.addFile("dir13/dir24/");
+        zip1.addFile("dir11/dir22/test.txt", "content");
+        const zip2 = new Zip(zip1.toBuffer());
+        const zip2Entries = zip2.getEntries().map((e) => e.entryName);
+
+        expect(zip2Entries).to.deep.equal(["dir11/", "dir11/dir21/", "dir11/dir22/", "dir11/dir22/test.txt", "dir12/", "dir12/dir23/", "dir13/", "dir13/dir24/"]);
     });
 
     it("zip.extractEntryTo(entry, destination, false, true)", () => {
@@ -99,7 +113,6 @@ describe("adm-zip", () => {
     it("testing noSort option", () => {
         const content = "test";
         const comment = "comment";
-        let temp = null;
 
         // is sorting working - value "false"
         const zip1 = new Zip({ noSort: false });
@@ -107,7 +120,7 @@ describe("adm-zip", () => {
         zip1.addFile("c.txt", content, comment);
         zip1.addFile("b.txt", content, comment);
         zip1.addFile("a.txt", content, comment);
-        temp = zip1.toBuffer();
+        zip1.toBuffer();
 
         const zip1Entries = zip1.getEntries().map((e) => e.entryName);
         expect(zip1Entries).to.deep.equal(["a.txt", "b.txt", "c.txt"]);
@@ -118,12 +131,10 @@ describe("adm-zip", () => {
         zip2.addFile("c.txt", content, comment);
         zip2.addFile("b.txt", content, comment);
         zip2.addFile("a.txt", content, comment);
-        temp = zip2.toBuffer();
+        zip2.toBuffer();
 
         const zip2Entries = zip2.getEntries().map((e) => e.entryName);
         expect(zip2Entries).to.deep.equal(["c.txt", "b.txt", "a.txt"]);
-
-        var g = 9;
     });
 });
 
@@ -139,21 +150,6 @@ function walk(dir) {
         } else {
             /* Is a file */
             results.push(pth.normalize(file));
-        }
-    });
-    return results;
-}
-
-function walkD(dir) {
-    let results = [];
-    const list = fs.readdirSync(dir);
-    list.forEach(function (file) {
-        file = dir + "/" + file;
-        const stat = fs.statSync(file);
-        if (stat && stat.isDirectory()) {
-            /* Recurse into a subdirectory */
-            results = results.concat(walk(file));
-            results.push(file);
         }
     });
     return results;

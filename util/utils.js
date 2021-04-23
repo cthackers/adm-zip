@@ -1,15 +1,11 @@
 const fs = require("./fileSystem").require();
 const pth = require("path");
-
-fs.existsSync = fs.existsSync || pth.existsSync;
-
+const Constants = require("./constants");
 const isWin = typeof process === "object" && "win32" === process.platform;
 
 module.exports = (function () {
-    var crcTable = [],
-        Constants = require("./constants"),
-        Errors = require("./errors"),
-        PATH_SEPARATOR = pth.sep;
+    const crcTable = [];
+    const PATH_SEPARATOR = pth.sep;
 
     function genCRCTable() {
         for (let n = 0; n < 256; n++) {
@@ -76,9 +72,9 @@ module.exports = (function () {
             // Generate crcTable
             if (!crcTable.length) genCRCTable();
 
-            var off = 0,
-                len = buf.length,
-                crc = ~0;
+            let off = 0;
+            let len = buf.length;
+            let crc = ~0;
             while (--len >= 0) crc = crcTable[(crc ^ buf[off++]) & 0xff] ^ (crc >>> 8);
             // xor and cast as uint32 number
             return ~crc >>> 0;
@@ -181,26 +177,23 @@ module.exports = (function () {
             return findSync(path, true);
         },
 
-        getAttributes: function (/*String*/ path) {},
+        getAttributes: function () {},
 
-        setAttributes: function (/*String*/ path) {},
+        setAttributes: function () {},
 
         toBuffer: function (input) {
             if (Buffer.isBuffer(input)) {
                 return input;
+            } else if (input instanceof Uint8Array) {
+                return Buffer.from(input);
             } else {
-                if (input.length === 0) {
-                    return Buffer.alloc(0);
-                }
-                return Buffer.from(input, "utf8");
+                // expect string all other values are invalid and return empty buffer
+                return typeof input === "string" ? Buffer.from(input, "utf8") : Buffer.alloc(0);
             }
         },
 
         isWin, // Do we have windows system
 
-        readBigUInt64LE,
-
-        Constants: Constants,
-        Errors: Errors
+        readBigUInt64LE
     };
 })();

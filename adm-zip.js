@@ -531,7 +531,6 @@ module.exports = function (/**String*/ input, /** object */ options) {
             var target = sanitize(targetPath, outFileName && !item.isDirectory ? outFileName : maintainEntryPath ? entryName : pth.basename(entryName));
 
             if (item.isDirectory) {
-                target = pth.resolve(target, "..");
                 var children = _zip.getEntryChildren(item);
                 children.forEach(function (child) {
                     if (child.isDirectory) return;
