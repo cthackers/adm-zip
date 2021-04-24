@@ -3,7 +3,7 @@ import { Deflater, Inflater, ZipCrypto } from "./methods";
 import { Constants, crc32, Errors, toBuffer } from "./util";
 
 export default function (/*Buffer*/ input) {
-    var _entryHeader = EntryHeader(),
+    var _entryHeader = new EntryHeader(),
         _entryName = Buffer.alloc(0),
         _comment = Buffer.alloc(0),
         _isDirectory = false,
