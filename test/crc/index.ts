@@ -1,7 +1,7 @@
-const assert = require("assert");
-const path = require("path");
-const Zip = require("../../adm-zip");
-const rimraf = require("rimraf");
+import assert from "assert";
+import path from "path";
+import { AdmZip } from "../../adm-zip";
+import rimraf from "rimraf";
 
 describe("crc", () => {
     const destination = __dirname + "/xxx";
@@ -9,7 +9,7 @@ describe("crc", () => {
     beforeEach((done) => rimraf(destination, done));
 
     it("Good CRC", (done) => {
-        const goodZip = new Zip(path.join(__dirname, "good_crc.zip"));
+        const goodZip = new AdmZip(path.join(__dirname, "good_crc.zip"));
         const entries = goodZip.getEntries();
         assert(entries.length === 1, "Good CRC: Test archive contains exactly 1 file");
 
@@ -18,7 +18,7 @@ describe("crc", () => {
         });
         assert(testFile.length === 1, "Good CRC: lorem_ipsum.txt file exists as archive entry");
 
-        const testFileEntryName = testFile[0].entryName;
+        const testFileEntryName = testFile[ 0 ].entryName;
         goodZip.readAsTextAsync(testFileEntryName, function (data, err) {
             assert(!err, "Good CRC: error object not present");
             assert(data && data.length, "Good CRC: buffer not empty");
@@ -27,7 +27,7 @@ describe("crc", () => {
     });
 
     it("Bad CRC - async method returns err string", (done) => {
-        const badZip = new Zip(path.join(__dirname, "bad_crc.zip"));
+        const badZip = new AdmZip(path.join(__dirname, "bad_crc.zip"));
         const entries = badZip.getEntries();
         assert(entries.length === 1, "Bad CRC: Test archive contains exactly 1 file");
 
@@ -36,7 +36,7 @@ describe("crc", () => {
         });
         assert(testFile.length === 1, "Bad CRC: lorem_ipsum.txt file exists as archive entry");
 
-        const testFileEntryName = testFile[0].entryName;
+        const testFileEntryName = testFile[ 0 ].entryName;
         badZip.readAsTextAsync(testFileEntryName, function (data, err) {
             assert(data && data.length, "Bad CRC: buffer not empty");
             assert(err, "Bad CRC: error object present");
@@ -45,12 +45,12 @@ describe("crc", () => {
     });
 
     it("Bad CRC - sync method throws an error object", (done) => {
-        const badZip = new Zip(path.join(__dirname, "bad_crc.zip"));
+        const badZip = new AdmZip(path.join(__dirname, "bad_crc.zip"));
         const entries = badZip.getEntries();
         const testFile = entries.filter(function (entry) {
             return entry.entryName === "lorem_ipsum.txt";
         });
-        const testFileEntryName = testFile[0].entryName;
+        const testFileEntryName = testFile[ 0 ].entryName;
 
         try {
             badZip.readAsText(testFileEntryName);
@@ -63,13 +63,13 @@ describe("crc", () => {
     });
 
     it("CRC is not changed after re-created", () => {
-        const goodZip = new Zip(path.join(__dirname, "good_crc.zip"));
-        const original = goodZip.getEntries()[0].header.crc;
-        assert.equal(original, 3528145192);
+        const goodZip = new AdmZip(path.join(__dirname, "good_crc.zip"));
+        const original = goodZip.getEntries()[ 0 ].header.crc;
+        assert.strictEqual(original, 3528145192);
         const newZipPath = destination + "/good_crc_new.zip";
         goodZip.writeZip(newZipPath);
-        const newZip = new Zip(newZipPath);
-        const actual = newZip.getEntries()[0].header.crc;
-        assert.equal(actual, original);
+        const newZip = new AdmZip(newZipPath);
+        const actual = newZip.getEntries()[ 0 ].header.crc;
+        assert.strictEqual(actual, original);
     });
 });

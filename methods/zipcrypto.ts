@@ -1,11 +1,9 @@
-"use strict";
-
 // node crypt, we use it for generate salt
 // eslint-disable-next-line node/no-unsupported-features/node-builtins
-const { randomFillSync } = require("crypto");
+import { randomFillSync } from "crypto";
 
 // generate CRC32 lookup table
-const crctable = new Uint32Array(256).map((t, crc) => {
+const crctable = new Uint32Array(256).map((_, crc) => {
     for (let j = 0; j < 8; j++) {
         if (0 !== (crc & 1)) {
             crc = (crc >>> 1) ^ 0xedb88320;
@@ -17,11 +15,11 @@ const crctable = new Uint32Array(256).map((t, crc) => {
 });
 
 // C-style uInt32 Multiply (discards higher bits, when JS multiply discards lower bits)
-const uMul = (a, b) => Math.imul(a, b) >>> 0;
+const uMul = (a: number, b: number) => Math.imul(a, b) >>> 0;
 
 // crc32 byte single update (actually same function is part of utils.crc32 function :) )
-const crc32update = (pCrc32, bval) => {
-    return crctable[(pCrc32 ^ bval) & 0xff] ^ (pCrc32 >>> 8);
+const crc32update = (pCrc32: number, bval: number) => {
+    return crctable[ (pCrc32 ^ bval) & 0xff ] ^ (pCrc32 >>> 8);
 };
 
 // function for generating salt for encrytion header
@@ -38,44 +36,45 @@ const genSalt = () => {
 genSalt.node = () => {
     const salt = Buffer.alloc(12);
     const len = salt.length;
-    for (let i = 0; i < len; i++) salt[i] = (Math.random() * 256) & 0xff;
+    for (let i = 0; i < len; i++) salt[ i ] = (Math.random() * 256) & 0xff;
     return salt;
 };
 
 // general config
-const config = {
+const config: { genSalt: () => Buffer } = {
     genSalt
 };
+export class Initkeys {
+    keys: Uint32Array;
 
-// Class Initkeys handles same basic ops with keys
-function Initkeys(pw) {
-    const pass = Buffer.isBuffer(pw) ? pw : Buffer.from(pw);
-    this.keys = new Uint32Array([0x12345678, 0x23456789, 0x34567890]);
-    for (let i = 0; i < pass.length; i++) {
-        this.updateKeys(pass[i]);
+    constructor(pw: any) {
+        const pass = Buffer.isBuffer(pw) ? pw : Buffer.from(pw);
+        this.keys = new Uint32Array([ 0x12345678, 0x23456789, 0x34567890 ]);
+        for (let i = 0; i < pass.length; i++) {
+            this.updateKeys(pass[ i ]);
+        }
     }
+    updateKeys(byteValue: number) {
+        const keys = this.keys;
+        keys[ 0 ] = crc32update(keys[ 0 ], byteValue);
+        keys[ 1 ] += keys[ 0 ] & 0xff;
+        keys[ 1 ] = uMul(keys[ 1 ], 134775813) + 1;
+        keys[ 2 ] = crc32update(keys[ 2 ], keys[ 1 ] >>> 24);
+        return byteValue;
+    };
+    next() {
+        const k = (this.keys[ 2 ] | 2) >>> 0; // key
+        return (uMul(k, k ^ 1) >> 8) & 0xff; // decode
+    };
 }
 
-Initkeys.prototype.updateKeys = function (byteValue) {
-    const keys = this.keys;
-    keys[0] = crc32update(keys[0], byteValue);
-    keys[1] += keys[0] & 0xff;
-    keys[1] = uMul(keys[1], 134775813) + 1;
-    keys[2] = crc32update(keys[2], keys[1] >>> 24);
-    return byteValue;
-};
 
-Initkeys.prototype.next = function () {
-    const k = (this.keys[2] | 2) >>> 0; // key
-    return (uMul(k, k ^ 1) >> 8) & 0xff; // decode
-};
-
-function make_decrypter(/*Buffer*/ pwd) {
+function make_decrypter(pwd: Buffer | string) {
     // 1. Stage initialize key
     const keys = new Initkeys(pwd);
 
     // return decrypter function
-    return function (/*Buffer*/ data) {
+    return function (data: Buffer) {
         // result - we create new Buffer for results
         const result = Buffer.alloc(data.length);
         let pos = 0;
@@ -83,31 +82,31 @@ function make_decrypter(/*Buffer*/ pwd) {
         for (let c of data) {
             //c ^= keys.next();
             //result[pos++] = c; // decode & Save Value
-            result[pos++] = keys.updateKeys(c ^ keys.next()); // update keys with decoded byte
+            result[ pos++ ] = keys.updateKeys(c ^ keys.next()); // update keys with decoded byte
         }
         return result;
     };
 }
 
-function make_encrypter(/*Buffer*/ pwd) {
+function make_encrypter(pwd: Buffer | string) {
     // 1. Stage initialize key
     const keys = new Initkeys(pwd);
 
     // return encrypting function, result and pos is here so we dont have to merge buffers later
-    return function (/*Buffer*/ data, /*Buffer*/ result, /* Number */ pos = 0) {
+    return function (data: Buffer, result: Buffer, /* Number */ pos = 0) {
         // result - we create new Buffer for results
         if (!result) result = Buffer.alloc(data.length);
         // process input data
         for (let c of data) {
             const k = keys.next(); // save key byte
-            result[pos++] = c ^ k; // save val
+            result[ pos++ ] = c ^ k; // save val
             keys.updateKeys(c); // update keys with decoded byte
         }
         return result;
     };
 }
 
-function decrypt(/*Buffer*/ data, /*Object*/ header, /*String, Buffer*/ pwd) {
+export function decrypt(data: string | number | boolean | Buffer | null | undefined, header: any, pwd: string | Buffer) {
     if (!data || !Buffer.isBuffer(data) || data.length < 12) {
         return Buffer.alloc(0);
     }
@@ -119,7 +118,7 @@ function decrypt(/*Buffer*/ data, /*Object*/ header, /*String, Buffer*/ pwd) {
     const salt = decrypter(data.slice(0, 12));
 
     // 3. does password meet expectations
-    if (salt[11] !== header.crc >>> 24) {
+    if (salt[ 11 ] !== header.crc >>> 24) {
         throw "ADM-ZIP: Wrong Password";
     }
 
@@ -128,7 +127,7 @@ function decrypt(/*Buffer*/ data, /*Object*/ header, /*String, Buffer*/ pwd) {
 }
 
 // lets add way to populate salt, NOT RECOMMENDED for production but maybe useful for testing general functionality
-function _salter(data) {
+export function _salter(data?: Buffer | "node") {
     if (Buffer.isBuffer(data) && data.length >= 12) {
         // be aware - currently salting buffer data is modified
         config.genSalt = function () {
@@ -143,7 +142,7 @@ function _salter(data) {
     }
 }
 
-function encrypt(/*Buffer*/ data, /*Object*/ header, /*String, Buffer*/ pwd, /*Boolean*/ oldlike = false) {
+export function encrypt(data: Buffer | string | any, header: any, pwd: string | Buffer, oldlike = false) {
     // 1. test data if data is not Buffer we make buffer from it
     if (data == null) data = Buffer.alloc(0);
     // if data is not buffer be make buffer from it
@@ -154,10 +153,10 @@ function encrypt(/*Buffer*/ data, /*Object*/ header, /*String, Buffer*/ pwd, /*B
 
     // 3. generate salt (12-bytes of random data)
     const salt = config.genSalt();
-    salt[11] = (header.crc >>> 24) & 0xff;
+    salt[ 11 ] = (header.crc >>> 24) & 0xff;
 
     // old implementations (before PKZip 2.04g) used two byte check
-    if (oldlike) salt[10] = (header.crc >>> 16) & 0xff;
+    if (oldlike) salt[ 10 ] = (header.crc >>> 16) & 0xff;
 
     // 4. create output
     const result = Buffer.alloc(data.length + 12);
@@ -166,5 +165,3 @@ function encrypt(/*Buffer*/ data, /*Object*/ header, /*String, Buffer*/ pwd, /*B
     // finally encode content
     return encrypter(data, result, 12);
 }
-
-module.exports = { decrypt, encrypt, _salter };

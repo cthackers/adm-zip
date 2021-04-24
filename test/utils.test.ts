@@ -1,6 +1,5 @@
-"use strict";
-const { expect } = require("chai");
-const { crc32 } = require("../util/utils");
+import { expect } from "chai";
+import { crc32 } from "../util/utils";
 
 describe("crc32 function", () => {
     // tests how crc32 function handles strings as input

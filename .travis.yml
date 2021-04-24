@@ -3,9 +3,9 @@ sudo: false
 language: node_js
 
 node_js:
-  - "stable"
-  - 12
-  - 10
+  - 15
+  - 16
+  - 14
 
 cache:
   directories:
