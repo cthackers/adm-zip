@@ -136,6 +136,8 @@ export default function (/*Buffer*/ input) {
                             callback && callback(compressedData);
                         });
                     }
+                    //@ts-ignore
+                    deflater = null;
                     break;
             }
         } else if (async && callback) {

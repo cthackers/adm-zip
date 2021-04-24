@@ -43,6 +43,7 @@ export default function (/*Buffer|null*/ inBuffer, /** object */ options) {
         loadedEntries = true;
         entryTable = {};
         entryList = new Array(mainHeader.diskEntries); // total number of entries
+
         var index = mainHeader.offset; // offset of first CEN header
         for (var i = 0; i < entryList.length; i++) {
             var tmp = index,

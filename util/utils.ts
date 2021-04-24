@@ -176,17 +176,13 @@ export function findFiles(path: string) {
     return findSync(path, true);
 };
 
-// getAttributes: function (path: string) { },
-
-// setAttributes: function (path: string) { },
-
-export function toBuffer(input: Buffer | string) {
+export function toBuffer(input: Buffer | string | Uint8Array) {
     if (Buffer.isBuffer(input)) {
         return input;
+    } else if (input instanceof Uint8Array) {
+        return Buffer.from(input);
     } else {
-        if (input.length === 0) {
-            return Buffer.alloc(0);
-        }
-        return Buffer.from(input, "utf8");
+        // expect string all other values are invalid and return empty buffer
+        return typeof input === "string" ? Buffer.from(input, "utf8") : Buffer.alloc(0);
     }
 }

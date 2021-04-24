@@ -1,11 +1,25 @@
 import { Constants, Errors, readBigUInt64LE } from "../util";
 /* The entries in the end of central directory */
 export class MainHeader {
-    diskEntries = 0
-    totalEntries = 0
+    private _diskEntries = 0
+    private _totalEntries = 0
     size = 0
     offset = 0
     commentLength = 0
+
+    set diskEntries(val: number) {
+        this._diskEntries = this._totalEntries = val;
+    }
+    get diskEntries() {
+        return this._diskEntries
+    }
+
+    set totalEntries(val: number) {
+        this._totalEntries = this._diskEntries = val;
+    }
+    get totalEntries() {
+        return this._totalEntries
+    }
 
     get mainHeaderSize() {
         return Constants.ENDHDR + this.commentLength;
@@ -22,9 +36,9 @@ export class MainHeader {
 
         if (data.readUInt32LE(0) === Constants.ENDSIG) {
             // number of entries on this volume
-            this.diskEntries = data.readUInt16LE(Constants.ENDSUB);
+            this._diskEntries = data.readUInt16LE(Constants.ENDSUB);
             // total number of entries
-            this.totalEntries = data.readUInt16LE(Constants.ENDTOT);
+            this._totalEntries = data.readUInt16LE(Constants.ENDTOT);
             // central directory size in bytes
             this.size = data.readUInt32LE(Constants.ENDSIZ);
             // offset of first CEN header

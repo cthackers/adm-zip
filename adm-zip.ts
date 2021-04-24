@@ -38,8 +38,8 @@ function fixPath(zipPath: string) {
 }
 export type AdmZipOptions = { noSort?: boolean, readEntries?: boolean, method?: Constants, input?: string | Uint8Array, filename?: string }
 export class AdmZip {
-    _zip: ZipFileType;
-    opts: AdmZipOptions;
+    private _zip: ZipFileType;
+    private opts: AdmZipOptions;
 
     constructor(input?: string | Buffer | null, options?: AdmZipOptions) {
         let inBuffer: Buffer | null = null;
@@ -50,7 +50,6 @@ export class AdmZip {
         if (input instanceof Buffer) {
             inBuffer = input;
             this.opts.method = Constants.BUFFER;
-            input = undefined;
         } else if (input && "string" === typeof input) {
             // load zip file
             if (fs.existsSync(input)) {
@@ -402,7 +401,7 @@ export class AdmZip {
      * @param {string} comment - file comment
      * @param {number | object} attr - number as unix file permissions, object as filesystem Stats object
      */
-    addFile(entryName: string, content: Buffer | string, comment?: string | undefined, attr?: number | any) {
+    addFile(entryName: string, content?: Buffer | string, comment?: string | undefined, attr?: number | any) {
         let entry = this.getEntry(entryName);
         const update = entry != null;
 
@@ -454,7 +453,7 @@ export class AdmZip {
      * @return Array
      */
     getEntries() {
-        return this._zip ? this._zip.entries : [];
+        return this._zip?.entries ?? [];
     }
 
     /**
@@ -515,7 +514,6 @@ export class AdmZip {
         var target = sanitize(targetPath, (outFileName && !item.isDirectory ? outFileName : maintainEntryPath) ? entryName : pth.basename(entryName));
 
         if (item.isDirectory) {
-            target = pth.resolve(target, "..");
             var children = this._zip.getEntryChildren(item);
             children.forEach(function (child: any) {
                 if (child.isDirectory) return;
