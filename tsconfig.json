@@ -1,17 +1,17 @@
 {
-    "compilerOptions": {
-        "incremental": true,
-        "target": "ESNext",
-        "module": "ESNext",
-        "allowJs": true,
-        "checkJs": true,
-        "strict": true,
-        "moduleResolution": "node",
-        "esModuleInterop": true,
-        "alwaysStrict": true,
-        "skipLibCheck": true,
-        "noImplicitAny": false,
-        "forceConsistentCasingInFileNames": true,
-        "outDir": "./out/"
-    }
+  "compilerOptions": {
+    "incremental": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "allowJs": true,
+    "checkJs": true,
+    "strict": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "alwaysStrict": true,
+    "skipLibCheck": true,
+    "noImplicitAny": false,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./out/"
+  }
 }

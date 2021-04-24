@@ -19,7 +19,7 @@ describe("method - zipcrypto decrypt", () => {
 
     // test invalid input data
     it("handles invalid data field values / types", () => {
-        for (const data of [ undefined, null, "str", true, false, 6, Buffer.alloc(4) ]) {
+        for (const data of [undefined, null, "str", true, false, 6, Buffer.alloc(4)]) {
             const result = decrypt(data, { crc: source.crc }, source.pwdok);
             expect(result).to.have.lengthOf(0);
         }
@@ -108,7 +108,7 @@ describe("method - zipcrypto encrypt", () => {
 
     // test how encrytion will handle some random data
     it("test encrypting and decryting with some javascript objects", () => {
-        const tests = [ true, null, false, undefined, {}, [], 747, new Date(), [ {} ] ];
+        const tests = [true, null, false, undefined, {}, [], 747, new Date(), [{}]];
         const head: any = {};
 
         for (const test of tests) {

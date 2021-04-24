@@ -1,56 +1,56 @@
 {
-    "name": "adm-zip",
-    "version": "0.5.5",
-    "description": "Javascript implementation of zip for nodejs with support for electron original-fs. Allows user to create or extract zip files both in memory or to/from disk",
-    "scripts": {
-        "test": "cross-env TS_NODE_COMPILER_OPTIONS='{ \"module\": \"commonjs\" }' mocha -r ts-node/register test/*.ts -R spec",
-        "test:format": "npm run format:prettier:raw -- --check",
-        "format": "npm run format:prettier",
-        "format:prettier": "npm run format:prettier:raw -- --write",
-        "format:prettier:raw": "prettier \"**/*.{js,yml,json}\""
-    },
-    "keywords": [
-        "zip",
-        "methods",
-        "archive",
-        "unzip"
-    ],
-    "homepage": "https://github.com/cthackers/adm-zip",
-    "author": "Nasca Iacob <sy@another-d-mention.ro> (https://github.com/cthackers)",
-    "bugs": {
-        "email": "sy@another-d-mention.ro",
-        "url": "https://github.com/cthackers/adm-zip/issues"
-    },
-    "license": "MIT",
-    "files": [
-        "adm-zip.js",
-        "headers",
-        "methods",
-        "util",
-        "zipEntry.js",
-        "zipFile.js",
-        "LICENSE"
-    ],
-    "main": "adm-zip.js",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/cthackers/adm-zip.git"
-    },
-    "engines": {
-        "node": ">=6.0"
-    },
-    "devDependencies": {
-        "@types/chai": "^4.2.16",
-        "@types/mocha": "^8.2.2",
-        "@types/rimraf": "^3.0.0",
-        "chai": "^4.3.4",
-        "mocha": "^8.3.2",
-        "prettier": "^2.2.1",
-        "rimraf": "^3.0.2",
-        "ts-node": "^9.1.1"
-    },
-    "dependencies": {
-        "cross-env": "^7.0.3",
-        "typescript": "^4.2.4"
-    }
+  "name": "adm-zip",
+  "version": "0.5.5",
+  "description": "Javascript implementation of zip for nodejs with support for electron original-fs. Allows user to create or extract zip files both in memory or to/from disk",
+  "scripts": {
+    "test": "cross-env TS_NODE_COMPILER_OPTIONS='{ \"module\": \"commonjs\" }' mocha -r ts-node/register test/*.ts -R spec",
+    "test:format": "npm run format:prettier:raw -- --check",
+    "format": "npm run format:prettier",
+    "format:prettier": "npm run format:prettier:raw -- --write",
+    "format:prettier:raw": "prettier \"**/*.{ts,js,yml,json}\""
+  },
+  "keywords": [
+    "zip",
+    "methods",
+    "archive",
+    "unzip"
+  ],
+  "homepage": "https://github.com/cthackers/adm-zip",
+  "author": "Nasca Iacob <sy@another-d-mention.ro> (https://github.com/cthackers)",
+  "bugs": {
+    "email": "sy@another-d-mention.ro",
+    "url": "https://github.com/cthackers/adm-zip/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "adm-zip.js",
+    "headers",
+    "methods",
+    "util",
+    "zipEntry.js",
+    "zipFile.js",
+    "LICENSE"
+  ],
+  "main": "adm-zip.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cthackers/adm-zip.git"
+  },
+  "engines": {
+    "node": ">=6.0"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.2.16",
+    "@types/mocha": "^8.2.2",
+    "@types/node": "^14.14.41",
+    "@types/rimraf": "^3.0.0",
+    "chai": "^4.3.4",
+    "cross-env": "^7.0.3",
+    "mocha": "^8.3.2",
+    "prettier": "^2.2.1",
+    "rimraf": "^3.0.2",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.2.4"
+  },
+  "dependencies": {}
 }

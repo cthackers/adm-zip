@@ -10,18 +10,18 @@ const PATH_SEPARATOR = pth.sep;
 function genCRCTable() {
     for (let n = 0; n < 256; n++) {
         let c = n;
-        for (let k = 8; --k >= 0;)
+        for (let k = 8; --k >= 0; )
             if ((c & 1) !== 0) {
                 c = 0xedb88320 ^ (c >>> 1);
             } else {
                 c = c >>> 1;
             }
-        crcTable[ n ] = c >>> 0;
+        crcTable[n] = c >>> 0;
     }
 }
 
 function mkdirSync(/*String*/ path: string) {
-    var resolvedPath = path.split(PATH_SEPARATOR)[ 0 ];
+    var resolvedPath = path.split(PATH_SEPARATOR)[0];
     path.split(PATH_SEPARATOR).forEach(function (name) {
         if (!name || name.substr(-1, 1) === ":") return;
         resolvedPath += PATH_SEPARATOR + name;
@@ -62,7 +62,7 @@ export function readBigUInt64LE(buffer: Buffer, index: number) {
 
 export function makeDir(path: string) {
     mkdirSync(path);
-};
+}
 
 export function crc32(buf: string | Buffer) {
     if (typeof buf === "string") {
@@ -74,10 +74,10 @@ export function crc32(buf: string | Buffer) {
     var off = 0,
         len = buf.length,
         crc = ~0;
-    while (--len >= 0) crc = crcTable[ (crc ^ buf[ off++ ]) & 0xff ] ^ (crc >>> 8);
+    while (--len >= 0) crc = crcTable[(crc ^ buf[off++]) & 0xff] ^ (crc >>> 8);
     // xor and cast as uint32 number
     return ~crc >>> 0;
-};
+}
 
 export function methodToString(method: number) {
     switch (method) {
@@ -88,7 +88,7 @@ export function methodToString(method: number) {
         default:
             return "UNSUPPORTED (" + method + ")";
     }
-};
+}
 
 export function writeFileTo(path: string, content: Buffer, overwrite: Boolean, attr?: number) {
     if (fs.existsSync(path)) {
@@ -170,11 +170,11 @@ export function writeFileToAsync(path: string, content: Buffer, overwrite: boole
             });
         });
     });
-};
+}
 
 export function findFiles(path: string) {
     return findSync(path, true);
-};
+}
 
 export function toBuffer(input: Buffer | string | Uint8Array) {
     if (Buffer.isBuffer(input)) {

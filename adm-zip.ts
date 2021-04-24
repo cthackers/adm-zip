@@ -1,17 +1,24 @@
 import { Constants, FileSystem, isWin, Errors, findFiles, writeFileTo, makeDir, writeFileToAsync } from "./util";
-const fs: typeof import('fs') = FileSystem.fileSystem();
+const fs: typeof import("fs") = FileSystem.fileSystem();
 import pth from "path";
 import ZipEntry from "./zipEntry";
 import ZipFile from "./zipFile";
 import { ZipFileType } from "./types";
 
-const defaultOptions = {
+export type AdmZipOptions = { noSort?: boolean; readEntries?: boolean; method?: ZipType; input?: string | Uint8Array; filename?: string };
+export enum ZipType {
+    NONE = 0,
+    BUFFER,
+    FILE
+}
+
+const defaultOptions: AdmZipOptions = {
     // option "noSort" : if true it disables files sorting
     noSort: false,
     // read entries during load (initial loading may be slower)
     readEntries: false,
     // default method is none
-    method: Constants.NONE
+    method: ZipType.NONE
 };
 
 function canonical(p: string) {
@@ -30,13 +37,12 @@ function sanitize(prefix: string, name: string) {
     }
     return pth.normalize(pth.join(prefix, pth.basename(name)));
 }
-
 function fixPath(zipPath: string) {
     const { join, normalize, sep } = pth.posix;
     // convert windows file separators and normalize
     return join(".", normalize(sep + zipPath.split("\\").join(sep) + sep));
 }
-export type AdmZipOptions = { noSort?: boolean, readEntries?: boolean, method?: Constants, input?: string | Uint8Array, filename?: string }
+
 export class AdmZip {
     private _zip: ZipFileType;
     private opts: AdmZipOptions;
@@ -49,11 +55,11 @@ export class AdmZip {
 
         if (input instanceof Buffer) {
             inBuffer = input;
-            this.opts.method = Constants.BUFFER;
+            this.opts.method = ZipType.BUFFER;
         } else if (input && "string" === typeof input) {
             // load zip file
             if (fs.existsSync(input)) {
-                this.opts.method = Constants.FILE;
+                this.opts.method = ZipType.FILE;
                 this.opts.filename = input;
                 inBuffer = fs.readFileSync(input);
             } else {
@@ -71,8 +77,8 @@ export class AdmZip {
      *
      * @return Buffer or Null in case of error
      */
-    readFile(entry: string | typeof ZipEntry, pass: Buffer | string) {
-        var item = this.getEntry(entry);
+    readFile(entry: string | typeof ZipEntry, pass: Buffer | string): Buffer | null {
+        const item = this.getEntry(entry);
         return (item && item.getData(pass)) || null;
     }
 
@@ -83,8 +89,8 @@ export class AdmZip {
      *
      * @return Buffer or Null in case of error
      */
-    readFileAsync(entry: string | typeof ZipEntry, callback: (error: null | Buffer, respn: string) => void) {
-        var item = this.getEntry(entry);
+    readFileAsync(entry: string | typeof ZipEntry, callback: (error: null | Buffer, respn: string) => void): void {
+        const item = this.getEntry(entry);
         if (item) {
             item.getDataAsync(callback);
         } else {
@@ -99,10 +105,10 @@ export class AdmZip {
      *
      * @return String
      */
-    readAsText(/**Object*/ entry: string | typeof ZipEntry, /**String=*/ encoding: string = "utf8") {
-        var item = this.getEntry(entry);
+    readAsText(/**Object*/ entry: string | typeof ZipEntry, /**String=*/ encoding: string = "utf8"): string {
+        const item = this.getEntry(entry);
         if (item) {
-            var data = item.getData();
+            const data = item.getData();
             if (data && data.length) {
                 return data.toString(encoding);
             }
@@ -118,8 +124,8 @@ export class AdmZip {
      *
      * @return String
      */
-    readAsTextAsync(/**Object*/ entry, /**Function*/ callback, /**String=*/ encoding?: string) {
-        var item = this.getEntry(entry);
+    readAsTextAsync(/**Object*/ entry, /**Function*/ callback, /**String=*/ encoding?: string): void {
+        const item = this.getEntry(entry);
         if (item) {
             item.getDataAsync(function (data, err) {
                 if (err) {
@@ -143,9 +149,9 @@ export class AdmZip {
      *
      * @param entry
      */
-    deleteFile(/**Object*/ entry: string) {
+    deleteFile(/**Object*/ entry: string): void {
         // @TODO: test deleteFile
-        var item = this.getEntry(entry);
+        const item = this.getEntry(entry);
         if (item) {
             this._zip.deleteEntry(item.entryName);
         }
@@ -156,7 +162,7 @@ export class AdmZip {
      *
      * @param comment
      */
-    addZipComment(/**String*/ comment: string) {
+    addZipComment(/**String*/ comment: string): void {
         // @TODO: test addZipComment
         this._zip.comment = comment;
     }
@@ -166,7 +172,7 @@ export class AdmZip {
      *
      * @return String
      */
-    getZipComment() {
+    getZipComment(): string {
         return this._zip.comment || "";
     }
 
@@ -177,8 +183,8 @@ export class AdmZip {
      * @param entry
      * @param comment
      */
-    addZipEntryComment(entry: string | typeof ZipEntry, /**String*/ comment: string) {
-        var item = this.getEntry(entry);
+    addZipEntryComment(entry: string | typeof ZipEntry, /**String*/ comment: string): void {
+        const item = this.getEntry(entry);
         if (item) {
             item.comment = comment;
         }
@@ -190,8 +196,8 @@ export class AdmZip {
      * @param entry
      * @return String
      */
-    getZipEntryComment(entry: string | typeof ZipEntry) {
-        var item = this.getEntry(entry);
+    getZipEntryComment(entry: string | typeof ZipEntry): string {
+        const item = this.getEntry(entry);
         if (item) {
             return item.comment || "";
         }
@@ -204,8 +210,8 @@ export class AdmZip {
      * @param entry
      * @param content
      */
-    updateFile(entry: string | typeof ZipEntry, content: Buffer) {
-        var item = this.getEntry(entry);
+    updateFile(entry: string | typeof ZipEntry, content: Buffer): void {
+        const item = this.getEntry(entry);
         if (item) {
             item.setData(content);
         }
@@ -218,13 +224,13 @@ export class AdmZip {
      * @param zipPath Optional path inside the zip
      * @param zipName Optional name for the file
      */
-    addLocalFile(localPath: string, oldZipPath?: string, zipName?: string, comment?: string) {
+    addLocalFile(localPath: string, oldZipPath?: string, zipName?: string, comment?: string): void {
         if (fs.existsSync(localPath)) {
             // fix ZipPath
             let zipPath = oldZipPath ? fixPath(oldZipPath) : "";
 
             // p - local file name
-            var p = localPath.split("\\").join("/").split("/").pop()!;
+            const p = localPath.split("\\").join("/").split("/").pop()!;
 
             // add file name into zippath
             zipPath += zipName ? zipName : p;
@@ -247,7 +253,7 @@ export class AdmZip {
      * @param Filter optional RegExp or Function if files match will
      *               be included.
      */
-    addLocalFolder(localPath: string, zipPath?: string, Filter?: RegExp | ((filename: string) => boolean)) {
+    addLocalFolder(localPath: string, zipPath?: string, Filter?: RegExp | ((filename: string) => boolean)): void {
         // Prepare filter
         let filter: ((filename: string) => boolean) | undefined = undefined;
         if (Filter instanceof RegExp) {
@@ -300,7 +306,12 @@ export class AdmZip {
      * @param filter optional RegExp or Function if files match will
      *               be included.
      */
-    addLocalFolderAsync(localPath: string, callback: (success?: boolean, err?: string | NodeJS.ErrnoException) => void, zipPath?: string, preFilter?: RegExp | ((filename: string) => boolean)) {
+    addLocalFolderAsync(
+        localPath: string,
+        callback: (success?: boolean, err?: string | NodeJS.ErrnoException) => void,
+        zipPath?: string,
+        preFilter?: RegExp | ((filename: string) => boolean)
+    ): void {
         let filter: (filename: string) => boolean;
         if (preFilter instanceof RegExp) {
             filter = (function (rx) {
@@ -320,7 +331,7 @@ export class AdmZip {
         // normalize the path first
         localPath = pth.normalize(localPath);
 
-        var self = this;
+        const self = this;
         fs.open(localPath, "r", function (err: any) {
             if (err && err.code === "ENOENT") {
                 callback(undefined, Errors.FILE_NOT_FOUND.replace("%s", localPath));
@@ -333,7 +344,7 @@ export class AdmZip {
                 var next = function () {
                     i += 1;
                     if (i < items.length) {
-                        var filepath = items[ i ];
+                        var filepath = items[i];
                         var p = pth.relative(localPath, filepath).split("\\").join("/"); //windows fix
                         p = p
                             .normalize("NFD")
@@ -376,7 +387,7 @@ export class AdmZip {
      * @param {string} props.zipPath - optional path inside zip
      * @param {regexp, function} props.filter - RegExp or Function if files match will be included.
      */
-    addLocalFolderPromise(localPath: string, props: { filter?: any, zipPath?: string }) {
+    addLocalFolderPromise(localPath: string, props: { filter?: any; zipPath?: string }): Promise<AdmZip> {
         return new Promise((resolve, reject) => {
             const { filter, zipPath } = Object.assign({}, props);
             this.addLocalFolderAsync(
@@ -401,7 +412,7 @@ export class AdmZip {
      * @param {string} comment - file comment
      * @param {number | object} attr - number as unix file permissions, object as filesystem Stats object
      */
-    addFile(entryName: string, content?: Buffer | string, comment?: string | undefined, attr?: number | any) {
+    addFile(entryName: string, content?: Buffer | string, comment?: string | undefined, attr?: number | any): void {
         let entry = this.getEntry(entryName);
         const update = entry != null;
 
@@ -420,7 +431,7 @@ export class AdmZip {
         }
 
         // Set file attribute
-        var fileattr = entry.isDirectory ? 0x10 : 0; // (MS-DOS directory flag)
+        let fileattr = entry.isDirectory ? 0x10 : 0; // (MS-DOS directory flag)
 
         // extended attributes field for Unix
         if (!isWin) {
@@ -452,7 +463,7 @@ export class AdmZip {
      *
      * @return Array
      */
-    getEntries() {
+    getEntries(): any[] {
         return this._zip?.entries ?? [];
     }
 
@@ -477,11 +488,11 @@ export class AdmZip {
         return null;
     }
 
-    getEntryCount() {
+    getEntryCount(): number {
         return this._zip.getEntryCount();
     }
 
-    forEach(callback: () => void) {
+    forEach(callback: () => void): void {
         return this._zip.forEach(callback);
     }
 
@@ -504,14 +515,14 @@ export class AdmZip {
 
         const maintainEntryPath = oldMaintainEntryPath ?? true;
 
-        var item = this.getEntry(entry);
+        const item = this.getEntry(entry);
         if (!item) {
             throw new Error(Errors.NO_ENTRY);
         }
 
-        var entryName = canonical(item.entryName);
+        const entryName = canonical(item.entryName);
 
-        var target = sanitize(targetPath, (outFileName && !item.isDirectory ? outFileName : maintainEntryPath) ? entryName : pth.basename(entryName));
+        const target = sanitize(targetPath, (outFileName && !item.isDirectory ? outFileName : maintainEntryPath) ? entryName : pth.basename(entryName));
 
         if (item.isDirectory) {
             var children = this._zip.getEntryChildren(item);
@@ -547,7 +558,7 @@ export class AdmZip {
      * Test the archive
      *
      */
-    test(pass: any) {
+    test(pass: Buffer | string): boolean {
         if (!this._zip) {
             return false;
         }
@@ -557,7 +568,7 @@ export class AdmZip {
                 if (typeof entry != "string" && (entry as any).isDirectory) {
                     continue;
                 }
-                var content = this._zip.entries[ entry ].getData(pass);
+                var content = this._zip.entries[entry].getData(pass);
                 if (!content) {
                     return false;
                 }
@@ -575,7 +586,7 @@ export class AdmZip {
      * @param overwrite If the file already exists at the target path, the file will be overwriten if this is true.
      *                  Default is FALSE
      */
-    extractAllTo(targetPath: string, overwrite?: boolean, pass?: string | Buffer) {
+    extractAllTo(targetPath: string, overwrite?: boolean, pass?: string | Buffer): void {
         overwrite = overwrite || false;
         if (!this._zip) {
             throw new Error(Errors.NO_ZIP);
@@ -609,9 +620,9 @@ export class AdmZip {
      *                  Default is FALSE
      * @param callback
      */
-    extractAllToAsync(targetPath: string, overwrite: boolean, callback: (err?: Error) => void) {
+    extractAllToAsync(targetPath: string, overwrite: boolean, callback: (err?: Error) => void): void {
         if (!callback) {
-            callback = function () { };
+            callback = function () {};
         }
         overwrite = overwrite || false;
         if (!this._zip) {
@@ -669,7 +680,7 @@ export class AdmZip {
      * @param targetFileName
      * @param callback
      */
-    writeZip(/**String*/ targetFileName: string, /**Function*/ callback?: (error: Error | null, errormsg: string) => void) {
+    writeZip(/**String*/ targetFileName: string, /**Function*/ callback?: (error: Error | null, errormsg: string) => void): void {
         if (arguments.length === 1) {
             if (typeof targetFileName === "function") {
                 callback = targetFileName;
@@ -689,7 +700,7 @@ export class AdmZip {
         }
     }
 
-    writeZipPromise(targetFileName: string, props: { perm: any }) {
+    writeZipPromise(targetFileName: string, props: { perm: any }): Promise<boolean> {
         const { overwrite, perm } = Object.assign({ overwrite: true }, props);
 
         return new Promise((resolve, reject) => {
@@ -715,7 +726,7 @@ export class AdmZip {
      *
      * @return Buffer
      */
-    toBuffer(onSuccess?: () => void, onFail?: () => void, onItemStart?: () => void, onItemEnd?: () => void) {
+    toBuffer(onSuccess?: () => void, onFail?: () => void, onItemStart?: () => void, onItemEnd?: () => void): Buffer | null {
         //this.valueOf = 2;
         if (typeof onSuccess === "function") {
             this._zip.toAsyncBuffer(onSuccess, onFail, onItemStart, onItemEnd);
@@ -723,4 +734,4 @@ export class AdmZip {
         }
         return this._zip.compressToBuffer();
     }
-};
+}

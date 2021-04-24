@@ -9,4 +9,4 @@ export type ZipFileType = {
     getEntryChildren: (entry: any) => any[];
     compressToBuffer: () => Buffer;
     toAsyncBuffer: (onSuccess?: any, onFail?: any, onItemStart?: any, onItemEnd?: any) => void;
-}
+};

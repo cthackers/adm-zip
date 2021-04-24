@@ -19,7 +19,7 @@ const uMul = (a: number, b: number) => Math.imul(a, b) >>> 0;
 
 // crc32 byte single update (actually same function is part of utils.crc32 function :) )
 const crc32update = (pCrc32: number, bval: number) => {
-    return crctable[ (pCrc32 ^ bval) & 0xff ] ^ (pCrc32 >>> 8);
+    return crctable[(pCrc32 ^ bval) & 0xff] ^ (pCrc32 >>> 8);
 };
 
 // function for generating salt for encrytion header
@@ -36,7 +36,7 @@ const genSalt = () => {
 genSalt.node = () => {
     const salt = Buffer.alloc(12);
     const len = salt.length;
-    for (let i = 0; i < len; i++) salt[ i ] = (Math.random() * 256) & 0xff;
+    for (let i = 0; i < len; i++) salt[i] = (Math.random() * 256) & 0xff;
     return salt;
 };
 
@@ -49,25 +49,24 @@ export class Initkeys {
 
     constructor(pw: any) {
         const pass = Buffer.isBuffer(pw) ? pw : Buffer.from(pw);
-        this.keys = new Uint32Array([ 0x12345678, 0x23456789, 0x34567890 ]);
+        this.keys = new Uint32Array([0x12345678, 0x23456789, 0x34567890]);
         for (let i = 0; i < pass.length; i++) {
-            this.updateKeys(pass[ i ]);
+            this.updateKeys(pass[i]);
         }
     }
     updateKeys(byteValue: number) {
         const keys = this.keys;
-        keys[ 0 ] = crc32update(keys[ 0 ], byteValue);
-        keys[ 1 ] += keys[ 0 ] & 0xff;
-        keys[ 1 ] = uMul(keys[ 1 ], 134775813) + 1;
-        keys[ 2 ] = crc32update(keys[ 2 ], keys[ 1 ] >>> 24);
+        keys[0] = crc32update(keys[0], byteValue);
+        keys[1] += keys[0] & 0xff;
+        keys[1] = uMul(keys[1], 134775813) + 1;
+        keys[2] = crc32update(keys[2], keys[1] >>> 24);
         return byteValue;
-    };
+    }
     next() {
-        const k = (this.keys[ 2 ] | 2) >>> 0; // key
+        const k = (this.keys[2] | 2) >>> 0; // key
         return (uMul(k, k ^ 1) >> 8) & 0xff; // decode
-    };
+    }
 }
-
 
 function make_decrypter(pwd: Buffer | string) {
     // 1. Stage initialize key
@@ -82,7 +81,7 @@ function make_decrypter(pwd: Buffer | string) {
         for (let c of data) {
             //c ^= keys.next();
             //result[pos++] = c; // decode & Save Value
-            result[ pos++ ] = keys.updateKeys(c ^ keys.next()); // update keys with decoded byte
+            result[pos++] = keys.updateKeys(c ^ keys.next()); // update keys with decoded byte
         }
         return result;
     };
@@ -99,7 +98,7 @@ function make_encrypter(pwd: Buffer | string) {
         // process input data
         for (let c of data) {
             const k = keys.next(); // save key byte
-            result[ pos++ ] = c ^ k; // save val
+            result[pos++] = c ^ k; // save val
             keys.updateKeys(c); // update keys with decoded byte
         }
         return result;
@@ -118,7 +117,7 @@ export function decrypt(data: string | number | boolean | Buffer | null | undefi
     const salt = decrypter(data.slice(0, 12));
 
     // 3. does password meet expectations
-    if (salt[ 11 ] !== header.crc >>> 24) {
+    if (salt[11] !== header.crc >>> 24) {
         throw "ADM-ZIP: Wrong Password";
     }
 
@@ -153,10 +152,10 @@ export function encrypt(data: Buffer | string | any, header: any, pwd: string | 
 
     // 3. generate salt (12-bytes of random data)
     const salt = config.genSalt();
-    salt[ 11 ] = (header.crc >>> 24) & 0xff;
+    salt[11] = (header.crc >>> 24) & 0xff;
 
     // old implementations (before PKZip 2.04g) used two byte check
-    if (oldlike) salt[ 10 ] = (header.crc >>> 16) & 0xff;
+    if (oldlike) salt[10] = (header.crc >>> 16) & 0xff;
 
     // 4. create output
     const result = Buffer.alloc(data.length + 12);

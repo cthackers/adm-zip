@@ -1,24 +1,24 @@
 import { Constants, Errors, readBigUInt64LE } from "../util";
 /* The entries in the end of central directory */
 export class MainHeader {
-    private _diskEntries = 0
-    private _totalEntries = 0
-    size = 0
-    offset = 0
-    commentLength = 0
+    private _diskEntries = 0;
+    private _totalEntries = 0;
+    size = 0;
+    offset = 0;
+    commentLength = 0;
 
     set diskEntries(val: number) {
         this._diskEntries = this._totalEntries = val;
     }
     get diskEntries() {
-        return this._diskEntries
+        return this._diskEntries;
     }
 
     set totalEntries(val: number) {
         this._totalEntries = this._diskEntries = val;
     }
     get totalEntries() {
-        return this._totalEntries
+        return this._totalEntries;
     }
 
     get mainHeaderSize() {
@@ -28,9 +28,7 @@ export class MainHeader {
     loadFromBinary(data: Buffer) {
         // data should be 22 bytes and start with "PK 05 06"
         // or be 56+ bytes and start with "PK 06 06" for Zip64
-        if ((data.length !== Constants.ENDHDR || data.readUInt32LE(0) !== Constants.ENDSIG) &&
-            (data.length < Constants.ZIP64HDR || data.readUInt32LE(0) !== Constants.ZIP64SIG)
-        ) {
+        if ((data.length !== Constants.ENDHDR || data.readUInt32LE(0) !== Constants.ENDSIG) && (data.length < Constants.ZIP64HDR || data.readUInt32LE(0) !== Constants.ZIP64SIG)) {
             throw new Error(Errors.INVALID_END);
         }
 
@@ -100,4 +98,4 @@ export class MainHeader {
     toString() {
         return JSON.stringify(this.toJSON(), null, "\t");
     }
-};
+}

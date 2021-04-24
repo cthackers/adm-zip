@@ -1,33 +1,34 @@
 import zlib from "zlib";
 export class Inflater {
-    inbuf: Buffer
+    inbuf: Buffer;
+
     constructor(inbuf: Buffer) {
         this.inbuf = inbuf;
     }
+
     inflate() {
         return zlib.inflateRawSync(this.inbuf);
-    };
+    }
 
     inflateAsync(/*Function*/ callback: any) {
-        var tmp = zlib.createInflateRaw(),
-            parts: any[] = [],
-            total = 0;
-        tmp.on("data", function (data: string) {
+        const stream = zlib.createDeflateRaw(this.opts);
+        const parts: Buffer[] = [];
+        let total: number = 0;
+        stream.on("data", function (data: Buffer) {
             parts.push(data);
             total += data.length;
         });
-        tmp.on("end", function () {
-            var buf = Buffer.alloc(total),
-                written = 0;
-            buf.fill(0);
-            for (var i = 0; i < parts.length; i++) {
-                var part = parts[ i ];
-                part.copy(buf, written);
-                written += part.length;
+        stream.on("end", function () {
+            if (typeof callback === "function") {
+                const result: Buffer = Buffer.alloc(total);
+                let written: number = 0;
+                for (const part of parts) {
+                    part.copy(result, written);
+                    written += part.length;
+                }
+                callback(result);
             }
-            callback && callback(buf);
         });
-        tmp.end(this.inbuf);
+        stream.end(this.inbuf);
     }
-
-};
+}
