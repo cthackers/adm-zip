@@ -60,8 +60,8 @@ export default function (/*Buffer|null*/ inBuffer, /** object */ options) {
 
             index += entry.header.entryHeaderSize;
 
-            entryList[ i ] = entry;
-            entryTable[ entry.entryName ] = entry;
+            entryList[i] = entry;
+            entryTable[entry.entryName] = entry;
         }
     }
 
@@ -74,7 +74,7 @@ export default function (/*Buffer|null*/ inBuffer, /** object */ options) {
             commentEnd = 0;
 
         for (i; i >= n; i--) {
-            if (inBuffer[ i ] !== 0x50) continue; // quick check that the byte is 'P'
+            if (inBuffer[i] !== 0x50) continue; // quick check that the byte is 'P'
             if (inBuffer.readUInt32LE(i) === Constants.ENDSIG) {
                 // "PK\005\006"
                 endOffset = i;
@@ -165,7 +165,7 @@ export default function (/*Buffer|null*/ inBuffer, /** object */ options) {
             if (!loadedEntries) {
                 readEntries();
             }
-            return entryTable[ entryName ] || null;
+            return entryTable[entryName] || null;
         },
 
         /**
@@ -178,7 +178,7 @@ export default function (/*Buffer|null*/ inBuffer, /** object */ options) {
                 readEntries();
             }
             entryList.push(entry);
-            entryTable[ entry.entryName ] = entry;
+            entryTable[entry.entryName] = entry;
             mainHeader.totalEntries = entryList.length;
         },
 
@@ -192,7 +192,7 @@ export default function (/*Buffer|null*/ inBuffer, /** object */ options) {
             if (!loadedEntries) {
                 readEntries();
             }
-            var entry = entryTable[ entryName ];
+            var entry = entryTable[entryName];
             if (entry && entry.isDirectory) {
                 var _self = this;
                 this.getEntryChildren(entry).forEach(function (child) {
@@ -202,7 +202,7 @@ export default function (/*Buffer|null*/ inBuffer, /** object */ options) {
                 });
             }
             entryList.splice(entryList.indexOf(entry), 1);
-            delete entryTable[ entryName ];
+            delete entryTable[entryName];
             mainHeader.totalEntries = entryList.length;
         },
 
@@ -380,4 +380,4 @@ export default function (/*Buffer|null*/ inBuffer, /** object */ options) {
             compress(entryList);
         }
     };
-};
+}

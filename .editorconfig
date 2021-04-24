@@ -4,18 +4,18 @@
 root = true
 
 # Set default charset
-[*.{js,json,txt,md}]
+[*.{ts,js,json,txt,md}]
 charset = utf-8
 indent_style = space
 insert_final_newline = true
 
-[*.{js,md,json}]
+[*.{ts,js,md,json}]
 trim_trailing_whitespace = true
 
-[*.{js,md}]
+[*.{ts,js,md}]
 indent_size = 4
 
-[*.js]
+[*.{ts,js}]
 quote_type = double
 
 [*.{yml,json}]

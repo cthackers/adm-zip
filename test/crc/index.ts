@@ -18,7 +18,7 @@ describe("crc", () => {
         });
         assert(testFile.length === 1, "Good CRC: lorem_ipsum.txt file exists as archive entry");
 
-        const testFileEntryName = testFile[ 0 ].entryName;
+        const testFileEntryName = testFile[0].entryName;
         goodZip.readAsTextAsync(testFileEntryName, function (data, err) {
             assert(!err, "Good CRC: error object not present");
             assert(data && data.length, "Good CRC: buffer not empty");
@@ -36,7 +36,7 @@ describe("crc", () => {
         });
         assert(testFile.length === 1, "Bad CRC: lorem_ipsum.txt file exists as archive entry");
 
-        const testFileEntryName = testFile[ 0 ].entryName;
+        const testFileEntryName = testFile[0].entryName;
         badZip.readAsTextAsync(testFileEntryName, function (data, err) {
             assert(data && data.length, "Bad CRC: buffer not empty");
             assert(err, "Bad CRC: error object present");
@@ -50,7 +50,7 @@ describe("crc", () => {
         const testFile = entries.filter(function (entry) {
             return entry.entryName === "lorem_ipsum.txt";
         });
-        const testFileEntryName = testFile[ 0 ].entryName;
+        const testFileEntryName = testFile[0].entryName;
 
         try {
             badZip.readAsText(testFileEntryName);
@@ -64,12 +64,12 @@ describe("crc", () => {
 
     it("CRC is not changed after re-created", () => {
         const goodZip = new AdmZip(path.join(__dirname, "good_crc.zip"));
-        const original = goodZip.getEntries()[ 0 ].header.crc;
+        const original = goodZip.getEntries()[0].header.crc;
         assert.strictEqual(original, 3528145192);
         const newZipPath = destination + "/good_crc_new.zip";
         goodZip.writeZip(newZipPath);
         const newZip = new AdmZip(newZipPath);
-        const actual = newZip.getEntries()[ 0 ].header.crc;
+        const actual = newZip.getEntries()[0].header.crc;
         assert.strictEqual(actual, original);
     });
 });

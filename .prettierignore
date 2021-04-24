@@ -1,3 +1,5 @@
 # keep current manual config
 util/constants.js
+util/constants.ts
+util/errors.ts
 util/errors.js

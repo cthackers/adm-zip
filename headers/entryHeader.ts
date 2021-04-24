@@ -17,18 +17,18 @@ export class EntryHeader {
     inAttr = 0;
     attr = 0;
     offset = 0;
-    changed?: boolean = undefined
+    changed?: boolean = undefined;
 
     dataHeader: {
-        fnameLen?: number
-        extraLen?: number
-        version?: number
-        flags?: number
-        method?: number
-        time?: number
-        crc?: number
-        compressedSize?: number
-        size?: number
+        fnameLen?: number;
+        extraLen?: number;
+        version?: number;
+        flags?: number;
+        method?: number;
+        time?: number;
+        crc?: number;
+        compressedSize?: number;
+        size?: number;
     } = {};
     setTime(value: number | Date) {
         const val = new Date(value);
@@ -60,12 +60,18 @@ export class EntryHeader {
         this._method = val;
     }
     get time() {
-        return new Date(((this._time >> 25) & 0x7f) + 1980, ((this._time >> 21) & 0x0f) - 1, (this._time >> 16) & 0x1f, (this._time >> 11) & 0x1f, (this._time >> 5) & 0x3f, (this._time & 0x1f) << 1);
+        return new Date(
+            ((this._time >> 25) & 0x7f) + 1980,
+            ((this._time >> 21) & 0x0f) - 1,
+            (this._time >> 16) & 0x1f,
+            (this._time >> 11) & 0x1f,
+            (this._time >> 5) & 0x3f,
+            (this._time & 0x1f) << 1
+        );
     }
     set time(val) {
         this.setTime(val);
     }
-
 
     get encripted() {
         return (this.flags & 1) === 1;
@@ -238,4 +244,4 @@ export class EntryHeader {
     toString() {
         return JSON.stringify(this.toJSON(), null, "\t");
     }
-};
+}

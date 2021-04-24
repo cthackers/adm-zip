@@ -40,7 +40,7 @@ describe("adm-zip", () => {
 
         extract.extractAllTo(target);
         const files = walk(target);
-        expect(files.sort()).to.deep.equal([ pth.normalize("./test/xxx/test/test1.ext"), pth.normalize("./test/xxx/test/test2.ext"), pth.normalize("./test/xxx/test/test3.ext") ]);
+        expect(files.sort()).to.deep.equal([pth.normalize("./test/xxx/test/test1.ext"), pth.normalize("./test/xxx/test/test2.ext"), pth.normalize("./test/xxx/test/test3.ext")]);
     });
 
     it("zip.addFile - add directory", () => {
@@ -56,7 +56,7 @@ describe("adm-zip", () => {
         const zip2 = new Zip(zip1.toBuffer());
         const zip2Entries = zip2.getEntries().map((e) => e.entryName);
 
-        expect(zip2Entries).to.deep.equal([ "dir11/", "dir11/dir21/", "dir11/dir22/", "dir11/dir22/test.txt", "dir12/", "dir12/dir23/", "dir13/", "dir13/dir24/" ]);
+        expect(zip2Entries).to.deep.equal(["dir11/", "dir11/dir21/", "dir11/dir22/", "dir11/dir22/test.txt", "dir12/", "dir12/dir23/", "dir13/", "dir13/dir24/"]);
     });
 
     it("zip.extractEntryTo(entry, destination, false, true)", () => {
@@ -123,7 +123,7 @@ describe("adm-zip", () => {
         zip1.toBuffer();
 
         const zip1Entries = zip1.getEntries().map((e) => e.entryName);
-        expect(zip1Entries).to.deep.equal([ "a.txt", "b.txt", "c.txt" ]);
+        expect(zip1Entries).to.deep.equal(["a.txt", "b.txt", "c.txt"]);
 
         // skip sorting - value "true"
         const zip2 = new Zip(undefined, { noSort: true });
@@ -134,7 +134,7 @@ describe("adm-zip", () => {
         zip2.toBuffer();
 
         const zip2Entries = zip2.getEntries().map((e) => e.entryName);
-        expect(zip2Entries).to.deep.equal([ "c.txt", "b.txt", "a.txt" ]);
+        expect(zip2Entries).to.deep.equal(["c.txt", "b.txt", "a.txt"]);
     });
 });
 

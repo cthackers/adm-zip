@@ -24,7 +24,7 @@ export function FileAttr(path: string) {
         _obj.atime = _stat.atime;
         _obj.executable = (0o111 & _stat.mode) !== 0; // file is executable who ever har right not just owner
         _obj.readonly = (0o200 & _stat.mode) === 0; // readonly if owner has no write right
-        _obj.hidden = pth.basename(_path)[ 0 ] === ".";
+        _obj.hidden = pth.basename(_path)[0] === ".";
     } else {
         console.warn("Invalid path: " + _path);
     }
@@ -54,9 +54,9 @@ export function FileAttr(path: string) {
             return _obj.executable;
         },
 
-        decodeAttributes: function () { },
+        decodeAttributes: function () {},
 
-        encodeAttributes: function () { },
+        encodeAttributes: function () {},
 
         toJSON: function () {
             return {
@@ -74,4 +74,4 @@ export function FileAttr(path: string) {
             return JSON.stringify(this.toJSON(), null, "\t");
         }
     };
-};
+}

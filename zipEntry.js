@@ -123,7 +123,7 @@ export default function (/*Buffer*/ input) {
                     return compressedData;
                 default:
                 case Constants.DEFLATED:
-                    var deflater = Deflater(uncompressedData);
+                    var deflater = new Deflater(uncompressedData);
                     if (!async) {
                         var deflated = deflater.deflate();
                         _entryHeader.compressedSize = deflated.length;
@@ -206,7 +206,7 @@ export default function (/*Buffer*/ input) {
         },
         set entryName(val) {
             _entryName = toBuffer(val);
-            var lastChar = _entryName[ _entryName.length - 1 ];
+            var lastChar = _entryName[_entryName.length - 1];
             _isDirectory = lastChar === 47 || lastChar === 92;
             _entryHeader.fileNameLength = _entryName.length;
         },
@@ -232,9 +232,9 @@ export default function (/*Buffer*/ input) {
             var n = _entryName.toString();
             return _isDirectory
                 ? n
-                    .substr(n.length - 1)
-                    .split("/")
-                    .pop()
+                      .substr(n.length - 1)
+                      .split("/")
+                      .pop()
                 : n.split("/").pop();
         },
         get isDirectory() {
@@ -333,4 +333,4 @@ export default function (/*Buffer*/ input) {
             return JSON.stringify(this.toJSON(), null, "\t");
         }
     };
-};
+}

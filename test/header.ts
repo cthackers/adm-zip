@@ -81,7 +81,7 @@ describe("headers", () => {
     });
 
     describe("entry-header", () => {
-        const datestamp = [ 1981, 3, 1, 12, 10, 10 ];
+        const datestamp = [1981, 3, 1, 12, 10, 10];
         const readBuf = Buffer.from("504b0102140014000008080045618102efbeadde0001000000020000000000000000000000000000000000000000", "hex");
 
         // comparison values for readBuf
@@ -109,14 +109,14 @@ describe("headers", () => {
             head.loadFromBinary(readBuf);
 
             for (const name in readBufValues) {
-                expect(head[ name ]).to.equal(readBufValues[ name ]);
-                head[ name ] = readBufValues[ name ];
+                expect(head[name]).to.equal(readBufValues[name]);
+                head[name] = readBufValues[name];
             }
 
             expect(head.entryHeaderSize).to.equal(46);
 
             // split into individual values by local time or timezone messes up our results
-            expect([ head.time.getFullYear(), head.time.getMonth(), head.time.getDate(), head.time.getHours(), head.time.getMinutes(), head.time.getSeconds() ]).to.eql(datestamp);
+            expect([head.time.getFullYear(), head.time.getMonth(), head.time.getDate(), head.time.getHours(), head.time.getMinutes(), head.time.getSeconds()]).to.eql(datestamp);
 
             // test toJSON function
             const headerdata: any = {
@@ -155,7 +155,7 @@ describe("headers", () => {
 
             // Set Values
             for (const name in readBufValues) {
-                head[ name ] = readBufValues[ name ];
+                head[name] = readBufValues[name];
             }
 
             // time from datestamp
@@ -200,7 +200,7 @@ describe("headers", () => {
                 head.loadDataHeaderFromBinary(dataheader);
 
                 for (const name in dataHeaderValues) {
-                    expect(head.dataHeader[ name ]).to.equal(dataHeaderValues[ name ]);
+                    expect(head.dataHeader[name]).to.equal(dataHeaderValues[name]);
                 }
             });
 
@@ -221,7 +221,7 @@ describe("headers", () => {
 
                 // Set Values
                 for (const name in readBufValues) {
-                    head[ name ] = readBufValues[ name ];
+                    head[name] = readBufValues[name];
                 }
 
                 // time from datestamp
