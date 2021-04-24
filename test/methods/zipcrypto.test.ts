@@ -1,5 +1,6 @@
 import { decrypt, encrypt, _salter } from "../../methods/zipcrypto";
 import { crc32 } from "../../util/utils";
+import { expect } from "chai";
 
 // node crypto
 import { createHash } from "crypto";

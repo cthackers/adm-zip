@@ -1,6 +1,7 @@
 import { AdmZip } from "../../adm-zip";
 import * as path from "path";
 import { Constants } from "../../util";
+import { expect } from "chai";
 
 describe("adm-zip", () => {
     it("adds multibyte ZIP comment in UTF-8 with appropriate byte", () => {

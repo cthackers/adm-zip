@@ -1,5 +1,5 @@
 import zlib from "zlib";
-export default class Deflater {
+export class Deflater {
     inbuf: Buffer;
     opts: any;
 

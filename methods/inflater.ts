@@ -11,7 +11,7 @@ export class Inflater {
     }
 
     inflateAsync(/*Function*/ callback: any) {
-        const stream = zlib.createDeflateRaw(this.opts);
+        const stream = zlib.createDeflateRaw();
         const parts: Buffer[] = [];
         let total: number = 0;
         stream.on("data", function (data: Buffer) {

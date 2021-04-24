@@ -123,7 +123,7 @@ export default function (/*Buffer*/ input) {
                     return compressedData;
                 default:
                 case Constants.DEFLATED:
-                    var deflater = Deflater(uncompressedData);
+                    var deflater = new Deflater(uncompressedData);
                     if (!async) {
                         var deflated = deflater.deflate();
                         _entryHeader.compressedSize = deflated.length;
