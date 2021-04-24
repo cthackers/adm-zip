@@ -141,18 +141,3 @@ function walk(dir: string) {
     });
     return results;
 }
-
-// function walkD(dir) {
-//     let results: string[] = [];
-//     const list = fs.readdirSync(dir);
-//     list.forEach(function (file) {
-//         file = dir + "/" + file;
-//         const stat = fs.statSync(file);
-//         if (stat && stat.isDirectory()) {
-//             /* Recurse into a subdirectory */
-//             results = results.concat(walk(file));
-//             results.push(file);
-//         }
-//     });
-//     return results;
-// }
