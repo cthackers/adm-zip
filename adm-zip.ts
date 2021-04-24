@@ -41,30 +41,17 @@ export class AdmZip {
     _zip: ZipFileType;
     opts: AdmZipOptions;
 
-    constructor(input?: string | Uint8Array | Buffer | null, options?: AdmZipOptions) {
-        let inBuffer: Uint8Array | null = null;
+    constructor(input?: string | Buffer | null, options?: AdmZipOptions) {
+        let inBuffer: Buffer | null = null;
 
         // create object based default options, allowing them to be overwritten
         this.opts = { ...defaultOptions, ...options };
 
-        // test input variable
-        if (input && "object" === typeof input) {
-            // if value is not buffer we accept it to be object with options
-            if (!(input instanceof Uint8Array)) {
-                Object.assign(this.opts, input);
-                input = this.opts.input ? this.opts.input : undefined;
-                if (this.opts.input) delete this.opts.input;
-            }
-
-            // if input is buffer
-            if (input instanceof Uint8Array) {
-                inBuffer = input;
-                this.opts.method = Constants.BUFFER;
-                input = undefined;
-            }
-        }
-        // if input is file name we retrieve its content
-        if (input && "string" === typeof input) {
+        if (input instanceof Buffer) {
+            inBuffer = input;
+            this.opts.method = Constants.BUFFER;
+            input = undefined;
+        } else if (input && "string" === typeof input) {
             // load zip file
             if (fs.existsSync(input)) {
                 this.opts.method = Constants.FILE;
@@ -525,7 +512,7 @@ export class AdmZip {
 
         var entryName = canonical(item.entryName);
 
-        var target = sanitize(targetPath, outFileName && !item.isDirectory ? outFileName : maintainEntryPath ? entryName : pth.basename(entryName));
+        var target = sanitize(targetPath, (outFileName && !item.isDirectory ? outFileName : maintainEntryPath) ? entryName : pth.basename(entryName));
 
         if (item.isDirectory) {
             target = pth.resolve(target, "..");

@@ -38,7 +38,7 @@ describe("adm-zip", () => {
 
         const extract = new Zip(buf);
         var zipEntries = zip.getEntries();
-        zipEntries.forEach((e) => zip.extractEntryTo(e, destination, false, true));
+        zipEntries.forEach((e) => zip.extractEntryTo(e, target, false, true));
 
         extract.extractAllTo(target);
         const files = walk(target);
