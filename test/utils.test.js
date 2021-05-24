@@ -1,8 +1,9 @@
 "use strict";
 const { expect } = require("chai");
-const { crc32 } = require("../util/utils");
+const { crc32, canonical, sanitize } = require("../util/utils");
+const pth = require("path");
 
-describe("crc32 function", () => {
+describe("utils - crc32 function", () => {
     // tests how crc32 function handles strings as input
     it("handle strings", () => {
         const tests = [
@@ -31,6 +32,61 @@ describe("crc32 function", () => {
 
         for (let test of tests) {
             expect(crc32(test.data)).to.equal(test.crc);
+        }
+    });
+});
+
+describe("utils - sanitizing functions :", () => {
+    // tests how sanitize works
+    it("function sanitize()", () => {
+        const tests = [
+            // basic latin
+            { prefix: "", file: "", result: "" },
+            { prefix: "folder", file: "file", result: "folder/file" },
+            { prefix: "folder", file: "../file", result: "folder/file" },
+            { prefix: "folder", file: "../../../file", result: "folder/file" },
+            { prefix: "folder", file: "./../file", result: "folder/file" },
+            { prefix: "test/folder/subfolder", file: "../../file", result: "test/folder/subfolder/file" },
+            { prefix: "test/folder/subfolder", file: "../../file1/../file2", result: "test/folder/subfolder/file2" },
+            // no prefixed (currently allows change folder)
+            { prefix: "", file: "../../file1/../file2", result: "file2" },
+            { prefix: "", file: "../subfolder/file2", result: "subfolder/file2" },
+            { prefix: "", file: "../subfolder2/file2", result: "subfolder2/file2" },
+            { prefix: "", file: "../subfolder/file2", result: "subfolder/file2" },
+            { prefix: "", file: "../../subfolder2/file2", result: "subfolder2/file2" }
+        ];
+
+        const curfolder = pth.resolve(".");
+        // console.log("\n");
+        for (let test of tests) {
+            // path.normalize in win32 will convert "/" to native "\" format
+
+            const out = sanitize(pth.normalize(test.prefix || ""), test.file);
+            const res = pth.join(curfolder, pth.normalize(test.result));
+
+            expect(out).to.equal(res);
+        }
+    });
+
+    it("function canonical()", () => {
+        const tests = [
+            // no name
+            { file: "", result: "" },
+            // file has name
+            { file: "file", result: "file" },
+            { file: "../file", result: "file" },
+            { file: "../../../file", result: "file" },
+            { file: "./../file", result: "file" },
+            { file: "../../file", result: "file" },
+            { file: "../../file1/../file2", result: "file2" },
+            { file: "../subfolder/file2", result: "subfolder/file2" },
+            { file: "../subfolder2/file2", result: "subfolder2/file2" },
+            { file: "../subfolder/file2", result: "subfolder/file2" },
+            { file: "../../subfolder2/file2", result: "subfolder2/file2" }
+        ];
+
+        for (let test of tests) {
+            expect(canonical(test.file)).to.equal(test.result);
         }
     });
 });
