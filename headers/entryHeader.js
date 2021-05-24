@@ -3,7 +3,7 @@ var Utils = require("../util"),
 
 /* The central directory file header */
 module.exports = function () {
-    var _verMade = 0x14, // v2.0
+    var _verMade = 20, // v2.0
         _version = 10, // v1.0
         _flags = 0,
         _method = 0,
@@ -20,6 +20,10 @@ module.exports = function () {
         _offset = 0;
 
     _verMade |= Utils.isWin ? 0x0a00 : 0x0300;
+
+    // Set EFS flag since filename and comment fields are all by default encoded using UTF-8.
+    // Without it file names may be corrupted for other apps when file names use unicode chars
+    _flags |= Constants.FLG_EFS;
 
     var _dataHeader = {};
 

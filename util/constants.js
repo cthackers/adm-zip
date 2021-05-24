@@ -75,26 +75,33 @@ module.exports = {
     REDUCED3         : 4, // reduced with compression factor 3
     REDUCED4         : 5, // reduced with compression factor 4
     IMPLODED         : 6, // imploded
-    // 7 reserved
+    // 7 reserved for Tokenizing compression algorithm
     DEFLATED         : 8, // deflated
     ENHANCED_DEFLATED: 9, // enhanced deflated
     PKWARE           : 10,// PKWare DCL imploded
-    // 11 reserved
+    // 11 reserved by PKWARE
     BZIP2            : 12, //  compressed using BZIP2
-    // 13 reserved
+    // 13 reserved by PKWARE
     LZMA             : 14, // LZMA
-    // 15-17 reserved
+    // 15-17 reserved by PKWARE
     IBM_TERSE        : 18, // compressed using IBM TERSE
-    IBM_LZ77         : 19, //IBM LZ77 z
+    IBM_LZ77         : 19, // IBM LZ77 z
+    AES_ENCRYPT      : 99, // WinZIP AES encryption method
 
     /* General purpose bit flag */
-    FLG_ENC          : 0,  // encripted file
-    FLG_COMP1        : 1,  // compression option
-    FLG_COMP2        : 2,  // compression option
-    FLG_DESC         : 4,  // data descriptor
-    FLG_ENH          : 8,  // enhanced deflation
-    FLG_STR          : 16, // strong encryption
-    FLG_LNG          : 1024, // language encoding
+    // values can obtained with expression 2**bitnr
+    FLG_ENC          : 1,    // Bit 0: encrypted file
+    FLG_COMP1        : 2,    // Bit 1, compression option
+    FLG_COMP2        : 4,    // Bit 2, compression option
+    FLG_DESC         : 8,    // Bit 3, data descriptor
+    FLG_ENH          : 16,   // Bit 4, enhanced deflating
+    FLG_PATCH        : 32,   // Bit 5, indicates that the file is compressed patched data.
+    FLG_STR          : 64,   // Bit 6, strong encryption (patented)
+                             // Bits 7-10: Currently unused.
+    FLG_EFS          : 2048, // Bit 11: Language encoding flag (EFS)
+                             // Bit 12: Reserved by PKWARE for enhanced compression.
+                             // Bit 13: encrypted the Central Directory (patented).
+                             // Bits 14-15: Reserved by PKWARE.
     FLG_MSK          : 4096, // mask header values
 
     /* Load type */
