@@ -123,6 +123,25 @@ module.exports = (function () {
             return true;
         },
 
+        canonical: function (p) {
+            if (!p) return "";
+            // trick normalize think path is absolute
+            var safeSuffix = pth.posix.normalize("/" + p.split("\\").join("/"));
+            return pth.join(".", safeSuffix);
+        },
+
+        sanitize: function (prefix, name) {
+            prefix = pth.resolve(pth.normalize(prefix));
+            var parts = name.split("/");
+            for (var i = 0, l = parts.length; i < l; i++) {
+                var path = pth.normalize(pth.join(prefix, parts.slice(i, l).join(pth.sep)));
+                if (path.indexOf(prefix) === 0) {
+                    return path;
+                }
+            }
+            return pth.normalize(pth.join(prefix, pth.basename(name)));
+        },
+
         writeFileToAsync: function (/*String*/ path, /*Buffer*/ content, /*Boolean*/ overwrite, /*Number*/ attr, /*Function*/ callback) {
             if (typeof attr === "function") {
                 callback = attr;

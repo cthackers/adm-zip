@@ -215,10 +215,10 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             if (!loadedEntries) {
                 readEntries();
             }
-            if (entry.isDirectory) {
-                var list = [],
-                    name = entry.entryName,
-                    len = name.length;
+            if (entry && entry.isDirectory) {
+                const list = [];
+                const name = entry.entryName;
+                const len = name.length;
 
                 entryList.forEach(function (zipEntry) {
                     if (zipEntry.entryName.substr(0, len) === name) {
@@ -241,142 +241,144 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             }
             sortEntries();
 
-            var totalSize = 0,
-                dataBlock = [],
-                entryHeaders = [],
-                dindex = 0;
+            const dataBlock = [];
+            const entryHeaders = [];
+            let totalSize = 0;
+            let dindex = 0;
 
             mainHeader.size = 0;
             mainHeader.offset = 0;
 
-            entryList.forEach(function (entry) {
+            for (const entry of entryList) {
                 // compress data and set local and entry header accordingly. Reason why is called first
-                var compressedData = entry.getCompressedData();
-                // data header
+                const compressedData = entry.getCompressedData();
+                // 1. construct data header
                 entry.header.offset = dindex;
-                var dataHeader = entry.header.dataHeaderToBinary();
-                var entryNameLen = entry.rawEntryName.length;
-                var extra = entry.extra.toString();
-                var postHeader = Buffer.alloc(entryNameLen + extra.length);
+                const dataHeader = entry.header.dataHeaderToBinary();
+                const entryNameLen = entry.rawEntryName.length;
+                // 1.2. postheader - data after data header
+                const postHeader = Buffer.alloc(entryNameLen + entry.extra.length);
                 entry.rawEntryName.copy(postHeader, 0);
-                postHeader.fill(extra, entryNameLen);
+                postHeader.copy(entry.extra, entryNameLen);
 
-                var dataLength = dataHeader.length + postHeader.length + compressedData.length;
-
+                // 2. offsets
+                const dataLength = dataHeader.length + postHeader.length + compressedData.length;
                 dindex += dataLength;
 
+                // 3. store values in sequence
                 dataBlock.push(dataHeader);
                 dataBlock.push(postHeader);
                 dataBlock.push(compressedData);
 
-                var entryHeader = entry.packHeader();
+                // 4. construct entry header
+                const entryHeader = entry.packHeader();
                 entryHeaders.push(entryHeader);
+                // 5. update main header
                 mainHeader.size += entryHeader.length;
                 totalSize += dataLength + entryHeader.length;
-            });
+            }
 
             totalSize += mainHeader.mainHeaderSize; // also includes zip file comment length
             // point to end of data and beginning of central directory first record
             mainHeader.offset = dindex;
 
             dindex = 0;
-            var outBuffer = Buffer.alloc(totalSize);
-            dataBlock.forEach(function (content) {
-                content.copy(outBuffer, dindex); // write data blocks
+            const outBuffer = Buffer.alloc(totalSize);
+            // write data blocks
+            for (const content of dataBlock) {
+                content.copy(outBuffer, dindex);
                 dindex += content.length;
-            });
-            entryHeaders.forEach(function (content) {
-                content.copy(outBuffer, dindex); // write central directory entries
-                dindex += content.length;
-            });
-
-            var mh = mainHeader.toBinary();
-            if (_comment) {
-                Buffer.from(_comment).copy(mh, Utils.Constants.ENDHDR); // add zip file comment
             }
 
-            mh.copy(outBuffer, dindex); // write main header
+            // write central directory entries
+            for (const content of entryHeaders) {
+                content.copy(outBuffer, dindex);
+                dindex += content.length;
+            }
+
+            // write main header
+            const mh = mainHeader.toBinary();
+            if (_comment) {
+                _comment.copy(mh, Utils.Constants.ENDHDR); // add zip file comment
+            }
+            mh.copy(outBuffer, dindex);
 
             return outBuffer;
         },
 
         toAsyncBuffer: function (/*Function*/ onSuccess, /*Function*/ onFail, /*Function*/ onItemStart, /*Function*/ onItemEnd) {
-            if (!loadedEntries) {
-                readEntries();
-            }
-            sortEntries();
-
-            var totalSize = 0,
-                dataBlock = [],
-                entryHeaders = [],
-                dindex = 0;
-
-            mainHeader.size = 0;
-            mainHeader.offset = 0;
-
-            var compress = function (entryList) {
-                var self = arguments.callee;
-                if (entryList.length) {
-                    var entry = entryList.pop();
-                    var name = entry.entryName + entry.extra.toString();
-                    if (onItemStart) onItemStart(name);
-                    entry.getCompressedDataAsync(function (compressedData) {
-                        if (onItemEnd) onItemEnd(name);
-
-                        entry.header.offset = dindex;
-                        // data header
-                        var dataHeader = entry.header.dataHeaderToBinary();
-                        var postHeader;
-                        try {
-                            postHeader = Buffer.alloc(name.length, name); // using alloc will work on node  5.x+
-                        } catch (e) {
-                            postHeader = new Buffer(name); // use deprecated method if alloc fails...
-                        }
-                        var dataLength = dataHeader.length + postHeader.length + compressedData.length;
-
-                        dindex += dataLength;
-
-                        dataBlock.push(dataHeader);
-                        dataBlock.push(postHeader);
-                        dataBlock.push(compressedData);
-
-                        var entryHeader = entry.packHeader();
-                        entryHeaders.push(entryHeader);
-                        mainHeader.size += entryHeader.length;
-                        totalSize += dataLength + entryHeader.length;
-
-                        if (entryList.length) {
-                            self(entryList);
-                        } else {
-                            totalSize += mainHeader.mainHeaderSize; // also includes zip file comment length
-                            // point to end of data and beginning of central directory first record
-                            mainHeader.offset = dindex;
-
-                            dindex = 0;
-                            var outBuffer = Buffer.alloc(totalSize);
-                            dataBlock.forEach(function (content) {
-                                content.copy(outBuffer, dindex); // write data blocks
-                                dindex += content.length;
-                            });
-                            entryHeaders.forEach(function (content) {
-                                content.copy(outBuffer, dindex); // write central directory entries
-                                dindex += content.length;
-                            });
-
-                            var mh = mainHeader.toBinary();
-                            if (_comment) {
-                                _comment.copy(mh, Utils.Constants.ENDHDR); // add zip file comment
-                            }
-
-                            mh.copy(outBuffer, dindex); // write main header
-
-                            onSuccess(outBuffer);
-                        }
-                    });
+            try {
+                if (!loadedEntries) {
+                    readEntries();
                 }
-            };
+                sortEntries();
 
-            compress(entryList);
+                const dataBlock = [];
+                const entryHeaders = [];
+                let totalSize = 0;
+                let dindex = 0;
+
+                mainHeader.size = 0;
+                mainHeader.offset = 0;
+
+                const compress2Buffer = function (entryLists) {
+                    if (entryLists.length) {
+                        const entry = entryLists.pop();
+                        const name = entry.entryName + entry.extra.toString();
+                        if (onItemStart) onItemStart(name);
+                        entry.getCompressedDataAsync(function (compressedData) {
+                            if (onItemEnd) onItemEnd(name);
+
+                            entry.header.offset = dindex;
+                            // data header
+                            const dataHeader = entry.header.dataHeaderToBinary();
+                            const postHeader = Buffer.alloc(name.length, name);
+                            const dataLength = dataHeader.length + postHeader.length + compressedData.length;
+
+                            dindex += dataLength;
+
+                            dataBlock.push(dataHeader);
+                            dataBlock.push(postHeader);
+                            dataBlock.push(compressedData);
+
+                            const entryHeader = entry.packHeader();
+                            entryHeaders.push(entryHeader);
+                            mainHeader.size += entryHeader.length;
+                            totalSize += dataLength + entryHeader.length;
+
+                            compress2Buffer(entryLists);
+                        });
+                    } else {
+                        totalSize += mainHeader.mainHeaderSize; // also includes zip file comment length
+                        // point to end of data and beginning of central directory first record
+                        mainHeader.offset = dindex;
+
+                        dindex = 0;
+                        const outBuffer = Buffer.alloc(totalSize);
+                        dataBlock.forEach(function (content) {
+                            content.copy(outBuffer, dindex); // write data blocks
+                            dindex += content.length;
+                        });
+                        entryHeaders.forEach(function (content) {
+                            content.copy(outBuffer, dindex); // write central directory entries
+                            dindex += content.length;
+                        });
+
+                        const mh = mainHeader.toBinary();
+                        if (_comment) {
+                            _comment.copy(mh, Utils.Constants.ENDHDR); // add zip file comment
+                        }
+
+                        mh.copy(outBuffer, dindex); // write main header
+
+                        onSuccess(outBuffer);
+                    }
+                };
+
+                compress2Buffer(entryList);
+            } catch (e) {
+                onFail(e);
+            }
         }
     };
 };

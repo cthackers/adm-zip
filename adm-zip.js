@@ -15,12 +15,6 @@ const defaultOptions = {
     method: Utils.Constants.NONE
 };
 
-function canonical(p) {
-    // trick normalize think path is absolute
-    var safeSuffix = pth.posix.normalize("/" + p.split("\\").join("/"));
-    return pth.join(".", safeSuffix);
-}
-
 module.exports = function (/**String*/ input, /** object */ options) {
     let inBuffer = null;
 
@@ -37,7 +31,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
         }
 
         // if input is buffer
-        if (input instanceof Uint8Array) {
+        if (Buffer.isBuffer(input)) {
             inBuffer = input;
             opts.method = Utils.Constants.BUFFER;
             input = undefined;
@@ -62,17 +56,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
     // create variable
     const _zip = new ZipFile(inBuffer, opts);
 
-    function sanitize(prefix, name) {
-        prefix = pth.resolve(pth.normalize(prefix));
-        var parts = name.split("/");
-        for (var i = 0, l = parts.length; i < l; i++) {
-            var path = pth.normalize(pth.join(prefix, parts.slice(i, l).join(pth.sep)));
-            if (path.indexOf(prefix) === 0) {
-                return path;
-            }
-        }
-        return pth.normalize(pth.join(prefix, pth.basename(name)));
-    }
+    const { canonical, sanitize } = Utils;
 
     function getEntry(/**Object*/ entry) {
         if (entry && _zip) {
@@ -636,48 +620,52 @@ module.exports = function (/**String*/ input, /** object */ options) {
                 return;
             }
 
-            var entries = _zip.entries;
-            var i = entries.length;
-            entries.forEach(function (entry) {
-                if (i <= 0) return; // Had an error already
+            targetPath = pth.resolve(targetPath);
+            // convert entryname to
+            const getPath = (entry) => sanitize(targetPath, pth.normalize(canonical(entry.entryName.toString())));
+            const getError = (msg, file) => new Error(msg + ': "' + file + '"');
 
-                var entryName = pth.normalize(canonical(entry.entryName.toString()));
+            const entries = _zip.entries;
 
-                if (entry.isDirectory) {
-                    Utils.makeDir(sanitize(targetPath, entryName));
-                    if (--i === 0) callback(undefined);
-                    return;
+            // Create directory entries first
+            for (const entry of entries.filter((e) => e.isDirectory)) {
+                const filePath = getPath(entry);
+                // The reverse operation for attr depend on method addFile()
+                const fileAttr = entry.header.fileAttr;
+                try {
+                    Utils.makeDir(filePath);
+                    if (fileAttr) fs.chmodSync(filePath, fileAttr);
+                    // in unix timestamp will change if files are later added to folder, but still
+                    fs.utimesSync(filePath, entry.header.time, entry.header.time);
+                } catch (er) {
+                    callback(getError("Unable to create folder", filePath));
                 }
-                entry.getDataAsync(function (content, err) {
-                    if (i <= 0) return;
-                    if (err) {
-                        callback(new Error(err));
+            }
+
+            // File entries
+            for (const entry of entries.filter((e) => !e.isDirectory)) {
+                const entryName = pth.normalize(canonical(entry.entryName.toString()));
+                const filePath = sanitize(targetPath, entryName);
+                entry.getDataAsync(function (content, err_1) {
+                    if (err_1) {
+                        callback(new Error(err_1));
                         return;
                     }
                     if (!content) {
-                        i = 0;
                         callback(new Error(Utils.Errors.CANT_EXTRACT_FILE));
-                        return;
+                    } else {
+                        // The reverse operation for attr depend on method addFile()
+                        Utils.writeFileToAsync(filePath, content, overwrite, entry.header.fileAttr, function (succ) {
+                            if (!succ) callback(getError("Unable to write file", filePath));
+                            fs.utimes(filePath, entry.header.time, entry.header.time, function (err_2) {
+                                if (err_2) callback(getError("Unable to set times", filePath));
+                            });
+                        });
                     }
-
-                    // The reverse operation for attr depend on method addFile()
-                    var fileAttr = entry.attr ? (((entry.attr >>> 0) | 0) >> 16) & 0xfff : 0;
-                    Utils.writeFileToAsync(sanitize(targetPath, entryName), content, overwrite, fileAttr, function (succ) {
-                        try {
-                            fs.utimesSync(pth.resolve(targetPath, entryName), entry.header.time, entry.header.time);
-                        } catch (er) {
-                            callback(new Error("Unable to set utimes"));
-                        }
-                        if (i <= 0) return;
-                        if (!succ) {
-                            i = 0;
-                            callback(new Error("Unable to write"));
-                            return;
-                        }
-                        if (--i === 0) callback(undefined);
-                    });
                 });
-            });
+            }
+
+            callback();
         },
 
         /**

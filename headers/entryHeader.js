@@ -84,21 +84,21 @@ module.exports = function () {
             return _crc;
         },
         set crc(val) {
-            _crc = val;
+            _crc = Math.max(0, val) >>> 0;
         },
 
         get compressedSize() {
             return _compressedSize;
         },
         set compressedSize(val) {
-            _compressedSize = val;
+            _compressedSize = Math.max(0, val) >>> 0;
         },
 
         get size() {
             return _size;
         },
         set size(val) {
-            _size = val;
+            _size = Math.max(0, val) >>> 0;
         },
 
         get fileNameLength() {
@@ -126,28 +126,33 @@ module.exports = function () {
             return _diskStart;
         },
         set diskNumStart(val) {
-            _diskStart = val;
+            _diskStart = Math.max(0, val) >>> 0;
         },
 
         get inAttr() {
             return _inattr;
         },
         set inAttr(val) {
-            _inattr = val;
+            _inattr = Math.max(0, val) >>> 0;
         },
 
         get attr() {
             return _attr;
         },
         set attr(val) {
-            _attr = val;
+            _attr = Math.max(0, val) >>> 0;
+        },
+
+        // get Unix file permissions
+        get fileAttr() {
+            return (((_attr >>> 0) | 0) >> 16) & 0xfff;
         },
 
         get offset() {
             return _offset;
         },
         set offset(val) {
-            _offset = val;
+            _offset = Math.max(0, val) >>> 0;
         },
 
         get encripted() {
