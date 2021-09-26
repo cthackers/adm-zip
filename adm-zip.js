@@ -497,12 +497,22 @@ module.exports = function (/**String*/ input, /** object */ options) {
          *                          will be created in targetPath as well. Default is TRUE
          * @param overwrite If the file already exists at the target path, the file will be overwriten if this is true.
          *                  Default is FALSE
+         * @param keepOriginalPermission The file will be set as the permission from the entry if this is true.
+         *                  Default is FALSE
          * @param outFileName String If set will override the filename of the extracted file (Only works if the entry is a file)
          *
          * @return Boolean
          */
-        extractEntryTo: function (/**Object*/ entry, /**String*/ targetPath, /**Boolean*/ maintainEntryPath, /**Boolean*/ overwrite, /**String**/ outFileName) {
+        extractEntryTo: function (
+            /**Object*/ entry,
+            /**String*/ targetPath,
+            /**Boolean*/ maintainEntryPath,
+            /**Boolean*/ overwrite,
+            /**Boolean*/ keepOriginalPermission,
+            /**String**/ outFileName
+        ) {
             overwrite = overwrite || false;
+            keepOriginalPermission = keepOriginalPermission || false;
             maintainEntryPath = typeof maintainEntryPath === "undefined" ? true : maintainEntryPath;
 
             var item = getEntry(entry);
@@ -525,7 +535,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
                     var name = canonical(child.entryName);
                     var childName = sanitize(targetPath, maintainEntryPath ? name : pth.basename(name));
                     // The reverse operation for attr depend on method addFile()
-                    var fileAttr = child.attr ? (((child.attr >>> 0) | 0) >> 16) & 0xfff : 0;
+                    const fileAttr = keepOriginalPermission ? child.header.fileAttr : undefined;
                     Utils.writeFileTo(childName, content, overwrite, fileAttr);
                 });
                 return true;
@@ -538,7 +548,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
                 throw new Error(Utils.Errors.CANT_OVERRIDE);
             }
             // The reverse operation for attr depend on method addFile()
-            var fileAttr = item.attr ? (((item.attr >>> 0) | 0) >> 16) & 0xfff : 0;
+            const fileAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
             Utils.writeFileTo(target, content, overwrite, fileAttr);
 
             return true;
@@ -575,9 +585,12 @@ module.exports = function (/**String*/ input, /** object */ options) {
          * @param targetPath Target location
          * @param overwrite If the file already exists at the target path, the file will be overwriten if this is true.
          *                  Default is FALSE
+         * @param keepOriginalPermission The file will be set as the permission from the entry if this is true.
+         *                  Default is FALSE
          */
-        extractAllTo: function (/**String*/ targetPath, /**Boolean*/ overwrite, /*String, Buffer*/ pass) {
+        extractAllTo: function (/**String*/ targetPath, /**Boolean*/ overwrite, /**Boolean*/ keepOriginalPermission, /*String, Buffer*/ pass) {
             overwrite = overwrite || false;
+            keepOriginalPermission = keepOriginalPermission || false;
             if (!_zip) {
                 throw new Error(Utils.Errors.NO_ZIP);
             }
@@ -592,7 +605,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
                     throw new Error(Utils.Errors.CANT_EXTRACT_FILE);
                 }
                 // The reverse operation for attr depend on method addFile()
-                var fileAttr = entry.attr ? (((entry.attr >>> 0) | 0) >> 16) & 0xfff : 0;
+                const fileAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
                 Utils.writeFileTo(entryName, content, overwrite, fileAttr);
                 try {
                     fs.utimesSync(entryName, entry.header.time, entry.header.time);
@@ -608,13 +621,16 @@ module.exports = function (/**String*/ input, /** object */ options) {
          * @param targetPath Target location
          * @param overwrite If the file already exists at the target path, the file will be overwriten if this is true.
          *                  Default is FALSE
+         * @param keepOriginalPermission The file will be set as the permission from the entry if this is true.
+         *                  Default is FALSE
          * @param callback
          */
-        extractAllToAsync: function (/**String*/ targetPath, /**Boolean*/ overwrite, /**Function*/ callback) {
+        extractAllToAsync: function (/**String*/ targetPath, /**Boolean*/ overwrite, /**Boolean*/ keepOriginalPermission, /**Function*/ callback) {
             if (!callback) {
                 callback = function () {};
             }
             overwrite = overwrite || false;
+            keepOriginalPermission = keepOriginalPermission || false;
             if (!_zip) {
                 callback(new Error(Utils.Errors.NO_ZIP));
                 return;
@@ -631,7 +647,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
             for (const entry of entries.filter((e) => e.isDirectory)) {
                 const filePath = getPath(entry);
                 // The reverse operation for attr depend on method addFile()
-                const fileAttr = entry.header.fileAttr;
+                const fileAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
                 try {
                     Utils.makeDir(filePath);
                     if (fileAttr) fs.chmodSync(filePath, fileAttr);
@@ -655,7 +671,8 @@ module.exports = function (/**String*/ input, /** object */ options) {
                         callback(new Error(Utils.Errors.CANT_EXTRACT_FILE));
                     } else {
                         // The reverse operation for attr depend on method addFile()
-                        Utils.writeFileToAsync(filePath, content, overwrite, entry.header.fileAttr, function (succ) {
+                        const fileAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
+                        Utils.writeFileToAsync(filePath, content, overwrite, fileAttr, function (succ) {
                             if (!succ) callback(getError("Unable to write file", filePath));
                             fs.utimes(filePath, entry.header.time, entry.header.time, function (err_2) {
                                 if (err_2) callback(getError("Unable to set times", filePath));
