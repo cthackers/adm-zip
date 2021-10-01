@@ -623,7 +623,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
          *                  Default is FALSE
          * @param keepOriginalPermission The file will be set as the permission from the entry if this is true.
          *                  Default is FALSE
-         * @param callback
+         * @param callback The callback will be executed when all entries are extracted successfully or any error is thrown.
          */
         extractAllToAsync: function (/**String*/ targetPath, /**Boolean*/ overwrite, /**Boolean*/ keepOriginalPermission, /**Function*/ callback) {
             if (!callback) {
@@ -637,29 +637,38 @@ module.exports = function (/**String*/ input, /** object */ options) {
             }
 
             targetPath = pth.resolve(targetPath);
-            // convert entryname to
+            // convert entryName to
             const getPath = (entry) => sanitize(targetPath, pth.normalize(canonical(entry.entryName.toString())));
             const getError = (msg, file) => new Error(msg + ': "' + file + '"');
 
-            const entries = _zip.entries;
+            const dirEntries = [];
+            const fileEntries = [];
+            _zip.entries.forEach((e) => {
+                if (e.isDirectory) {
+                    dirEntries.push(e);
+                } else {
+                    fileEntries.push(e);
+                }
+            });
 
-            // Create directory entries first
-            for (const entry of entries.filter((e) => e.isDirectory)) {
-                const filePath = getPath(entry);
+            // Create directory entries first synchronously
+            for (const entry of dirEntries) {
+                const dirPath = getPath(entry);
                 // The reverse operation for attr depend on method addFile()
-                const fileAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
+                const dirAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
                 try {
-                    Utils.makeDir(filePath);
-                    if (fileAttr) fs.chmodSync(filePath, fileAttr);
+                    Utils.makeDir(dirPath);
+                    if (dirAttr) fs.chmodSync(dirPath, dirAttr);
                     // in unix timestamp will change if files are later added to folder, but still
-                    fs.utimesSync(filePath, entry.header.time, entry.header.time);
+                    fs.utimesSync(dirPath, entry.header.time, entry.header.time);
                 } catch (er) {
-                    callback(getError("Unable to create folder", filePath));
+                    callback(getError("Unable to create folder", dirPath));
                 }
             }
 
-            // File entries
-            for (const entry of entries.filter((e) => !e.isDirectory)) {
+            // Extract file entries asynchronously
+            let extractedFileCount = 0;
+            for (const entry of fileEntries) {
                 const entryName = pth.normalize(canonical(entry.entryName.toString()));
                 const filePath = sanitize(targetPath, entryName);
                 entry.getDataAsync(function (content, err_1) {
@@ -673,16 +682,28 @@ module.exports = function (/**String*/ input, /** object */ options) {
                         // The reverse operation for attr depend on method addFile()
                         const fileAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
                         Utils.writeFileToAsync(filePath, content, overwrite, fileAttr, function (succ) {
-                            if (!succ) callback(getError("Unable to write file", filePath));
+                            if (!succ) {
+                                callback(getError("Unable to write file", filePath));
+                                return;
+                            }
                             fs.utimes(filePath, entry.header.time, entry.header.time, function (err_2) {
-                                if (err_2) callback(getError("Unable to set times", filePath));
+                                if (err_2) {
+                                    callback(getError("Unable to set times", filePath));
+                                    return;
+                                }
+                                extractedFileCount += 1;
+                                if (extractedFileCount === fileEntries.length) {
+                                    callback();
+                                }
                             });
                         });
                     }
                 });
             }
 
-            callback();
+            if (extractedFileCount === fileEntries.length) {
+                callback();
+            }
         },
 
         /**
