@@ -12,7 +12,9 @@ const defaultOptions = {
     // read entries during load (initial loading may be slower)
     readEntries: false,
     // default method is none
-    method: Utils.Constants.NONE
+    method: Utils.Constants.NONE,
+    // file system
+    fs: fs,
 };
 
 module.exports = function (/**String*/ input, /** object */ options) {
@@ -44,10 +46,10 @@ module.exports = function (/**String*/ input, /** object */ options) {
     // if input is file name we retrieve its content
     if (input && "string" === typeof input) {
         // load zip file
-        if (fs.existsSync(input)) {
+        if (opts.fs.existsSync(input)) {
             opts.method = Utils.Constants.FILE;
             opts.filename = input;
-            inBuffer = fs.readFileSync(input);
+            inBuffer = opts.fs.readFileSync(input);
         } else {
             throw new Error(Utils.Errors.INVALID_FILENAME);
         }
@@ -234,7 +236,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
          * @param zipName Optional name for the file
          */
         addLocalFile: function (/**String*/ localPath, /**String=*/ zipPath, /**String=*/ zipName, /**String*/ comment) {
-            if (fs.existsSync(localPath)) {
+            if (opts.fs.existsSync(localPath)) {
                 // fix ZipPath
                 zipPath = zipPath ? fixPath(zipPath) : "";
 
@@ -245,10 +247,10 @@ module.exports = function (/**String*/ input, /** object */ options) {
                 zipPath += zipName ? zipName : p;
 
                 // read file attributes
-                const _attr = fs.statSync(localPath);
+                const _attr = opts.fs.statSync(localPath);
 
                 // add file into zip file
-                this.addFile(zipPath, fs.readFileSync(localPath), comment, _attr);
+                this.addFile(zipPath, opts.fs.readFileSync(localPath), comment, _attr);
             } else {
                 throw new Error(Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath));
             }
@@ -284,7 +286,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
             // normalize the path first
             localPath = pth.normalize(localPath);
 
-            if (fs.existsSync(localPath)) {
+            if (opts.fs.existsSync(localPath)) {
                 const items = Utils.findFiles(localPath);
                 const self = this;
 
@@ -292,9 +294,9 @@ module.exports = function (/**String*/ input, /** object */ options) {
                     items.forEach(function (filepath) {
                         var p = pth.relative(localPath, filepath).split("\\").join("/"); //windows fix
                         if (filter(p)) {
-                            var stats = fs.statSync(filepath);
+                            var stats = opts.fs.statSync(filepath);
                             if (stats.isFile()) {
-                                self.addFile(zipPath + p, fs.readFileSync(filepath), "", stats);
+                                self.addFile(zipPath + p, opts.fs.readFileSync(filepath), "", stats);
                             } else {
                                 self.addFile(zipPath + p + "/", Buffer.alloc(0), "", stats);
                             }
@@ -334,7 +336,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
             localPath = pth.normalize(localPath);
 
             var self = this;
-            fs.open(localPath, "r", function (err) {
+            opts.fs.open(localPath, "r", function (err) {
                 if (err && err.code === "ENOENT") {
                     callback(undefined, Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath));
                 } else if (err) {
@@ -353,10 +355,10 @@ module.exports = function (/**String*/ input, /** object */ options) {
                                 .replace(/[\u0300-\u036f]/g, "")
                                 .replace(/[^\x20-\x7E]/g, ""); // accent fix
                             if (filter(p)) {
-                                fs.stat(filepath, function (er0, stats) {
+                                opts.fs.stat(filepath, function (er0, stats) {
                                     if (er0) callback(undefined, er0);
                                     if (stats.isFile()) {
-                                        fs.readFile(filepath, function (er1, data) {
+                                        opts.fs.readFile(filepath, function (er1, data) {
                                             if (er1) {
                                                 callback(undefined, er1);
                                             } else {
@@ -425,7 +427,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
             }
             entry.comment = comment || "";
 
-            const isStat = "object" === typeof attr && attr instanceof fs.Stats;
+            const isStat = "object" === typeof attr && attr instanceof opts.fs.Stats;
 
             // last modification time from file stats
             if (isStat) {
@@ -544,7 +546,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
             var content = item.getData();
             if (!content) throw new Error(Utils.Errors.CANT_EXTRACT_FILE);
 
-            if (fs.existsSync(target) && !overwrite) {
+            if (opts.fs.existsSync(target) && !overwrite) {
                 throw new Error(Utils.Errors.CANT_OVERRIDE);
             }
             // The reverse operation for attr depend on method addFile()
@@ -608,7 +610,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
                 const fileAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
                 Utils.writeFileTo(entryName, content, overwrite, fileAttr);
                 try {
-                    fs.utimesSync(entryName, entry.header.time, entry.header.time);
+                    opts.fs.utimesSync(entryName, entry.header.time, entry.header.time);
                 } catch (err) {
                     throw new Error(Utils.Errors.CANT_EXTRACT_FILE);
                 }
@@ -650,9 +652,9 @@ module.exports = function (/**String*/ input, /** object */ options) {
                 const fileAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
                 try {
                     Utils.makeDir(filePath);
-                    if (fileAttr) fs.chmodSync(filePath, fileAttr);
+                    if (fileAttr) opts.fs.chmodSync(filePath, fileAttr);
                     // in unix timestamp will change if files are later added to folder, but still
-                    fs.utimesSync(filePath, entry.header.time, entry.header.time);
+                    opts.fs.utimesSync(filePath, entry.header.time, entry.header.time);
                 } catch (er) {
                     callback(getError("Unable to create folder", filePath));
                 }
@@ -674,7 +676,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
                         const fileAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
                         Utils.writeFileToAsync(filePath, content, overwrite, fileAttr, function (succ) {
                             if (!succ) callback(getError("Unable to write file", filePath));
-                            fs.utimes(filePath, entry.header.time, entry.header.time, function (err_2) {
+                            opts.fs.utimes(filePath, entry.header.time, entry.header.time, function (err_2) {
                                 if (err_2) callback(getError("Unable to set times", filePath));
                             });
                         });
