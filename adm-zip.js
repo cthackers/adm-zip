@@ -3,6 +3,9 @@ const pth = require("path");
 const ZipEntry = require("./zipEntry");
 const ZipFile = require("./zipFile");
 
+const is_Bool = (val, def) => (typeof val === "boolean" ? val : def);
+const is_Str = (val, def) => (typeof val === "string" ? val : def);
+
 const fs = Utils.FileSystem.require();
 fs.existsSync = fs.existsSync || pth.existsSync;
 
@@ -14,7 +17,7 @@ const defaultOptions = {
     // default method is none
     method: Utils.Constants.NONE,
     // file system
-    fs: fs,
+    fs: fs
 };
 
 module.exports = function (/**String*/ input, /** object */ options) {
@@ -513,9 +516,10 @@ module.exports = function (/**String*/ input, /** object */ options) {
             /**Boolean*/ keepOriginalPermission,
             /**String**/ outFileName
         ) {
-            overwrite = overwrite || false;
-            keepOriginalPermission = keepOriginalPermission || false;
-            maintainEntryPath = typeof maintainEntryPath === "undefined" ? true : maintainEntryPath;
+            overwrite = is_Bool(overwrite, false);
+            keepOriginalPermission = is_Bool(keepOriginalPermission, false);
+            maintainEntryPath = is_Bool(maintainEntryPath, true);
+            outFileName = is_Str(outFileName, is_Str(keepOriginalPermission, undefined));
 
             var item = getEntry(entry);
             if (!item) {
@@ -591,8 +595,9 @@ module.exports = function (/**String*/ input, /** object */ options) {
          *                  Default is FALSE
          */
         extractAllTo: function (/**String*/ targetPath, /**Boolean*/ overwrite, /**Boolean*/ keepOriginalPermission, /*String, Buffer*/ pass) {
-            overwrite = overwrite || false;
-            keepOriginalPermission = keepOriginalPermission || false;
+            overwrite = is_Bool(overwrite, false);
+            pass = is_Str(keepOriginalPermission, pass);
+            keepOriginalPermission = is_Bool(keepOriginalPermission, false);
             if (!_zip) {
                 throw new Error(Utils.Errors.NO_ZIP);
             }
@@ -631,8 +636,9 @@ module.exports = function (/**String*/ input, /** object */ options) {
             if (!callback) {
                 callback = function () {};
             }
-            overwrite = overwrite || false;
-            keepOriginalPermission = keepOriginalPermission || false;
+            overwrite = is_Bool(overwrite, false);
+            if (typeof keepOriginalPermission === "function" && !callback) callback = keepOriginalPermission;
+            keepOriginalPermission = is_Bool(keepOriginalPermission, false);
             if (!_zip) {
                 callback(new Error(Utils.Errors.NO_ZIP));
                 return;
@@ -643,17 +649,19 @@ module.exports = function (/**String*/ input, /** object */ options) {
             const getPath = (entry) => sanitize(targetPath, pth.normalize(canonical(entry.entryName.toString())));
             const getError = (msg, file) => new Error(msg + ': "' + file + '"');
 
+            // separate directories from files
             const dirEntries = [];
-            const fileEntries = [];
+            const fileEntries = new Set();
             _zip.entries.forEach((e) => {
                 if (e.isDirectory) {
                     dirEntries.push(e);
                 } else {
-                    fileEntries.push(e);
+                    fileEntries.add(e);
                 }
             });
 
             // Create directory entries first synchronously
+            // this prevents race condition and assures folders are there before writing files
             for (const entry of dirEntries) {
                 const dirPath = getPath(entry);
                 // The reverse operation for attr depend on method addFile()
@@ -668,9 +676,15 @@ module.exports = function (/**String*/ input, /** object */ options) {
                 }
             }
 
+            // callback wrapper, for some house keeping
+            const done = () => {
+                if (fileEntries.size === 0) {
+                    callback();
+                }
+            };
+
             // Extract file entries asynchronously
-            let extractedFileCount = 0;
-            for (const entry of fileEntries) {
+            for (const entry of fileEntries.values()) {
                 const entryName = pth.normalize(canonical(entry.entryName.toString()));
                 const filePath = sanitize(targetPath, entryName);
                 entry.getDataAsync(function (content, err_1) {
@@ -693,19 +707,16 @@ module.exports = function (/**String*/ input, /** object */ options) {
                                     callback(getError("Unable to set times", filePath));
                                     return;
                                 }
-                                extractedFileCount += 1;
-                                if (extractedFileCount === fileEntries.length) {
-                                    callback();
-                                }
+                                fileEntries.delete(entry);
+                                // call the callback if it was last entry
+                                done();
                             });
                         });
                     }
                 });
             }
-
-            if (extractedFileCount === fileEntries.length) {
-                callback();
-            }
+            // call the callback if fileEntries was empty
+            done();
         },
 
         /**
