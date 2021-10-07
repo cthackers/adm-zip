@@ -3,8 +3,8 @@ const pth = require("path");
 const ZipEntry = require("./zipEntry");
 const ZipFile = require("./zipFile");
 
-const fs = Utils.FileSystem.require();
-fs.existsSync = fs.existsSync || pth.existsSync;
+const get_Bool = (val, def) => (typeof val === "boolean" ? val : def);
+const get_Str = (val, def) => (typeof val === "string" ? val : def);
 
 const defaultOptions = {
     // option "noSort" : if true it disables files sorting
@@ -14,7 +14,7 @@ const defaultOptions = {
     // default method is none
     method: Utils.Constants.NONE,
     // file system
-    fs: fs,
+    fs: null
 };
 
 module.exports = function (/**String*/ input, /** object */ options) {
@@ -43,13 +43,16 @@ module.exports = function (/**String*/ input, /** object */ options) {
     // assign options
     Object.assign(opts, options);
 
+    // instanciate utils filesystem
+    const filetools = new Utils(opts);
+
     // if input is file name we retrieve its content
     if (input && "string" === typeof input) {
         // load zip file
-        if (opts.fs.existsSync(input)) {
+        if (filetools.fs.existsSync(input)) {
             opts.method = Utils.Constants.FILE;
             opts.filename = input;
-            inBuffer = opts.fs.readFileSync(input);
+            inBuffer = filetools.fs.readFileSync(input);
         } else {
             throw new Error(Utils.Errors.INVALID_FILENAME);
         }
@@ -236,7 +239,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
          * @param zipName Optional name for the file
          */
         addLocalFile: function (/**String*/ localPath, /**String=*/ zipPath, /**String=*/ zipName, /**String*/ comment) {
-            if (opts.fs.existsSync(localPath)) {
+            if (filetools.fs.existsSync(localPath)) {
                 // fix ZipPath
                 zipPath = zipPath ? fixPath(zipPath) : "";
 
@@ -247,10 +250,10 @@ module.exports = function (/**String*/ input, /** object */ options) {
                 zipPath += zipName ? zipName : p;
 
                 // read file attributes
-                const _attr = opts.fs.statSync(localPath);
+                const _attr = filetools.fs.statSync(localPath);
 
                 // add file into zip file
-                this.addFile(zipPath, opts.fs.readFileSync(localPath), comment, _attr);
+                this.addFile(zipPath, filetools.fs.readFileSync(localPath), comment, _attr);
             } else {
                 throw new Error(Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath));
             }
@@ -286,17 +289,17 @@ module.exports = function (/**String*/ input, /** object */ options) {
             // normalize the path first
             localPath = pth.normalize(localPath);
 
-            if (opts.fs.existsSync(localPath)) {
-                const items = Utils.findFiles(localPath);
+            if (filetools.fs.existsSync(localPath)) {
+                const items = filetools.findFiles(localPath);
                 const self = this;
 
                 if (items.length) {
                     items.forEach(function (filepath) {
                         var p = pth.relative(localPath, filepath).split("\\").join("/"); //windows fix
                         if (filter(p)) {
-                            var stats = opts.fs.statSync(filepath);
+                            var stats = filetools.fs.statSync(filepath);
                             if (stats.isFile()) {
-                                self.addFile(zipPath + p, opts.fs.readFileSync(filepath), "", stats);
+                                self.addFile(zipPath + p, filetools.fs.readFileSync(filepath), "", stats);
                             } else {
                                 self.addFile(zipPath + p + "/", Buffer.alloc(0), "", stats);
                             }
@@ -336,13 +339,13 @@ module.exports = function (/**String*/ input, /** object */ options) {
             localPath = pth.normalize(localPath);
 
             var self = this;
-            opts.fs.open(localPath, "r", function (err) {
+            filetools.fs.open(localPath, "r", function (err) {
                 if (err && err.code === "ENOENT") {
                     callback(undefined, Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath));
                 } else if (err) {
                     callback(undefined, err);
                 } else {
-                    var items = Utils.findFiles(localPath);
+                    var items = filetools.findFiles(localPath);
                     var i = -1;
 
                     var next = function () {
@@ -355,10 +358,10 @@ module.exports = function (/**String*/ input, /** object */ options) {
                                 .replace(/[\u0300-\u036f]/g, "")
                                 .replace(/[^\x20-\x7E]/g, ""); // accent fix
                             if (filter(p)) {
-                                opts.fs.stat(filepath, function (er0, stats) {
+                                filetools.fs.stat(filepath, function (er0, stats) {
                                     if (er0) callback(undefined, er0);
                                     if (stats.isFile()) {
-                                        opts.fs.readFile(filepath, function (er1, data) {
+                                        filetools.fs.readFile(filepath, function (er1, data) {
                                             if (er1) {
                                                 callback(undefined, er1);
                                             } else {
@@ -427,7 +430,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
             }
             entry.comment = comment || "";
 
-            const isStat = "object" === typeof attr && attr instanceof opts.fs.Stats;
+            const isStat = "object" === typeof attr && attr instanceof filetools.fs.Stats;
 
             // last modification time from file stats
             if (isStat) {
@@ -513,9 +516,10 @@ module.exports = function (/**String*/ input, /** object */ options) {
             /**Boolean*/ keepOriginalPermission,
             /**String**/ outFileName
         ) {
-            overwrite = overwrite || false;
-            keepOriginalPermission = keepOriginalPermission || false;
-            maintainEntryPath = typeof maintainEntryPath === "undefined" ? true : maintainEntryPath;
+            overwrite = get_Bool(overwrite, false);
+            keepOriginalPermission = get_Bool(keepOriginalPermission, false);
+            maintainEntryPath = get_Bool(maintainEntryPath, true);
+            outFileName = get_Str(outFileName, get_Str(keepOriginalPermission, undefined));
 
             var item = getEntry(entry);
             if (!item) {
@@ -538,7 +542,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
                     var childName = sanitize(targetPath, maintainEntryPath ? name : pth.basename(name));
                     // The reverse operation for attr depend on method addFile()
                     const fileAttr = keepOriginalPermission ? child.header.fileAttr : undefined;
-                    Utils.writeFileTo(childName, content, overwrite, fileAttr);
+                    filetools.writeFileTo(childName, content, overwrite, fileAttr);
                 });
                 return true;
             }
@@ -546,12 +550,12 @@ module.exports = function (/**String*/ input, /** object */ options) {
             var content = item.getData();
             if (!content) throw new Error(Utils.Errors.CANT_EXTRACT_FILE);
 
-            if (opts.fs.existsSync(target) && !overwrite) {
+            if (filetools.fs.existsSync(target) && !overwrite) {
                 throw new Error(Utils.Errors.CANT_OVERRIDE);
             }
             // The reverse operation for attr depend on method addFile()
             const fileAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
-            Utils.writeFileTo(target, content, overwrite, fileAttr);
+            filetools.writeFileTo(target, content, overwrite, fileAttr);
 
             return true;
         },
@@ -591,15 +595,16 @@ module.exports = function (/**String*/ input, /** object */ options) {
          *                  Default is FALSE
          */
         extractAllTo: function (/**String*/ targetPath, /**Boolean*/ overwrite, /**Boolean*/ keepOriginalPermission, /*String, Buffer*/ pass) {
-            overwrite = overwrite || false;
-            keepOriginalPermission = keepOriginalPermission || false;
+            overwrite = get_Bool(overwrite, false);
+            pass = get_Str(keepOriginalPermission, pass);
+            keepOriginalPermission = get_Bool(keepOriginalPermission, false);
             if (!_zip) {
                 throw new Error(Utils.Errors.NO_ZIP);
             }
             _zip.entries.forEach(function (entry) {
                 var entryName = sanitize(targetPath, canonical(entry.entryName.toString()));
                 if (entry.isDirectory) {
-                    Utils.makeDir(entryName);
+                    filetools.makeDir(entryName);
                     return;
                 }
                 var content = entry.getData(pass);
@@ -608,9 +613,9 @@ module.exports = function (/**String*/ input, /** object */ options) {
                 }
                 // The reverse operation for attr depend on method addFile()
                 const fileAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
-                Utils.writeFileTo(entryName, content, overwrite, fileAttr);
+                filetools.writeFileTo(entryName, content, overwrite, fileAttr);
                 try {
-                    opts.fs.utimesSync(entryName, entry.header.time, entry.header.time);
+                    filetools.fs.utimesSync(entryName, entry.header.time, entry.header.time);
                 } catch (err) {
                     throw new Error(Utils.Errors.CANT_EXTRACT_FILE);
                 }
@@ -631,8 +636,9 @@ module.exports = function (/**String*/ input, /** object */ options) {
             if (!callback) {
                 callback = function () {};
             }
-            overwrite = overwrite || false;
-            keepOriginalPermission = keepOriginalPermission || false;
+            overwrite = get_Bool(overwrite, false);
+            if (typeof keepOriginalPermission === "function" && !callback) callback = keepOriginalPermission;
+            keepOriginalPermission = get_Bool(keepOriginalPermission, false);
             if (!_zip) {
                 callback(new Error(Utils.Errors.NO_ZIP));
                 return;
@@ -643,34 +649,42 @@ module.exports = function (/**String*/ input, /** object */ options) {
             const getPath = (entry) => sanitize(targetPath, pth.normalize(canonical(entry.entryName.toString())));
             const getError = (msg, file) => new Error(msg + ': "' + file + '"');
 
+            // separate directories from files
             const dirEntries = [];
-            const fileEntries = [];
+            const fileEntries = new Set();
             _zip.entries.forEach((e) => {
                 if (e.isDirectory) {
                     dirEntries.push(e);
                 } else {
-                    fileEntries.push(e);
+                    fileEntries.add(e);
                 }
             });
 
             // Create directory entries first synchronously
+            // this prevents race condition and assures folders are there before writing files
             for (const entry of dirEntries) {
                 const dirPath = getPath(entry);
                 // The reverse operation for attr depend on method addFile()
                 const dirAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
                 try {
-                    Utils.makeDir(dirPath);
-                    if (dirAttr) opts.fs.chmodSync(dirPath, dirAttr);
+                    filetools.makeDir(dirPath);
+                    if (dirAttr) filetools.fs.chmodSync(dirPath, dirAttr);
                     // in unix timestamp will change if files are later added to folder, but still
-                    opts.fs.utimesSync(dirPath, entry.header.time, entry.header.time);
+                    filetools.fs.utimesSync(dirPath, entry.header.time, entry.header.time);
                 } catch (er) {
                     callback(getError("Unable to create folder", dirPath));
                 }
             }
 
+            // callback wrapper, for some house keeping
+            const done = () => {
+                if (fileEntries.size === 0) {
+                    callback();
+                }
+            };
+
             // Extract file entries asynchronously
-            let extractedFileCount = 0;
-            for (const entry of fileEntries) {
+            for (const entry of fileEntries.values()) {
                 const entryName = pth.normalize(canonical(entry.entryName.toString()));
                 const filePath = sanitize(targetPath, entryName);
                 entry.getDataAsync(function (content, err_1) {
@@ -683,29 +697,26 @@ module.exports = function (/**String*/ input, /** object */ options) {
                     } else {
                         // The reverse operation for attr depend on method addFile()
                         const fileAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
-                        Utils.writeFileToAsync(filePath, content, overwrite, fileAttr, function (succ) {
+                        filetools.writeFileToAsync(filePath, content, overwrite, fileAttr, function (succ) {
                             if (!succ) {
                                 callback(getError("Unable to write file", filePath));
                                 return;
                             }
-                            opts.fs.utimes(filePath, entry.header.time, entry.header.time, function (err_2) {
+                            filetools.fs.utimes(filePath, entry.header.time, entry.header.time, function (err_2) {
                                 if (err_2) {
                                     callback(getError("Unable to set times", filePath));
                                     return;
                                 }
-                                extractedFileCount += 1;
-                                if (extractedFileCount === fileEntries.length) {
-                                    callback();
-                                }
+                                fileEntries.delete(entry);
+                                // call the callback if it was last entry
+                                done();
                             });
                         });
                     }
                 });
             }
-
-            if (extractedFileCount === fileEntries.length) {
-                callback();
-            }
+            // call the callback if fileEntries was empty
+            done();
         },
 
         /**
@@ -729,7 +740,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
 
             var zipData = _zip.compressToBuffer();
             if (zipData) {
-                var ok = Utils.writeFileTo(targetFileName, zipData, true);
+                var ok = filetools.writeFileTo(targetFileName, zipData, true);
                 if (typeof callback === "function") callback(!ok ? new Error("failed") : null, "");
             }
         },
@@ -744,7 +755,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
 
                 this.toBufferPromise().then((zipData) => {
                     const ret = (done) => (done ? resolve(done) : reject("ADM-ZIP: Wasn't able to write zip file"));
-                    Utils.writeFileToAsync(targetFileName, zipData, overwrite, perm, ret);
+                    filetools.writeFileToAsync(targetFileName, zipData, overwrite, perm, ret);
                 }, reject);
             });
         },
