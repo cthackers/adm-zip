@@ -633,9 +633,10 @@ module.exports = function (/**String*/ input, /** object */ options) {
          * @param callback The callback will be executed when all entries are extracted successfully or any error is thrown.
          */
         extractAllToAsync: function (/**String*/ targetPath, /**Boolean*/ overwrite, /**Boolean*/ keepOriginalPermission, /**Function*/ callback) {
-            if (!callback) {
-                callback = function () {};
-            }
+            // If keepOriginalPermission is a callback passed in by the user, the following callback assignment will be invalid
+            // if (!callback) {
+            //     callback = function () {};
+            // }
             overwrite = get_Bool(overwrite, false);
             if (typeof keepOriginalPermission === "function" && !callback) callback = keepOriginalPermission;
             keepOriginalPermission = get_Bool(keepOriginalPermission, false);
@@ -653,10 +654,14 @@ module.exports = function (/**String*/ input, /** object */ options) {
             const dirEntries = [];
             const fileEntries = new Set();
             _zip.entries.forEach((e) => {
-                if (e.isDirectory) {
-                    dirEntries.push(e);
-                } else {
-                    fileEntries.add(e);
+                // Need to filter . And .. directory, Because these two directories will cause when you end, fileEntries.size is not zero
+                const entryName = pth.normalize(canonical(e.entryName.toString()))
+                if (entryName != '.' && entryName != '..') {
+                    if (e.isDirectory) {
+                        dirEntries.push(e)
+                    } else {
+                        fileEntries.add(e)
+                    }
                 }
             });
 
