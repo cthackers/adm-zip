@@ -441,23 +441,21 @@ module.exports = function (/**String*/ input, /** object */ options) {
             var fileattr = entry.isDirectory ? 0x10 : 0; // (MS-DOS directory flag)
 
             // extended attributes field for Unix
-            if (!Utils.isWin) {
-                // set file type either S_IFDIR / S_IFREG
-                let unix = entry.isDirectory ? 0x4000 : 0x8000;
+            // set file type either S_IFDIR / S_IFREG
+            let unix = entry.isDirectory ? 0x4000 : 0x8000;
 
-                if (isStat) {
-                    // File attributes from file stats
-                    unix |= 0xfff & attr.mode;
-                } else if ("number" === typeof attr) {
-                    // attr from given attr values
-                    unix |= 0xfff & attr;
-                } else {
-                    // Default values:
-                    unix |= entry.isDirectory ? 0o755 : 0o644; // permissions (drwxr-xr-x) or (-r-wr--r--)
-                }
-
-                fileattr = (fileattr | (unix << 16)) >>> 0; // add attributes
+            if (isStat) {
+                // File attributes from file stats
+                unix |= 0xfff & attr.mode;
+            } else if ("number" === typeof attr) {
+                // attr from given attr values
+                unix |= 0xfff & attr;
+            } else {
+                // Default values:
+                unix |= entry.isDirectory ? 0o755 : 0o644; // permissions (drwxr-xr-x) or (-r-wr--r--)
             }
+
+            fileattr = (fileattr | (unix << 16)) >>> 0; // add attributes
 
             entry.attr = fileattr;
 
