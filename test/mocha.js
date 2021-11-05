@@ -154,6 +154,21 @@ describe("adm-zip", () => {
         const zip2Entries = zip2.getEntries().map((e) => e.entryName);
         expect(zip2Entries).to.deep.equal(["c.txt", "b.txt", "a.txt"]);
     });
+
+    it("repro: symlink", () => {
+        const zip = new Zip("./test/assets/symlink.zip");
+        zip.extractAllTo(destination);
+
+        const linkPath = pth.join(destination, "link")
+        const linkStat = fs.lstatSync(linkPath);
+        expect(linkStat.isSymbolicLink()).to.be.true;
+        
+        const linkTarget = fs.readlinkSync(linkPath);
+        expect(linkTarget).to.equal("target")
+
+        const linkContent = fs.readFileSync(linkPath);
+        expect(linkContent).to.equal("diddlydiddly doo, i'm a linkaroo")
+    });
 });
 
 function walk(dir) {
