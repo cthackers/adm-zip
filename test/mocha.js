@@ -28,7 +28,7 @@ describe("adm-zip", () => {
         );
     });
 
-    it("zip.extractAllToAsync()", (done) => {
+    it("zip.extractAllToAsync(destination, false, false, callback)", (done) => {
         const zip = new Zip("./test/assets/ultra.zip");
         zip.extractAllToAsync(destination, false, false, (error) => {
             const files = walk(destination);
@@ -44,6 +44,10 @@ describe("adm-zip", () => {
             );
             done();
         });
+    });
+    
+    it("zip.extractAllToAsync(destination, false, callback)", (done) => {
+        const zip = new Zip("./test/assets/ultra.zip");
         zip.extractAllToAsync(destination, false, (error) => {
             const files = walk(destination);
             expect(files.sort()).to.deep.equal(
