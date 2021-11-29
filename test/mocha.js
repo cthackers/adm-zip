@@ -44,6 +44,20 @@ describe("adm-zip", () => {
             );
             done();
         });
+        zip.extractAllToAsync(destination, false, (error) => {
+            const files = walk(destination);
+            expect(files.sort()).to.deep.equal(
+                [
+                    pth.normalize("./test/xxx/attributes_test/asd/New Text Document.txt"),
+                    pth.normalize("./test/xxx/attributes_test/blank file.txt"),
+                    pth.normalize("./test/xxx/attributes_test/New folder/hidden.txt"),
+                    pth.normalize("./test/xxx/attributes_test/New folder/hidden_readonly.txt"),
+                    pth.normalize("./test/xxx/attributes_test/New folder/readonly.txt"),
+                    pth.normalize("./test/xxx/utes_test/New folder/somefile.txt")
+                ].sort()
+            );
+            done();
+        });
     });
 
     it("zip pathTraversal", () => {
