@@ -633,11 +633,13 @@ module.exports = function (/**String*/ input, /** object */ options) {
          * @param callback The callback will be executed when all entries are extracted successfully or any error is thrown.
          */
         extractAllToAsync: function (/**String*/ targetPath, /**Boolean*/ overwrite, /**Boolean*/ keepOriginalPermission, /**Function*/ callback) {
+            let noCallback = false;
             if (!callback) {
                 callback = function () {};
+                noCallback = true
             }
             overwrite = get_Bool(overwrite, false);
-            if (typeof keepOriginalPermission === "function" && !callback) callback = keepOriginalPermission;
+            if (typeof keepOriginalPermission === "function" && noCallback) callback = keepOriginalPermission;
             keepOriginalPermission = get_Bool(keepOriginalPermission, false);
             if (!_zip) {
                 callback(new Error(Utils.Errors.NO_ZIP));
