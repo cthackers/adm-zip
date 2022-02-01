@@ -266,8 +266,9 @@ module.exports = function (/**String*/ input, /** object */ options) {
          * @param zipPath optional path inside zip
          * @param filter optional RegExp or Function if files match will
          *               be included.
+         * @param {number | object} attr - number as unix file permissions, object as filesystem Stats object
          */
-        addLocalFolder: function (/**String*/ localPath, /**String=*/ zipPath, /**=RegExp|Function*/ filter) {
+        addLocalFolder: function (/**String*/ localPath, /**String=*/ zipPath, /**=RegExp|Function*/ filter, /**=number|object*/ attr) {
             // Prepare filter
             if (filter instanceof RegExp) {
                 // if filter is RegExp wrap it
@@ -299,9 +300,9 @@ module.exports = function (/**String*/ input, /** object */ options) {
                         if (filter(p)) {
                             var stats = filetools.fs.statSync(filepath);
                             if (stats.isFile()) {
-                                self.addFile(zipPath + p, filetools.fs.readFileSync(filepath), "", stats);
+                                self.addFile(zipPath + p, filetools.fs.readFileSync(filepath), "", attr ? attr : stats);
                             } else {
-                                self.addFile(zipPath + p + "/", Buffer.alloc(0), "", stats);
+                                self.addFile(zipPath + p + "/", Buffer.alloc(0), "", attr ? attr : stats);
                             }
                         }
                     });
