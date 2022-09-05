@@ -1,4 +1,4 @@
-const fsystem = require("./fileSystem").require();
+const fsystem = require("fs");
 const pth = require("path");
 const Constants = require("./constants");
 const isWin = typeof process === "object" && "win32" === process.platform;
