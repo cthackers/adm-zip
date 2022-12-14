@@ -375,7 +375,9 @@ module.exports = function (/**String*/ input, /** object */ options) {
                                     }
                                 });
                             } else {
-                                next();
+                                process.nextTick(() => {
+                                    next();
+                                });
                             }
                         } else {
                             callback(true, undefined);
