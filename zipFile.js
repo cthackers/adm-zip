@@ -49,7 +49,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                 entry = new ZipEntry(inBuffer);
             entry.header = inBuffer.slice(tmp, (tmp += Utils.Constants.CENHDR));
 
-            entry.entryName = inBuffer.slice(tmp, (tmp += entry.header.fileNameLength));
+            entry.rawEntryName = inBuffer.slice(tmp, (tmp += entry.header.fileNameLength));
 
             if (entry.header.extraLength) {
                 entry.extra = inBuffer.slice(tmp, (tmp += entry.header.extraLength));
@@ -60,7 +60,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             index += entry.header.entryHeaderSize;
 
             entryList[i] = entry;
-            entryTable[entry.entryName] = entry;
+            entryTable[Utils.toBuffer(entry.rawEntryName)] = entry;
         }
     }
 
@@ -164,7 +164,8 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             if (!loadedEntries) {
                 readEntries();
             }
-            return entryTable[entryName] || null;
+            let rawEntryName = Buffer.isBuffer(entryName) ? entryName : Utils.toBuffer(entryName);
+            return entryTable[rawEntryName] || null;
         },
 
         /**
@@ -177,7 +178,8 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                 readEntries();
             }
             entryList.push(entry);
-            entryTable[entry.entryName] = entry;
+            let rawEntryName = Buffer.isBuffer(entry) ? entry : Utils.toBuffer(entry.entryName);
+            entryTable[rawEntryName] = entry;
             mainHeader.totalEntries = entryList.length;
         },
 
@@ -191,17 +193,18 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             if (!loadedEntries) {
                 readEntries();
             }
-            var entry = entryTable[entryName];
+            let rawEntryName = Buffer.isBuffer(entryName) ? entryName : Utils.toBuffer(entryName);
+            var entry = entryTable[rawEntryName];
             if (entry && entry.isDirectory) {
                 var _self = this;
                 this.getEntryChildren(entry).forEach(function (child) {
-                    if (child.entryName !== entryName) {
-                        _self.deleteEntry(child.entryName);
+                    if (child.rawEntryName !== entryName) {
+                        _self.deleteEntry(child.rawEntryName);
                     }
                 });
             }
             entryList.splice(entryList.indexOf(entry), 1);
-            delete entryTable[entryName];
+            delete entryTable[rawEntryName];
             mainHeader.totalEntries = entryList.length;
         },
 
@@ -217,11 +220,10 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             }
             if (entry && entry.isDirectory) {
                 const list = [];
-                const name = entry.entryName;
-                const len = name.length;
 
                 entryList.forEach(function (zipEntry) {
-                    if (zipEntry.entryName.substr(0, len) === name) {
+                    // NOTE: this does not consider the overlap of different codes
+                    if (zipEntry.entryName === entry.entryName) {
                         list.push(zipEntry);
                     }
                 });

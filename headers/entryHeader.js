@@ -63,6 +63,15 @@ module.exports = function () {
             _flags = val;
         },
 
+        get EFSflag() {
+            return (_flags & Constants.FLG_EFS) == Constants.FLG_EFS;
+        },
+        set EFSflag(newValue) {
+            if (this.EFSflag != newValue) {
+                _flags ^= Constants.FLG_EFS;
+            }
+        },
+
         get method() {
             return _method;
         },
@@ -181,6 +190,7 @@ module.exports = function () {
             if (data.readUInt32LE(0) !== Constants.LOCSIG) {
                 throw new Error(Utils.Errors.INVALID_LOC);
             }
+            _flags = data.readUInt16LE(Constants.LOCFLG);
             _dataHeader = {
                 // version needed to extract
                 version: data.readUInt16LE(Constants.LOCVER),
@@ -212,7 +222,7 @@ module.exports = function () {
             _verMade = data.readUInt16LE(Constants.CENVEM);
             // version needed to extract
             _version = data.readUInt16LE(Constants.CENVER);
-            // encrypt, decrypt flags
+            // bit 11 (EFS), bit 13 (encrypted Local Header) flags
             _flags = data.readUInt16LE(Constants.CENFLG);
             // compression method
             _method = data.readUInt16LE(Constants.CENHOW);
@@ -275,7 +285,7 @@ module.exports = function () {
             data.writeUInt16LE(_verMade, Constants.CENVEM);
             // version needed to extract
             data.writeUInt16LE(_version, Constants.CENVER);
-            // encrypt, decrypt flags
+            // bit 11 (EFS), bit 13 (encrypted Local Header) flags
             data.writeUInt16LE(_flags, Constants.CENFLG);
             // compression method
             data.writeUInt16LE(_method, Constants.CENHOW);
