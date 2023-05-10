@@ -8,6 +8,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
         _comment = Buffer.alloc(0),
         mainHeader = new Headers.MainHeader(),
         loadedEntries = false;
+    var password = null;
 
     // assign options
     const opts = Object.assign(Object.create(null), options);

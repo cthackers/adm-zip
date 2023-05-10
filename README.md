@@ -29,7 +29,8 @@ var AdmZip = require("adm-zip");
 
 // reading archives
 var zip = new AdmZip("./my_file.zip");
-var zipEntries = zip.getEntries(); // an array of ZipEntry records
+var password = "1234567890";
+var zipEntries = zip.getEntries(); // an array of ZipEntry records - add password parameter if entries are password protected
 
 zipEntries.forEach(function (zipEntry) {
     console.log(zipEntry.toString()); // outputs zip entries information
