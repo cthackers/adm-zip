@@ -260,7 +260,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                 // 1.2. postheader - data after data header
                 const postHeader = Buffer.alloc(entryNameLen + entry.extra.length);
                 entry.rawEntryName.copy(postHeader, 0);
-                postHeader.copy(entry.extra, entryNameLen);
+                entry.extra.copy(postHeader, entryNameLen);
 
                 // 2. offsets
                 const dataLength = dataHeader.length + postHeader.length + compressedData.length;
