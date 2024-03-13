@@ -471,7 +471,8 @@ module.exports = function (/**String*/ input, /** object */ options) {
          *
          * @return Array
          */
-        getEntries: function () {
+        getEntries: function (/**String*/ password) {
+            _zip.password=password;
             return _zip ? _zip.entries : [];
         },
 
@@ -548,7 +549,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
                 return true;
             }
 
-            var content = item.getData();
+            var content = item.getData(_zip.password);
             if (!content) throw new Error(Utils.Errors.CANT_EXTRACT_FILE);
 
             if (filetools.fs.existsSync(target) && !overwrite) {
