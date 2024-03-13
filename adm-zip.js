@@ -711,9 +711,9 @@ module.exports = function (/**String*/ input, /** object */ options) {
                                     callback(getError("Unable to set times", filePath));
                                     return;
                                 }
-                                fileEntries.delete(entry);
                                 // call the callback if it was last entry
                                 done();
+                                fileEntries.delete(entry);
                             });
                         });
                     }
