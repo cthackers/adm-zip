@@ -83,7 +83,9 @@ module.exports = function () {
         set time(val) {
             setTime(val);
         },
-
+        get timeHighByte() {
+            return (_time >>> 8) & 0xff;
+        },
         get crc() {
             return _crc;
         },

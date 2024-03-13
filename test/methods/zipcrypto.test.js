@@ -15,6 +15,9 @@ describe("method - zipcrypto decrypt", () => {
         md5: "wYHjota6dQNazueWO9/uDg==",
         pwdok: "secret",
         pwdbad: "Secret",
+        flagsencrypted: 0x01,
+        flagsinfozipencrypted: 0x09,
+        timeHighByte: 0xD8,
         // result
         result: Buffer.from("test", "ascii")
     };
@@ -40,22 +43,33 @@ describe("method - zipcrypto decrypt", () => {
     // is error thrown if invalid password was provided
     it("should throw if invalid password is provided", () => {
         expect(function badpassword() {
-            decrypt(source.data, { crc: source.crc }, source.pwdbad);
+            decrypt(source.data, { crc: source.crc, flags: source.flagsencrypted }, source.pwdbad);
         }).to.throw();
 
         expect(function okpassword() {
-            decrypt(source.data, { crc: source.crc }, source.pwdok);
+            decrypt(source.data, { crc: source.crc, flags: source.flagsencrypted }, source.pwdok);
+        }).to.not.throw();
+    });
+
+    // is error thrown if invalid password was provided
+    it("should throw if invalid password is provided for Info-Zip bit 3 flag", () => {
+        expect(function badpassword() {
+            decrypt(source.data, { crc: source.crc, flags: source.flagsinfozipencrypted, timeHighByte: source.timeHighByte }, source.pwdbad);
+        }).to.throw();
+
+        expect(function okpassword() {
+            decrypt(source.data, { crc: source.crc, flags: source.flagsinfozipencrypted, timeHighByte: source.timeHighByte }, source.pwdok);
         }).to.not.throw();
     });
 
     // test decryption with both password types
     it("test decrypted data with password", () => {
         // test password, string
-        const result1 = decrypt(source.data, { crc: source.crc }, source.pwdok);
+        const result1 = decrypt(source.data, { crc: source.crc, flags: source.flagsencrypted }, source.pwdok);
         expect(result1.compare(source.result)).to.equal(0);
 
         // test password, buffer
-        const result2 = decrypt(source.data, { crc: source.crc }, Buffer.from(source.pwdok, "ascii"));
+        const result2 = decrypt(source.data, { crc: source.crc, flags: source.flagsencrypted }, Buffer.from(source.pwdok, "ascii"));
         expect(result2.compare(source.result)).to.equal(0);
     });
 });
