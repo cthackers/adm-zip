@@ -15,8 +15,7 @@ module.exports = function (/*Buffer*/ input) {
         if (!input || !Buffer.isBuffer(input)) {
             return Buffer.alloc(0);
         }
-        //Scanning a local file headers is not necessary (except in the case of corrupted archives)
-        if(!_entryHeader.compressedSize) _entryHeader.loadDataHeaderFromBinary(input);
+        _entryHeader.loadDataHeaderFromBinary(input);
         return input.slice(_entryHeader.realDataOffset, _entryHeader.realDataOffset + _entryHeader.compressedSize);
     }
 
