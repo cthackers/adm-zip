@@ -79,10 +79,10 @@ describe("utils - sanitizing functions :", () => {
             { file: "./../file", result: "file" },
             { file: "../../file", result: "file" },
             { file: "../../file1/../file2", result: "file2" },
-            { file: "../subfolder/file2", result: "subfolder/file2" },
-            { file: "../subfolder2/file2", result: "subfolder2/file2" },
-            { file: "../subfolder/file2", result: "subfolder/file2" },
-            { file: "../../subfolder2/file2", result: "subfolder2/file2" }
+            { file: "../subfolder/file2", result: `subfolder${pth.sep}file2` },
+            { file: "../subfolder2/file2", result: `subfolder2${pth.sep}file2` },
+            { file: "../subfolder/file2", result: `subfolder${pth.sep}file2` },
+            { file: "../../subfolder2/file2", result: `subfolder2${pth.sep}file2` }
         ];
 
         for (let test of tests) {
