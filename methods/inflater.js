@@ -1,13 +1,16 @@
-module.exports = function (/*Buffer*/ inbuf) {
+const version = +(process.versions ? process.versions.node : '').split('.')[0] || 0;
+
+module.exports = function (/*Buffer*/ inbuf, /*number*/ expectedLength) {
     var zlib = require("zlib");
+    const option = version >= 15 ? { maxOutputLength: expectedLength } : {};
 
     return {
         inflate: function () {
-            return zlib.inflateRawSync(inbuf);
+            return zlib.inflateRawSync(inbuf, option);
         },
 
         inflateAsync: function (/*Function*/ callback) {
-            var tmp = zlib.createInflateRaw(),
+            var tmp = zlib.createInflateRaw(option),
                 parts = [],
                 total = 0;
             tmp.on("data", function (data) {
