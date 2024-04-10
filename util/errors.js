@@ -25,6 +25,7 @@ module.exports = {
     /* ADM-ZIP error messages */
     CANT_EXTRACT_FILE: "Could not extract the file",
     CANT_OVERRIDE: "Target file already exists",
+    DISK_ENTRY_TOO_LARGE: "Number of disk entries is too large",
     NO_ZIP: "No zip file was loaded",
     NO_ENTRY: "Entry doesn't exist",
     DIRECTORY_CONTENT_ERROR: "A directory cannot have content",
