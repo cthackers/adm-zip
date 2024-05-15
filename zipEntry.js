@@ -74,7 +74,7 @@ module.exports = function (/*Buffer*/ input) {
                     return data;
                 }
             case Utils.Constants.DEFLATED:
-                var inflater = new Methods.Inflater(compressedData);
+                var inflater = new Methods.Inflater(compressedData, _entryHeader.size);
                 if (!async) {
                     const result = inflater.inflate(data);
                     result.copy(data, 0);
