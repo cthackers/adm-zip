@@ -53,7 +53,7 @@ module.exports = function (/*Buffer*/ input) {
             return compressedData;
         }
 
-        if (_entryHeader.encripted) {
+        if (_entryHeader.encrypted) {
             if ("string" !== typeof pass && !Buffer.isBuffer(pass)) {
                 throw new Error("ADM-ZIP: Incompatible password parameter");
             }

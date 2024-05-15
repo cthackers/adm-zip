@@ -161,7 +161,7 @@ module.exports = function () {
             _offset = Math.max(0, val) >>> 0;
         },
 
-        get encripted() {
+        get encrypted() {
             return (_flags & 1) === 1;
         },
 
