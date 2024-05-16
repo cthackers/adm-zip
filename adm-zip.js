@@ -655,12 +655,12 @@ module.exports = function (/**String*/ input, /** object */ options) {
 
             // separate directories from files
             const dirEntries = [];
-            const fileEntries = new Set();
+            const fileEntries = [];
             _zip.entries.forEach((e) => {
                 if (e.isDirectory) {
                     dirEntries.push(e);
                 } else {
-                    fileEntries.add(e);
+                    fileEntries.push(e);
                 }
             });
 
@@ -680,47 +680,38 @@ module.exports = function (/**String*/ input, /** object */ options) {
                 }
             }
 
-            // callback wrapper, for some house keeping
-            const done = () => {
-                if (fileEntries.size === 0) {
-                    callback();
-                }
-            };
-
-            // Extract file entries asynchronously
-            for (const entry of fileEntries.values()) {
-                const entryName = pth.normalize(canonical(entry.entryName.toString()));
-                const filePath = sanitize(targetPath, entryName);
-                entry.getDataAsync(function (content, err_1) {
-                    if (err_1) {
-                        callback(new Error(err_1));
-                        return;
-                    }
-                    if (!content) {
-                        callback(new Error(Utils.Errors.CANT_EXTRACT_FILE));
+            fileEntries.reverse().reduce(function (next, entry) {
+                return function (err) {
+                    if (err) {
+                        next(err);
                     } else {
-                        // The reverse operation for attr depend on method addFile()
-                        const fileAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
-                        filetools.writeFileToAsync(filePath, content, overwrite, fileAttr, function (succ) {
-                            if (!succ) {
-                                callback(getError("Unable to write file", filePath));
-                                return;
+                        const entryName = pth.normalize(canonical(entry.entryName.toString()));
+                        const filePath = sanitize(targetPath, entryName);
+                        entry.getDataAsync(function (content, err_1) {
+                            if (err_1) {
+                                next(new Error(err_1));
+                            } else if (!content) {
+                                next(new Error(Utils.Errors.CANT_EXTRACT_FILE));
+                            } else {
+                                // The reverse operation for attr depend on method addFile()
+                                const fileAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
+                                filetools.writeFileToAsync(filePath, content, overwrite, fileAttr, function (succ) {
+                                    if (!succ) {
+                                        next(getError("Unable to write file", filePath));
+                                    }
+                                    filetools.fs.utimes(filePath, entry.header.time, entry.header.time, function (err_2) {
+                                        if (err_2) {
+                                            next(getError("Unable to set times", filePath));
+                                        } else {
+                                            next();
+                                        }
+                                    });
+                                });
                             }
-                            filetools.fs.utimes(filePath, entry.header.time, entry.header.time, function (err_2) {
-                                if (err_2) {
-                                    callback(getError("Unable to set times", filePath));
-                                    return;
-                                }
-                                // call the callback if it was last entry
-                                done();
-                                fileEntries.delete(entry);
-                            });
                         });
                     }
-                });
-            }
-            // call the callback if fileEntries was empty
-            done();
+                };
+            }, callback)();
         },
 
         /**
