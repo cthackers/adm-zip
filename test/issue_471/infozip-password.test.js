@@ -7,8 +7,6 @@ const path = require("path");
 const Zip = require("../../adm-zip");
 
 describe("decryption with info-zip spec password check", () => {
-
-
     // test decryption with both password types
     it("test decrypted data with password", () => {
         // the issue-471-infozip-encrypted.zip file has been generated with Info-Zip Zip 2.32, but the Info-Zip
@@ -22,14 +20,12 @@ describe("decryption with info-zip spec password check", () => {
         });
         assert(testFile.length === 1, "Good: dummy.txt file exists as archive entry");
 
-        const readData = entries[0].getData('secret');
-        assert(readData.toString('utf8').startsWith('How much wood could a woodchuck chuck'), "Good: buffer matches expectations");
+        const readData = entries[0].getData("secret");
+        assert(readData.toString("utf8").startsWith("How much wood could a woodchuck chuck"), "Good: buffer matches expectations");
 
         // assert that the following call throws an exception
         assert.throws(() => {
-            const readDataBad = entries[0].getData('badpassword');
+            const readDataBad = entries[0].getData("badpassword");
         }, "Good: error thrown for bad password");
-
     });
 });
-

@@ -1,4 +1,4 @@
-const version = +(process.versions ? process.versions.node : '').split('.')[0] || 0;
+const version = +(process.versions ? process.versions.node : "").split(".")[0] || 0;
 
 module.exports = function (/*Buffer*/ inbuf, /*number*/ expectedLength) {
     var zlib = require("zlib");

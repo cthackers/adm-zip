@@ -45,7 +45,7 @@ describe("adm-zip", () => {
             done();
         });
     });
-    
+
     it("zip.extractAllToAsync(destination, false, callback)", (done) => {
         const zip = new Zip("./test/assets/ultra.zip");
         zip.extractAllToAsync(destination, false, (error) => {
@@ -177,15 +177,15 @@ describe("adm-zip", () => {
         const zip = new Zip("./test/assets/symlink.zip");
         zip.extractAllTo(destination);
 
-        const linkPath = pth.join(destination, "link")
+        const linkPath = pth.join(destination, "link");
         const linkStat = fs.lstatSync(linkPath);
         expect(linkStat.isSymbolicLink()).to.be.true;
-        
+
         const linkTarget = fs.readlinkSync(linkPath);
-        expect(linkTarget).to.equal("target")
+        expect(linkTarget).to.equal("target");
 
         const linkContent = fs.readFileSync(linkPath);
-        expect(linkContent).to.equal("diddlydiddly doo, i'm a linkaroo")
+        expect(linkContent).to.equal("diddlydiddly doo, i'm a linkaroo");
     });
 });
 
