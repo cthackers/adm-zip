@@ -472,7 +472,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
          * @return Array
          */
         getEntries: function (/**String*/ password) {
-            _zip.password=password;
+            _zip.password = password;
             return _zip ? _zip.entries : [];
         },
 

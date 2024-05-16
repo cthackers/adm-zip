@@ -120,7 +120,7 @@ function decrypt(/*Buffer*/ data, /*Object*/ header, /*String, Buffer*/ pwd) {
 
     // if bit 3 (0x08) of the general-purpose flags field is set, check salt[11] with the high byte of the header time
     // 2 byte data block (as per Info-Zip spec), otherwise check with the high byte of the header entry
-    const verifyByte = ((header.flags & 0x8) === 0x8) ? header.timeHighByte : header.crc >>> 24;
+    const verifyByte = (header.flags & 0x8) === 0x8 ? header.timeHighByte : header.crc >>> 24;
 
     //3. does password meet expectations
     if (salt[11] !== verifyByte) {
