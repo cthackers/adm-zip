@@ -639,9 +639,15 @@ module.exports = function (/**String*/ input, /** object */ options) {
             if (typeof keepOriginalPermission === "function" && !callback) callback = keepOriginalPermission;
             keepOriginalPermission = get_Bool(keepOriginalPermission, false);
             if (!callback) {
-                callback = function (err) {
-                    throw new Error(err);
-                };
+                return new Promise((resolve, reject) => {
+                    this.extractAllToAsync(targetPath, overwrite, keepOriginalPermission, function (err) {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve(this);
+                        }
+                    });
+                });
             }
             if (!_zip) {
                 callback(new Error(Utils.Errors.NO_ZIP));
