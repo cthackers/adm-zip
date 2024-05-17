@@ -127,4 +127,4 @@ module.exports = function () {
         }
     };
 };
- // Misspelled 
+// Misspelled

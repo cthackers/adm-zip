@@ -17,7 +17,7 @@ describe("method - zipcrypto decrypt", () => {
         pwdbad: "Secret",
         flagsencrypted: 0x01,
         flagsinfozipencrypted: 0x09,
-        timeHighByte: 0xD8,
+        timeHighByte: 0xd8,
         // result
         result: Buffer.from("test", "ascii")
     };
