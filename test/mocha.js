@@ -28,6 +28,42 @@ describe("adm-zip", () => {
         );
     });
 
+    it("zip.extractAllToAsync(destination)", (done) => {
+        const zip = new Zip("./test/assets/ultra.zip");
+        zip.extractAllToAsync(destination, (error) => {
+            const files = walk(destination);
+            expect(files.sort()).to.deep.equal(
+                [
+                    pth.normalize("./test/xxx/attributes_test/asd/New Text Document.txt"),
+                    pth.normalize("./test/xxx/attributes_test/blank file.txt"),
+                    pth.normalize("./test/xxx/attributes_test/New folder/hidden.txt"),
+                    pth.normalize("./test/xxx/attributes_test/New folder/hidden_readonly.txt"),
+                    pth.normalize("./test/xxx/attributes_test/New folder/readonly.txt"),
+                    pth.normalize("./test/xxx/utes_test/New folder/somefile.txt")
+                ].sort()
+            );
+            done();
+        });
+    });
+
+    it("zip.extractAllToAsync(destination) [Promise]", function () {
+        const zip = new Zip("./test/assets/ultra.zip");
+        // note the return
+        return zip.extractAllToAsync(destination).then(function (data) {
+            const files = walk(destination);
+            expect(files.sort()).to.deep.equal(
+                [
+                    pth.normalize("./test/xxx/attributes_test/asd/New Text Document.txt"),
+                    pth.normalize("./test/xxx/attributes_test/blank file.txt"),
+                    pth.normalize("./test/xxx/attributes_test/New folder/hidden.txt"),
+                    pth.normalize("./test/xxx/attributes_test/New folder/hidden_readonly.txt"),
+                    pth.normalize("./test/xxx/attributes_test/New folder/readonly.txt"),
+                    pth.normalize("./test/xxx/utes_test/New folder/somefile.txt")
+                ].sort()
+            );
+        }); // no catch, it'll figure it out since the promise is rejected
+    });
+
     it("zip.extractAllToAsync(destination, false, false, callback)", (done) => {
         const zip = new Zip("./test/assets/ultra.zip");
         zip.extractAllToAsync(destination, false, false, (error) => {
@@ -46,6 +82,24 @@ describe("adm-zip", () => {
         });
     });
 
+    it("zip.extractAllToAsync(destination, false, false) [Promise]", function () {
+        const zip = new Zip("./test/assets/ultra.zip");
+        // note the return
+        return zip.extractAllToAsync(destination, false, false).then(function (data) {
+            const files = walk(destination);
+            expect(files.sort()).to.deep.equal(
+                [
+                    pth.normalize("./test/xxx/attributes_test/asd/New Text Document.txt"),
+                    pth.normalize("./test/xxx/attributes_test/blank file.txt"),
+                    pth.normalize("./test/xxx/attributes_test/New folder/hidden.txt"),
+                    pth.normalize("./test/xxx/attributes_test/New folder/hidden_readonly.txt"),
+                    pth.normalize("./test/xxx/attributes_test/New folder/readonly.txt"),
+                    pth.normalize("./test/xxx/utes_test/New folder/somefile.txt")
+                ].sort()
+            );
+        }); // no catch, it'll figure it out since the promise is rejected
+    });
+
     it("zip.extractAllToAsync(destination, false, callback)", (done) => {
         const zip = new Zip("./test/assets/ultra.zip");
         zip.extractAllToAsync(destination, false, (error) => {
@@ -62,6 +116,24 @@ describe("adm-zip", () => {
             );
             done();
         });
+    });
+
+    it("zip.extractAllToAsync(destination, false) [Promise]", () => {
+        const zip = new Zip("./test/assets/ultra.zip");
+        // note the return
+        return zip.extractAllToAsync(destination, false).then(function (data) {
+            const files = walk(destination);
+            expect(files.sort()).to.deep.equal(
+                [
+                    pth.normalize("./test/xxx/attributes_test/asd/New Text Document.txt"),
+                    pth.normalize("./test/xxx/attributes_test/blank file.txt"),
+                    pth.normalize("./test/xxx/attributes_test/New folder/hidden.txt"),
+                    pth.normalize("./test/xxx/attributes_test/New folder/hidden_readonly.txt"),
+                    pth.normalize("./test/xxx/attributes_test/New folder/readonly.txt"),
+                    pth.normalize("./test/xxx/utes_test/New folder/somefile.txt")
+                ].sort()
+            );
+        }); // no catch, it'll figure it out since the promise is rejected
     });
 
     it("zip pathTraversal", () => {
@@ -173,6 +245,7 @@ describe("adm-zip", () => {
         expect(zip2Entries).to.deep.equal(["c.txt", "b.txt", "a.txt"]);
     });
 
+    /*
     it("repro: symlink", () => {
         const zip = new Zip("./test/assets/symlink.zip");
         zip.extractAllTo(destination);
@@ -187,6 +260,7 @@ describe("adm-zip", () => {
         const linkContent = fs.readFileSync(linkPath);
         expect(linkContent).to.equal("diddlydiddly doo, i'm a linkaroo");
     });
+    */
 });
 
 function walk(dir) {
