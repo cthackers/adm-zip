@@ -15,14 +15,14 @@ module.exports = function (/*Buffer*/ input) {
         if (!input || !Buffer.isBuffer(input)) {
             return Buffer.alloc(0);
         }
-        _entryHeader.loadDataHeaderFromBinary(input);
+        _entryHeader.loadLocalHeaderFromBinary(input);
         return input.slice(_entryHeader.realDataOffset, _entryHeader.realDataOffset + _entryHeader.compressedSize);
     }
 
     function crc32OK(data) {
         // if bit 3 (0x08) of the general-purpose flags field is set, then the CRC-32 and file sizes are not known when the header is written
         if ((_entryHeader.flags & 0x8) !== 0x8) {
-            if (Utils.crc32(data) !== _entryHeader.dataHeader.crc) {
+            if (Utils.crc32(data) !== _entryHeader.localHeader.crc) {
                 return false;
             }
         } else {
@@ -291,7 +291,7 @@ module.exports = function (/*Buffer*/ input) {
             return _entryHeader;
         },
 
-        packHeader: function () {
+        packCentralHeader: function () {
             // 1. create header (buffer)
             var header = _entryHeader.entryHeaderToBinary();
             var addpos = Utils.Constants.CENHDR;
@@ -308,6 +308,26 @@ module.exports = function (/*Buffer*/ input) {
                 _comment.copy(header, addpos);
             }
             return header;
+        },
+
+        packLocalHeader: function () {
+            let addpos = 0;
+
+            // 1. construct local header Buffer
+            const localHeaderBuf = _entryHeader.localHeaderToBinary();
+            // 2. localHeader - crate header buffer
+            const localHeader = Buffer.alloc(localHeaderBuf.length + _entryName.length + _extra.length);
+            // 2.1 add localheader
+            localHeaderBuf.copy(localHeader, addpos);
+            addpos += localHeaderBuf.length;
+            // 2.2 add file name
+            _entryName.copy(localHeader, addpos);
+            addpos += _entryName.length;
+            // 2.3 add extra field
+            _extra.copy(localHeader, addpos);
+            addpos += _extra.length;
+
+            return localHeader;
         },
 
         toJSON: function () {

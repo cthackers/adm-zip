@@ -180,10 +180,10 @@ describe("headers", () => {
             expect(head.entryHeaderSize).to.equal(446);
         });
 
-        describe("data-header", () => {
-            const dataheader = Buffer.from("504b030414000008080045618102efbeadde000100000002000000000000", "hex");
+        describe("local-header", () => {
+            const localHeader = Buffer.from("504b030414000008080045618102efbeadde000100000002000000000000", "hex");
 
-            const dataHeaderValues = {
+            const localHeaderValues = {
                 compressedSize: 0x100,
                 crc: 0xdeadbeef,
                 extraLen: 0,
@@ -197,22 +197,22 @@ describe("headers", () => {
             it("compare binary header values with predetermined values", () => {
                 const head = new entryHeader();
                 head.loadFromBinary(readBuf);
-                head.loadDataHeaderFromBinary(dataheader);
+                head.loadLocalHeaderFromBinary(localHeader);
 
-                for (const name in dataHeaderValues) {
-                    expect(head.dataHeader[name]).to.equal(dataHeaderValues[name]);
+                for (const name in localHeaderValues) {
+                    expect(head.localHeader[name]).to.equal(localHeaderValues[name]);
                 }
             });
 
             it("read binary and create new binary from it, they have to be equal", () => {
                 const head = new entryHeader();
                 head.loadFromBinary(readBuf);
-                head.loadDataHeaderFromBinary(dataheader);
+                head.loadLocalHeaderFromBinary(localHeader);
 
-                const buf = head.dataHeaderToBinary();
+                const buf = head.localHeaderToBinary();
 
-                expect(buf.length).to.equal(dataheader.length);
-                expect(buf).to.eql(dataheader);
+                expect(buf.length).to.equal(localHeader.length);
+                expect(buf).to.eql(localHeader);
             });
 
             it("construct header by values and compare binaries have to be equal", () => {
@@ -229,10 +229,10 @@ describe("headers", () => {
                 // if time is constructed by new Date() it is also in local zone and so it cancels possible timezone difference
                 head.time = new Date(...datestamp);
 
-                const buf = head.dataHeaderToBinary();
+                const buf = head.localHeaderToBinary();
 
-                expect(buf.length).to.equal(dataheader.length);
-                expect(buf).to.eql(dataheader);
+                expect(buf.length).to.equal(localHeader.length);
+                expect(buf).to.eql(localHeader);
             });
         });
     });
