@@ -81,7 +81,7 @@ describe("headers", () => {
     });
 
     describe("entry-header", () => {
-        const entryHeader = require("../headers/entryHeader");
+        const centralHeader = require("../headers/entryHeader");
         const datestamp = [1981, 3, 1, 12, 10, 10];
         const readBuf = Buffer.from("504b0102140014000008080045618102efbeadde0001000000020000000000000000000000000000000000000000", "hex");
 
@@ -106,7 +106,7 @@ describe("headers", () => {
         };
 
         it("compare binary header values with some predetermined values", () => {
-            const head = new entryHeader();
+            const head = new centralHeader();
             head.loadFromBinary(readBuf);
 
             for (const name in readBufValues) {
@@ -114,7 +114,7 @@ describe("headers", () => {
                 head[name] = readBufValues[name];
             }
 
-            expect(head.entryHeaderSize).to.equal(46);
+            expect(head.centralHeaderSize).to.equal(46);
 
             // split into individual values by local time or timezone messes up our results
             expect([head.time.getFullYear(), head.time.getMonth(), head.time.getDate(), head.time.getHours(), head.time.getMinutes(), head.time.getSeconds()]).to.eql(datestamp);
@@ -135,7 +135,7 @@ describe("headers", () => {
                 inAttr: 0,
                 attr: 0,
                 offset: 0,
-                entryHeaderSize: "46 bytes"
+                centralHeaderSize: "46 bytes"
             };
 
             headerdata.time = head.time;
@@ -143,16 +143,16 @@ describe("headers", () => {
         });
 
         it("read binary and create new binary from it, they have to be equal", () => {
-            const head = new entryHeader();
+            const head = new centralHeader();
             head.loadFromBinary(readBuf);
-            const buf = head.entryHeaderToBinary();
+            const buf = head.centralHeaderToBinary();
 
             expect(buf.length).to.equal(readBuf.length);
             expect(buf).to.eql(readBuf);
         });
 
         it("construct header with values and compare, binaries have to be equal", () => {
-            const head = new entryHeader();
+            const head = new centralHeader();
 
             // Set Values
             for (const name in readBufValues) {
@@ -164,20 +164,20 @@ describe("headers", () => {
             // if time is constructed by new Date() it is also in local zone and so it cancels possible timezone difference
             head.time = new Date(...datestamp);
 
-            const buf = head.entryHeaderToBinary();
+            const buf = head.centralHeaderToBinary();
 
             expect(buf.length).to.equal(readBuf.length);
             expect(buf).to.eql(readBuf);
         });
 
-        it("entryHeaderSize results if postdata is specified", () => {
-            const head = new entryHeader();
+        it("centralHeaderSize results if postdata is specified", () => {
+            const head = new centralHeader();
 
             head.fileNameLength = 100;
             head.commentLength = 200;
             head.extraLength = 100;
 
-            expect(head.entryHeaderSize).to.equal(446);
+            expect(head.centralHeaderSize).to.equal(446);
         });
 
         describe("local-header", () => {
@@ -195,7 +195,7 @@ describe("headers", () => {
             };
 
             it("compare binary header values with predetermined values", () => {
-                const head = new entryHeader();
+                const head = new centralHeader();
                 head.loadFromBinary(readBuf);
                 head.loadLocalHeaderFromBinary(localHeader);
 
@@ -205,7 +205,7 @@ describe("headers", () => {
             });
 
             it("read binary and create new binary from it, they have to be equal", () => {
-                const head = new entryHeader();
+                const head = new centralHeader();
                 head.loadFromBinary(readBuf);
                 head.loadLocalHeaderFromBinary(localHeader);
 
@@ -216,7 +216,7 @@ describe("headers", () => {
             });
 
             it("construct header by values and compare binaries have to be equal", () => {
-                const head = new entryHeader();
+                const head = new centralHeader();
                 head.loadFromBinary(readBuf);
 
                 // Set Values

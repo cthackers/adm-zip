@@ -34,7 +34,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             entry.header = inBuffer.slice(tmp, (tmp += Utils.Constants.CENHDR));
             entry.entryName = inBuffer.slice(tmp, (tmp += entry.header.fileNameLength));
 
-            index += entry.header.entryHeaderSize;
+            index += entry.header.centralHeaderSize;
 
             callback(entry);
         }
@@ -58,7 +58,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
 
             if (entry.header.commentLength) entry.comment = inBuffer.slice(tmp, tmp + entry.header.commentLength);
 
-            index += entry.header.entryHeaderSize;
+            index += entry.header.centralHeaderSize;
 
             entryList[i] = entry;
             entryTable[entry.entryName] = entry;
