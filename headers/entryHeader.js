@@ -25,7 +25,7 @@ module.exports = function () {
     // Without it file names may be corrupted for other apps when file names use unicode chars
     _flags |= Constants.FLG_EFS;
 
-    var _dataHeader = {};
+    var _localHeader = {};
 
     function setTime(val) {
         val = new Date(val);
@@ -165,25 +165,25 @@ module.exports = function () {
             return (_flags & 1) === 1;
         },
 
-        get entryHeaderSize() {
+        get centralHeaderSize() {
             return Constants.CENHDR + _fnameLen + _extraLen + _comLen;
         },
 
         get realDataOffset() {
-            return _offset + Constants.LOCHDR + _dataHeader.fnameLen + _dataHeader.extraLen;
+            return _offset + Constants.LOCHDR + _localHeader.fnameLen + _localHeader.extraLen;
         },
 
-        get dataHeader() {
-            return _dataHeader;
+        get localHeader() {
+            return _localHeader;
         },
 
-        loadDataHeaderFromBinary: function (/*Buffer*/ input) {
+        loadLocalHeaderFromBinary: function (/*Buffer*/ input) {
             var data = input.slice(_offset, _offset + Constants.LOCHDR);
             // 30 bytes and should start with "PK\003\004"
             if (data.readUInt32LE(0) !== Constants.LOCSIG) {
                 throw new Error(Utils.Errors.INVALID_LOC);
             }
-            _dataHeader = {
+            _localHeader = {
                 // version needed to extract
                 version: data.readUInt16LE(Constants.LOCVER),
                 // general purpose bit flag
@@ -242,7 +242,7 @@ module.exports = function () {
             _offset = data.readUInt32LE(Constants.CENOFF);
         },
 
-        dataHeaderToBinary: function () {
+        localHeaderToBinary: function () {
             // LOC header size (30 bytes)
             var data = Buffer.alloc(Constants.LOCHDR);
             // "PK\003\004"
@@ -268,7 +268,7 @@ module.exports = function () {
             return data;
         },
 
-        entryHeaderToBinary: function () {
+        centralHeaderToBinary: function () {
             // CEN header size (46 bytes)
             var data = Buffer.alloc(Constants.CENHDR + _fnameLen + _extraLen + _comLen);
             // "PK\001\002"
@@ -329,7 +329,7 @@ module.exports = function () {
                 inAttr: _inattr,
                 attr: _attr,
                 offset: _offset,
-                entryHeaderSize: bytes(Constants.CENHDR + _fnameLen + _extraLen + _comLen)
+                centralHeaderSize: bytes(Constants.CENHDR + _fnameLen + _extraLen + _comLen)
             };
         },
 

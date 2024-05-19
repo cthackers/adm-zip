@@ -34,7 +34,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             entry.header = inBuffer.slice(tmp, (tmp += Utils.Constants.CENHDR));
             entry.entryName = inBuffer.slice(tmp, (tmp += entry.header.fileNameLength));
 
-            index += entry.header.entryHeaderSize;
+            index += entry.header.centralHeaderSize;
 
             callback(entry);
         }
@@ -58,7 +58,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
 
             if (entry.header.commentLength) entry.comment = inBuffer.slice(tmp, tmp + entry.header.commentLength);
 
-            index += entry.header.entryHeaderSize;
+            index += entry.header.centralHeaderSize;
 
             entryList[i] = entry;
             entryTable[entry.entryName] = entry;
@@ -243,7 +243,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             sortEntries();
 
             const dataBlock = [];
-            const entryHeaders = [];
+            const headerBlocks = [];
             let totalSize = 0;
             let dindex = 0;
 
@@ -253,30 +253,25 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             for (const entry of entryList) {
                 // compress data and set local and entry header accordingly. Reason why is called first
                 const compressedData = entry.getCompressedData();
-                // 1. construct data header
                 entry.header.offset = dindex;
-                const dataHeader = entry.header.dataHeaderToBinary();
-                const entryNameLen = entry.rawEntryName.length;
-                // 1.2. postheader - data after data header
-                const postHeader = Buffer.alloc(entryNameLen + entry.extra.length);
-                entry.rawEntryName.copy(postHeader, 0);
-                entry.extra.copy(postHeader, entryNameLen);
+
+                // 1. construct local header
+                const localHeader = entry.packLocalHeader();
 
                 // 2. offsets
-                const dataLength = dataHeader.length + postHeader.length + compressedData.length;
+                const dataLength = localHeader.length + compressedData.length;
                 dindex += dataLength;
 
                 // 3. store values in sequence
-                dataBlock.push(dataHeader);
-                dataBlock.push(postHeader);
+                dataBlock.push(localHeader);
                 dataBlock.push(compressedData);
 
-                // 4. construct entry header
-                const entryHeader = entry.packHeader();
-                entryHeaders.push(entryHeader);
+                // 4. construct central header
+                const centralHeader = entry.packCentralHeader();
+                headerBlocks.push(centralHeader);
                 // 5. update main header
-                mainHeader.size += entryHeader.length;
-                totalSize += dataLength + entryHeader.length;
+                mainHeader.size += centralHeader.length;
+                totalSize += dataLength + centralHeader.length;
             }
 
             totalSize += mainHeader.mainHeaderSize; // also includes zip file comment length
@@ -292,7 +287,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             }
 
             // write central directory entries
-            for (const content of entryHeaders) {
+            for (const content of headerBlocks) {
                 content.copy(outBuffer, dindex);
                 dindex += content.length;
             }
@@ -315,7 +310,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                 sortEntries();
 
                 const dataBlock = [];
-                const entryHeaders = [];
+                const centralHeaders = [];
                 let totalSize = 0;
                 let dindex = 0;
 
@@ -323,29 +318,30 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                 mainHeader.offset = 0;
 
                 const compress2Buffer = function (entryLists) {
-                    if (entryLists.length) {
-                        const entry = entryLists.pop();
+                    if (entryLists.length > 0) {
+                        const entry = entryLists.shift();
                         const name = entry.entryName + entry.extra.toString();
                         if (onItemStart) onItemStart(name);
                         entry.getCompressedDataAsync(function (compressedData) {
                             if (onItemEnd) onItemEnd(name);
-
                             entry.header.offset = dindex;
-                            // data header
-                            const dataHeader = entry.header.dataHeaderToBinary();
-                            const postHeader = Buffer.alloc(name.length, name);
-                            const dataLength = dataHeader.length + postHeader.length + compressedData.length;
 
+                            // 1. construct local header
+                            const localHeader = entry.packLocalHeader();
+
+                            // 2. offsets
+                            const dataLength = localHeader.length + compressedData.length;
                             dindex += dataLength;
 
-                            dataBlock.push(dataHeader);
-                            dataBlock.push(postHeader);
+                            // 3. store values in sequence
+                            dataBlock.push(localHeader);
                             dataBlock.push(compressedData);
 
-                            const entryHeader = entry.packHeader();
-                            entryHeaders.push(entryHeader);
-                            mainHeader.size += entryHeader.length;
-                            totalSize += dataLength + entryHeader.length;
+                            // central header
+                            const centalHeader = entry.packCentralHeader();
+                            centralHeaders.push(centalHeader);
+                            mainHeader.size += centalHeader.length;
+                            totalSize += dataLength + centalHeader.length;
 
                             compress2Buffer(entryLists);
                         });
@@ -360,7 +356,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                             content.copy(outBuffer, dindex); // write data blocks
                             dindex += content.length;
                         });
-                        entryHeaders.forEach(function (content) {
+                        centralHeaders.forEach(function (content) {
                             content.copy(outBuffer, dindex); // write central directory entries
                             dindex += content.length;
                         });
@@ -376,7 +372,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                     }
                 };
 
-                compress2Buffer(entryList);
+                compress2Buffer(Array.from(entryList));
             } catch (e) {
                 onFail(e);
             }
