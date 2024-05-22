@@ -43,6 +43,9 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
     function readEntries() {
         loadedEntries = true;
         entryTable = {};
+        if (mainHeader.diskEntries > (inBuffer.length - mainHeader.offset) / Utils.Constants.CENHDR) {
+            throw new Error(Utils.Errors.DISK_ENTRY_TOO_LARGE);
+        }
         entryList = new Array(mainHeader.diskEntries); // total number of entries
         var index = mainHeader.offset; // offset of first CEN header
         for (var i = 0; i < entryList.length; i++) {
