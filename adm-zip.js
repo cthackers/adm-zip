@@ -429,7 +429,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
             // prepare new entry
             if (!update) {
                 entry = new ZipEntry();
-                entry.entryName = entryName;
+                entry.entryName = Utils.canonical(entryName);
             }
             entry.comment = comment || "";
 
@@ -464,6 +464,8 @@ module.exports = function (/**String*/ input, /** object */ options) {
 
             entry.setData(content);
             if (!update) _zip.setEntry(entry);
+
+            return entry;
         },
 
         /**
