@@ -6,6 +6,7 @@ on:
 
 jobs:
   build:
+    name: Node ${{ matrix.node-version }}
     runs-on: ubuntu-latest
 
     strategy:
@@ -14,7 +15,8 @@ jobs:
         node-version: [12.x, 14.x, 16.x, 18.x, 20.x, 21.x]
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Clone repository
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
