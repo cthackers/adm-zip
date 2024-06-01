@@ -12,7 +12,8 @@ module.exports = function (/*Buffer*/ input) {
         _extra = Buffer.alloc(0);
 
     function getCompressedDataFromZip() {
-        if (!input || !Buffer.isBuffer(input)) {
+        //if (!input || !Buffer.isBuffer(input)) {
+        if (!input || !(input instanceof Uint8Array)) {
             return Buffer.alloc(0);
         }
         _centralHeader.loadLocalHeaderFromBinary(input);

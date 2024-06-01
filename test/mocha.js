@@ -218,6 +218,16 @@ describe("adm-zip", () => {
         fs.unlinkSync("./text.txt");
     });
 
+    it("passes issue-438-AddFile with windows path sepator", () => {
+        const zip = new Zip();
+        zip.addFile("foo\\bar.txt", "test", "test");
+        zip.extractAllTo(destination);
+
+        const files = walk(destination);
+
+        expect(files.sort()).to.deep.equal([pth.normalize("./test/xxx/foo/bar.txt")].sort());
+    });
+
     it("testing noSort option", () => {
         const content = "test";
         const comment = "comment";
