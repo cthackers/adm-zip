@@ -208,7 +208,7 @@ Utils.canonical = function (/*string*/ path) {
     if (!path) return "";
     // trick normalize think path is absolute
     var safeSuffix = pth.posix.normalize("/" + path.split("\\").join("/"));
-    return pth.join(".", safeSuffix);
+    return pth.posix.join(".", safeSuffix);
 };
 
 // make abolute paths taking prefix as root folder
