@@ -14,4 +14,3 @@ describe("read zip file header with invalid large number of entries", () => {
         }, new Error("Number of disk entries is too large"));
     });
 });
-
