@@ -423,13 +423,14 @@ module.exports = function (/**String*/ input, /** object */ options) {
          * @param {number | object} attr - number as unix file permissions, object as filesystem Stats object
          */
         addFile: function (/**String*/ entryName, /**Buffer*/ content, /**String*/ comment, /**Number*/ attr) {
+            entryName = Utils.canonical(entryName);
             let entry = getEntry(entryName);
             const update = entry != null;
 
             // prepare new entry
             if (!update) {
                 entry = new ZipEntry();
-                entry.entryName = Utils.canonical(entryName);
+                entry.entryName = entryName;
             }
             entry.comment = comment || "";
 

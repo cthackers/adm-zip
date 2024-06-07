@@ -255,6 +255,26 @@ describe("adm-zip", () => {
         expect(zip2Entries).to.deep.equal(["c.txt", "b.txt", "a.txt"]);
     });
 
+    it("windows style path with backslash should be converted to slashes", () => {
+        const content = "test";
+        const comment = "comment";
+
+        // is sorting working - value "false"
+        const zip1 = new Zip({ noSort: true });
+        // next 3 lines are with identical names, so only one file is added
+        zip1.addFile("..\\..\\..\\windows\\system32\\drivers\\etc\\hosts.txt", content, comment);
+        zip1.addFile("aa\\bb\\..\\cc\\..\\..\\windows\\system32\\drivers\\admin\\..\\etc\\hosts.txt", content, comment);
+        zip1.addFile(".\\windows\\system32\\drivers\\etc\\hosts.txt", content, comment);
+        // 3 other file
+        zip1.addFile("system32\\drivers\\etc\\hosts.txt", content, comment);
+        zip1.addFile("drivers\\etc\\hosts.txt", content, comment);
+        zip1.addFile(".\\hosts.txt", content, comment);
+        zip1.toBuffer();
+
+        const zip1Entries = zip1.getEntries().map((e) => e.entryName);
+        expect(zip1Entries).to.deep.equal(["windows/system32/drivers/etc/hosts.txt", "system32/drivers/etc/hosts.txt", "drivers/etc/hosts.txt", "hosts.txt"]);
+    });
+
     /*
     it("repro: symlink", () => {
         const zip = new Zip("./test/assets/symlink.zip");
