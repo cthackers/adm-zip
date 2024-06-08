@@ -168,6 +168,47 @@ Utils.prototype.findFiles = function (/*String*/ path) {
     return findSync(path, undefined, true);
 };
 
+/**
+ * Callback for showing if everything was done.
+ *
+ * @callback filelistCallback
+ * @param {Error} err - Error object
+ * @param {string[]} list - was request fully completed
+ */
+
+/**
+ *
+ * @param {string} dir
+ * @param {filelistCallback} cb
+ */
+Utils.prototype.findFilesAsync = function (dir, cb) {
+    const self = this;
+    let results = [];
+    self.fs.readdir(dir, function (err, list) {
+        if (err) return cb(err);
+        let list_length = list.length;
+        if (!list_length) return cb(null, results);
+        list.forEach(function (file) {
+            file = pth.join(dir, file);
+            self.fs.stat(file, function (err, stat) {
+                if (err) return cb(err);
+                if (stat) {
+                    results.push(pth.normalize(file) + (stat.isDirectory() ? self.sep : ""));
+                    if (stat.isDirectory()) {
+                        self.findFilesAsync(file, function (err, res) {
+                            if (err) return cb(err);
+                            results = results.concat(res);
+                            if (!--list_length) cb(null, results);
+                        });
+                    } else {
+                        if (!--list_length) cb(null, results);
+                    }
+                }
+            });
+        });
+    });
+};
+
 Utils.prototype.getAttributes = function () {};
 
 Utils.prototype.setAttributes = function () {};

@@ -289,6 +289,54 @@ module.exports = function (/**String*/ input, /** object */ options) {
         },
 
         /**
+         * Callback for showing if everything was done.
+         *
+         * @callback doneCallback
+         * @param {Error} err - Error object
+         * @param {boolean} done - was request fully completed
+         */
+
+        /**
+         * Adds a file from the disk to the archive
+         *
+         * @param {(object|string)} options - options object, if it is string it us used as localPath.
+         * @param {string} options.localPath - Local path to the file.
+         * @param {string} [options.comment] - Optional file comment.
+         * @param {string} [options.zipPath] - Optional path inside the zip
+         * @param {string} [options.zipName] - Optional name for the file
+         * @param {doneCallback} callback - The callback that handles the response.
+         */
+        addLocalFileAsync: function (options, callback) {
+            options = typeof options === "object" ? options : { localPath: options };
+            const localPath = pth.resolve(options.localPath);
+            const { comment } = options;
+            let { zipPath, zipName } = options;
+            const self = this;
+
+            filetools.fs.stat(localPath, function (err, stats) {
+                if (err) return callback(err, false);
+                // fix ZipPath
+                zipPath = zipPath ? fixPath(zipPath) : "";
+                // p - local file name
+                const p = pth.win32.basename(pth.win32.normalize(localPath));
+                // add file name into zippath
+                zipPath += zipName ? zipName : p;
+
+                if (stats.isFile()) {
+                    filetools.fs.readFile(localPath, function (err, data) {
+                        if (err) return callback(err, false);
+                        self.addFile(zipPath, data, comment, stats);
+                        return setImmediate(callback, undefined, true);
+                    });
+                } else if (stats.isDirectory()) {
+                    zipPath += filetools.sep;
+                    self.addFile(zipPath, Buffer.alloc(0), comment, stats);
+                    return setImmediate(callback, undefined, true);
+                }
+            });
+        },
+
+        /**
          * Adds a local directory and all its nested files and directories to the archive
          *
          * @param {string} localPath - local path to the folder
@@ -392,6 +440,86 @@ module.exports = function (/**String*/ input, /** object */ options) {
         },
 
         /**
+         * Adds a local directory and all its nested files and directories to the archive
+         *
+         * @param {object | string} options - options object, if it is string it us used as localPath.
+         * @param {string} options.localPath - Local path to the folder.
+         * @param {string} [options.zipPath] - optional path inside zip.
+         * @param {RegExp|function} [options.filter] - optional RegExp or Function if files match will be included.
+         * @param {function|string} [options.namefix] - optional function to help fix filename
+         * @param {doneCallback} callback - The callback that handles the response.
+         *
+         */
+        addLocalFolderAsync2: function (/*String*/ options, /*Function*/ callback) {
+            const self = this;
+            options = typeof options === "object" ? options : { localPath: options };
+            localPath = pth.resolve(fixPath(options.localPath));
+            let { zipPath, filter, namefix } = options;
+
+            if (filter instanceof RegExp) {
+                filter = (function (rx) {
+                    return function (filename) {
+                        return rx.test(filename);
+                    };
+                })(filter);
+            } else if ("function" !== typeof filter) {
+                filter = function () {
+                    return true;
+                };
+            }
+
+            // fix ZipPath
+            zipPath = zipPath ? fixPath(zipPath) : "";
+
+            // Check Namefix function
+            if (namefix == "latin1") {
+                namefix = (str) =>
+                    str
+                        .normalize("NFD")
+                        .replace(/[\u0300-\u036f]/g, "")
+                        .replace(/[^\x20-\x7E]/g, ""); // accent fix (latin1 characers only)
+            }
+
+            if (typeof namefix !== "function") namefix = (str) => str;
+
+            // internal, create relative path + fix the name
+            const relPathFix = (entry) => pth.join(zipPath, namefix(relativePath(localPath, entry)));
+            const fileNameFix = (entry) => pth.win32.basename(pth.win32.normalize(namefix(entry)));
+
+            filetools.fs.open(localPath, "r", function (err) {
+                if (err && err.code === "ENOENT") {
+                    callback(undefined, Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath));
+                } else if (err) {
+                    callback(undefined, err);
+                } else {
+                    filetools.findFilesAsync(localPath, function (err, fileEntries) {
+                        if (err) return callback(err);
+                        fileEntries = fileEntries.filter((dir) => filter(relPathFix(dir)));
+                        if (!fileEntries.length) callback(undefined, false);
+
+                        setImmediate(
+                            fileEntries.reverse().reduce(function (next, entry) {
+                                return function (err, done) {
+                                    if (err || done === false) return setImmediate(next, err, false);
+
+                                    self.addLocalFileAsync(
+                                        {
+                                            localPath: entry,
+                                            zipPath: pth.dirname(relPathFix(entry)),
+                                            zipName: fileNameFix(entry)
+                                        },
+                                        next
+                                    );
+                                };
+                            }, callback)
+                        );
+                    });
+                }
+            });
+        },
+
+        /**
+         * Adds a local directory and all its nested files and directories to the archive
          *
          * @param {string} localPath - path where files will be extracted
          * @param {object} props - optional properties
