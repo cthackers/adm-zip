@@ -523,21 +523,16 @@ module.exports = function (/**String*/ input, /** object */ options) {
          *
          * @param {string} localPath - path where files will be extracted
          * @param {object} props - optional properties
-         * @param {string} props.zipPath - optional path inside zip
-         * @param {regexp, function} props.filter - RegExp or Function if files match will be included.
+         * @param {string} [props.zipPath] - optional path inside zip
+         * @param {RegExp|function} [props.filter] - optional RegExp or Function if files match will be included.
+         * @param {function|string} [props.namefix] - optional function to help fix filename
          */
         addLocalFolderPromise: function (/*String*/ localPath, /* object */ props) {
             return new Promise((resolve, reject) => {
-                const { filter, zipPath } = Object.assign({}, props);
-                this.addLocalFolderAsync(
-                    localPath,
-                    (done, err) => {
-                        if (err) reject(err);
-                        if (done) resolve(this);
-                    },
-                    zipPath,
-                    filter
-                );
+                this.addLocalFolderAsync2(Object.assign({ localPath }, props), (err, done) => {
+                    if (err) reject(err);
+                    if (done) resolve(this);
+                });
             });
         },
 
