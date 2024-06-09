@@ -1,12 +1,18 @@
-# ADM-ZIP for NodeJS with added support for electron original-fs
+# ADM-ZIP for NodeJS
 
 ADM-ZIP is a pure JavaScript implementation for zip data compression for [NodeJS](https://nodejs.org/).
+
+<a href="https://github.com/cthackers/adm-zip/actions/workflows/ci.yml">
+  <img src="https://github.com/cthackers/adm-zip/actions/workflows/ci.yml/badge.svg" alt="Build Status">
+</a>
 
 # Installation
 
 With [npm](https://www.npmjs.com/) do:
 
     $ npm install adm-zip
+
+**Electron** file system support described below.
 
 ## What is it good for?
 
@@ -63,4 +69,19 @@ zip.writeZip(/*target file name*/ "/home/me/files.zip");
 
 For more detailed information please check out the [wiki](https://github.com/cthackers/adm-zip/wiki).
 
-[![Build Status](https://travis-ci.org/cthackers/adm-zip.svg?branch=master)](https://travis-ci.org/cthackers/adm-zip)
+## Electron original-fs
+
+ADM-ZIP has supported electron **original-fs** for years without any user interractions but it causes problem with bundlers like rollup etc. For continuing support **original-fs** or any other custom file system module. There is possible specify your module by **fs** option in ADM-ZIP constructor.
+
+Example:
+
+```javascript
+const AdmZip = require("adm-zip");
+const OriginalFs = require("original-fs");
+
+// reading archives
+const zip = new AdmZip("./my_file.zip", { fs: OriginalFs });
+.
+.
+.
+```
