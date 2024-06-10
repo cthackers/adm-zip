@@ -254,7 +254,9 @@ describe("adm-zip.js - methods handling local files", () => {
 
         it("zip.addLocalFolder(destination, '', filter)", () => {
             const zip = new Zip();
-            const filter = (str) => str.slice(-1) === "/";
+            const filter = function (str) {
+                return str.slice(-1) === pth.sep;
+            };
             zip.addLocalFolder(destination, "", filter);
             zip.toBuffer();
 
@@ -463,7 +465,9 @@ describe("adm-zip.js - methods handling local files", () => {
 
         it("zip.addLocalFolderAsync2({localPath, filter}, callback)", (done) => {
             const zip = new Zip();
-            const filter = (str) => str.slice(-1) === "/";
+            const filter = function (str) {
+                return str.slice(-1) === pth.sep;
+            };
             zip.addLocalFolderAsync2({ localPath: destination, filter }, (error) => {
                 if (error) done(false);
 
