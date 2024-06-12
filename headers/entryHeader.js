@@ -63,6 +63,17 @@ module.exports = function () {
             _flags = val;
         },
 
+        get flags_efs() {
+            return (_flags & Constants.FLG_EFS) > 0;
+        },
+        set flags_efs(val) {
+            if (val) {
+                _flags |= Constants.FLG_EFS;
+            } else {
+                _flags &= ~Constants.FLG_EFS;
+            }
+        },
+
         get method() {
             return _method;
         },

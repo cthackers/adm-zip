@@ -46,6 +46,11 @@ module.exports = function (/**String*/ input, /** object */ options) {
     // instanciate utils filesystem
     const filetools = new Utils(opts);
 
+    opts.decoder = Utils.decoder;
+    if (typeof opts.decoder !== "object" || typeof opts.decoder.encode !== "function" || typeof opts.decoder.decode !== "function") {
+        opts.decoder = Utils.decoder;
+    }
+
     // if input is file name we retrieve its content
     if (input && "string" === typeof input) {
         // load zip file
@@ -553,7 +558,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
 
             // prepare new entry
             if (!update) {
-                entry = new ZipEntry();
+                entry = new ZipEntry(opts);
                 entry.entryName = entryName;
             }
             entry.comment = comment || "";
@@ -731,7 +736,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
                 throw new Error(Utils.Errors.NO_ZIP);
             }
             _zip.entries.forEach(function (entry) {
-                var entryName = sanitize(targetPath, canonical(entry.entryName.toString()));
+                var entryName = sanitize(targetPath, canonical(entry.entryName));
                 if (entry.isDirectory) {
                     filetools.makeDir(entryName);
                     return;
@@ -784,7 +789,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
 
             targetPath = pth.resolve(targetPath);
             // convert entryName to
-            const getPath = (entry) => sanitize(targetPath, pth.normalize(canonical(entry.entryName.toString())));
+            const getPath = (entry) => sanitize(targetPath, pth.normalize(canonical(entry.entryName)));
             const getError = (msg, file) => new Error(msg + ': "' + file + '"');
 
             // separate directories from files
@@ -819,7 +824,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
                     if (err) {
                         next(err);
                     } else {
-                        const entryName = pth.normalize(canonical(entry.entryName.toString()));
+                        const entryName = pth.normalize(canonical(entry.entryName));
                         const filePath = sanitize(targetPath, entryName);
                         entry.getDataAsync(function (content, err_1) {
                             if (err_1) {
