@@ -267,14 +267,14 @@ Utils.sanitize = function (/*string*/ prefix, /*string*/ name) {
 };
 
 // converts buffer, Uint8Array, string types to buffer
-Utils.toBuffer = function toBuffer(/*buffer, Uint8Array, string*/ input) {
+Utils.toBuffer = function toBuffer(/*buffer, Uint8Array, string*/ input, /* function */ encoder) {
     if (Buffer.isBuffer(input)) {
         return input;
     } else if (input instanceof Uint8Array) {
         return Buffer.from(input);
     } else {
         // expect string all other values are invalid and return empty buffer
-        return typeof input === "string" ? Buffer.from(input, "utf8") : Buffer.alloc(0);
+        return typeof input === "string" ? encoder(input) : Buffer.alloc(0);
     }
 };
 

@@ -3,13 +3,20 @@ var Utils = require("./util"),
     Constants = Utils.Constants,
     Methods = require("./methods");
 
-module.exports = function (/*Buffer*/ input) {
+module.exports = function (/** object */ options, /*Buffer*/ input) {
     var _centralHeader = new Headers.EntryHeader(),
         _entryName = Buffer.alloc(0),
         _comment = Buffer.alloc(0),
         _isDirectory = false,
         uncompressedData = null,
-        _extra = Buffer.alloc(0);
+        _extra = Buffer.alloc(0),
+        _efs = true;
+
+    // assign options
+    const opts = options;
+
+    const decoder = typeof opts.decoder === "object" ? opts.decoder : Utils.decoder;
+    _efs = decoder.hasOwnProperty("efs") ? decoder.efs : false;
 
     function getCompressedDataFromZip() {
         //if (!input || !Buffer.isBuffer(input)) {
@@ -198,16 +205,24 @@ module.exports = function (/*Buffer*/ input) {
 
     return {
         get entryName() {
-            return _entryName.toString();
+            return decoder.decode(_entryName);
         },
         get rawEntryName() {
             return _entryName;
         },
         set entryName(val) {
-            _entryName = Utils.toBuffer(val);
+            _entryName = Utils.toBuffer(val, decoder.encode);
             var lastChar = _entryName[_entryName.length - 1];
             _isDirectory = lastChar === 47 || lastChar === 92;
             _centralHeader.fileNameLength = _entryName.length;
+        },
+
+        get efs() {
+            if (typeof _efs === "function") {
+                return _efs(this.entryName);
+            } else {
+                return _efs;
+            }
         },
 
         get extra() {
@@ -220,10 +235,10 @@ module.exports = function (/*Buffer*/ input) {
         },
 
         get comment() {
-            return _comment.toString();
+            return decoder.decode(_comment);
         },
         set comment(val) {
-            _comment = Utils.toBuffer(val);
+            _comment = Utils.toBuffer(val, decoder.encode);
             _centralHeader.commentLength = _comment.length;
         },
 
@@ -249,7 +264,7 @@ module.exports = function (/*Buffer*/ input) {
         },
 
         setData: function (value) {
-            uncompressedData = Utils.toBuffer(value);
+            uncompressedData = Utils.toBuffer(value, Utils.decoder.encode);
             if (!_isDirectory && uncompressedData.length) {
                 _centralHeader.size = uncompressedData.length;
                 _centralHeader.method = Utils.Constants.DEFLATED;
@@ -293,6 +308,7 @@ module.exports = function (/*Buffer*/ input) {
         },
 
         packCentralHeader: function () {
+            _centralHeader.flag_efs = this.efs;
             // 1. create header (buffer)
             var header = _centralHeader.centralHeaderToBinary();
             var addpos = Utils.Constants.CENHDR;
