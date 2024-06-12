@@ -1,9 +1,6 @@
-const fs = require("./fileSystem").require();
 const pth = require("path");
 
-fs.existsSync = fs.existsSync || pth.existsSync;
-
-module.exports = function (/*String*/ path) {
+module.exports = function (/*String*/ path, /*Utils object*/ { fs }) {
     var _path = path || "",
         _obj = newAttr(),
         _stat = null;
