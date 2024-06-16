@@ -302,6 +302,13 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             }
             mh.copy(outBuffer, dindex);
 
+            // Since we update entry and main header offsets,
+            // they are no longer valid and we have to reset content
+            // (Issue 64)
+
+            inBuffer = outBuffer;
+            loadedEntries = false;
+
             return outBuffer;
         },
 
@@ -370,6 +377,13 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                         }
 
                         mh.copy(outBuffer, dindex); // write main header
+
+                        // Since we update entry and main header offsets, they are no
+                        // longer valid and we have to reset content using our new buffer
+                        // (Issue 64)
+
+                        inBuffer = outBuffer;
+                        loadedEntries = false;
 
                         onSuccess(outBuffer);
                     }
