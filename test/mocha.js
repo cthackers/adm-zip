@@ -114,6 +114,21 @@ describe("adm-zip", () => {
         expect(zip1Entries).to.deep.equal(["windows/system32/drivers/etc/hosts.txt", "system32/drivers/etc/hosts.txt", "drivers/etc/hosts.txt", "hosts.txt"]);
     });
 
+    // Issue 64
+    it("zip.writeZip - multiple times", () => {
+        const zip = new Zip("./test/assets/ultra.zip");
+        const fileName = pth.resolve(destination, "writezip");
+
+        for (let i = 0; i < 5; i++) zip.writeZip(`${fileName}.${i}.zip`);
+
+        const expected_list = ["./test/xxx/writezip.0.zip", "./test/xxx/writezip.1.zip", "./test/xxx/writezip.2.zip", "./test/xxx/writezip.3.zip", "./test/xxx/writezip.4.zip"].map(
+            pth.normalize
+        );
+
+        const files = walk(destination);
+        expect(files.sort()).to.deep.equal(expected_list);
+    });
+
     /*
     it("repro: symlink", () => {
         const zip = new Zip("./test/assets/symlink.zip");
