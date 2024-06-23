@@ -339,7 +339,7 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
         },
 
         packCentralHeader: function () {
-            _centralHeader.flag_efs = this.efs;
+            _centralHeader.flags_efs = this.efs;
             // 1. create header (buffer)
             var header = _centralHeader.centralHeaderToBinary();
             var addpos = Utils.Constants.CENHDR;
@@ -360,7 +360,7 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
 
         packLocalHeader: function () {
             let addpos = 0;
-
+            _centralHeader.flags_efs = this.efs;
             // 1. construct local header Buffer
             const localHeaderBuf = _centralHeader.localHeaderToBinary();
             // 2. localHeader - crate header buffer
