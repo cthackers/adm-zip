@@ -44,6 +44,14 @@ describe("adm-zip.js - methods handling local files", () => {
                 ].sort()
             );
         });
+
+        it("zip.extractAllTo(destination) - streamed file", () => {
+            const zip = new Zip("./test/assets/stream-nozip64.zip");
+            zip.extractAllTo(destination);
+            const files = walk(destination);
+
+            expect(files.sort()).to.deep.equal([pth.normalize("./test/xxx/lorem.txt")]);
+        });
     });
 
     describe(".extractAllToAsync - sync", () => {
