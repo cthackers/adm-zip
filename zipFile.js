@@ -76,6 +76,10 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             endOffset = -1, // Start offset of the END header
             commentEnd = 0;
 
+        // option to search header form entire file
+        const trailingSpace = typeof opts.trailingSpace === "boolean" ? opts.trailingSpace : false;
+        if (trailingSpace) max = 0;
+
         for (i; i >= n; i--) {
             if (inBuffer[i] !== 0x50) continue; // quick check that the byte is 'P'
             if (inBuffer.readUInt32LE(i) === Utils.Constants.ENDSIG) {
