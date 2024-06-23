@@ -208,12 +208,6 @@ module.exports = function (/*Buffer*/ input) {
             _isDirectory = lastChar === 47 || lastChar === 92;
             _entryHeader.fileNameLength = _entryName.length;
         },
-        set rawEntryName(val) {
-            _entryName = val;
-            var lastChar = _entryName[_entryName.length - 1];
-            _isDirectory = lastChar === 47 || lastChar === 92;
-            _entryHeader.fileNameLength = _entryName.length;
-        },
 
         get extra() {
             return _extra;

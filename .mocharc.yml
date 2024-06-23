@@ -13,6 +13,5 @@ spec:
   - test/mocha.js
   - test/crc/index.js
   - test/multibyte/test.js
-  - test/mbcs/test.js
   - test/**/*.test.js
   - test/header.js

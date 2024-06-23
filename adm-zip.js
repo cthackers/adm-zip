@@ -67,7 +67,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
         if (entry && _zip) {
             var item;
             // If entry was given as a file name
-            if (typeof entry === "string" || Buffer.isBuffer(entry)) item = _zip.getEntry(entry);
+            if (typeof entry === "string") item = _zip.getEntry(entry);
             // if entry was given as a ZipEntry object
             if (typeof entry === "object" && typeof entry.entryName !== "undefined" && typeof entry.header !== "undefined") item = _zip.getEntry(entry.entryName);
 
@@ -417,7 +417,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
          * If you want to create a directory the entryName must end in / and a null buffer should be provided.
          * Comment and attributes are optional
          *
-         * @param {Buffer | string} entryName
+         * @param {string} entryName
          * @param {Buffer | string} content - file content as buffer or utf8 coded string
          * @param {string} comment - file comment
          * @param {number | object} attr - number as unix file permissions, object as filesystem Stats object
@@ -429,12 +429,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
             // prepare new entry
             if (!update) {
                 entry = new ZipEntry();
-                if (!Buffer.isBuffer(entryName)) {
-                    entry.entryName = entryName;
-                } else {
-                    entry.rawEntryName = entryName;
-                    entry.header.EFSflag = false;
-                }
+                entry.entryName = entryName;
             }
             entry.comment = comment || "";
 
