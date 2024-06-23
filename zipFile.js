@@ -102,7 +102,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             }
         }
 
-        if (!~endOffset) throw new Error(Utils.Errors.INVALID_FORMAT);
+        if (endOffset == -1) throw new Error(Utils.Errors.INVALID_FORMAT);
 
         mainHeader.loadFromBinary(inBuffer.slice(endOffset, endStart));
         if (mainHeader.commentLength) {
@@ -225,7 +225,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                 const len = name.length;
 
                 entryList.forEach(function (zipEntry) {
-                    if (zipEntry.entryName.substr(0, len) === name) {
+                    if (zipEntry.entryName.startsWith(name)) {
                         list.push(zipEntry);
                     }
                 });
