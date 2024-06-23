@@ -76,6 +76,10 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             endOffset = -1, // Start offset of the END header
             commentEnd = 0;
 
+        // option to search header form entire file
+        const trailingSpace = typeof opts.trailingSpace === "boolean" ? opts.trailingSpace : false;
+        if (trailingSpace) max = 0;
+
         for (i; i >= n; i--) {
             if (inBuffer[i] !== 0x50) continue; // quick check that the byte is 'P'
             if (inBuffer.readUInt32LE(i) === Utils.Constants.ENDSIG) {
@@ -102,7 +106,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             }
         }
 
-        if (!~endOffset) throw new Error(Utils.Errors.INVALID_FORMAT);
+        if (endOffset == -1) throw new Error(Utils.Errors.INVALID_FORMAT);
 
         mainHeader.loadFromBinary(inBuffer.slice(endOffset, endStart));
         if (mainHeader.commentLength) {
@@ -225,7 +229,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                 const len = name.length;
 
                 entryList.forEach(function (zipEntry) {
-                    if (zipEntry.entryName.substr(0, len) === name) {
+                    if (zipEntry.entryName.startsWith(name)) {
                         list.push(zipEntry);
                     }
                 });

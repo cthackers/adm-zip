@@ -74,6 +74,17 @@ module.exports = function () {
             }
         },
 
+        get flags_desc() {
+            return (_flags & Constants.FLG_DESC) > 0;
+        },
+        set flags_desc(val) {
+            if (val) {
+                _flags |= Constants.FLG_DESC;
+            } else {
+                _flags &= ~Constants.FLG_DESC;
+            }
+        },
+
         get method() {
             return _method;
         },

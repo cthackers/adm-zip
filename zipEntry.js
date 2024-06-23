@@ -28,15 +28,46 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
     }
 
     function crc32OK(data) {
-        // if bit 3 (0x08) of the general-purpose flags field is set, then the CRC-32 and file sizes are not known when the header is written
-        if ((_centralHeader.flags & 0x8) !== 0x8) {
+        // if bit 3 (0x08) of the general-purpose flags field is set, then the CRC-32 and file sizes are not known when the local header is written
+        if (!_centralHeader.flags_desc) {
             if (Utils.crc32(data) !== _centralHeader.localHeader.crc) {
                 return false;
             }
         } else {
-            // @TODO: load and check data descriptor header
-            // The fields in the local header are filled with zero, and the CRC-32 and size are appended in a 12-byte structure
-            // (optionally preceded by a 4-byte signature) immediately after the compressed data:
+            const descriptor = {};
+            const dataEndOffset = _centralHeader.realDataOffset + _centralHeader.compressedSize;
+            // no descriptor after compressed data, instead new local header
+            if (input.readUInt32LE(dataEndOffset) == Constants.LOCSIG || input.readUInt32LE(dataEndOffset) == Constants.CENSIG) {
+                throw new Error("ADM-ZIP: No descriptor present");
+            }
+
+            // get decriptor data
+            if (input.readUInt32LE(dataEndOffset) == Constants.EXTSIG) {
+                // descriptor with signature
+                descriptor.crc = input.readUInt32LE(dataEndOffset + Constants.EXTCRC);
+                descriptor.compressedSize = input.readUInt32LE(dataEndOffset + Constants.EXTSIZ);
+                descriptor.size = input.readUInt32LE(dataEndOffset + Constants.EXTLEN);
+            } else if (input.readUInt16LE(dataEndOffset + 12) === 0x4b50) {
+                // descriptor without signature (we check is new header starting where we expect)
+                descriptor.crc = input.readUInt32LE(dataEndOffset + Constants.EXTCRC - 4);
+                descriptor.compressedSize = input.readUInt32LE(dataEndOffset + Constants.EXTSIZ - 4);
+                descriptor.size = input.readUInt32LE(dataEndOffset + Constants.EXTLEN - 4);
+            } else {
+                throw new Error("ADM-ZIP: Unknown descriptor format");
+            }
+
+            // check data integrity
+            if (descriptor.compressedSize !== _centralHeader.compressedSize || descriptor.size !== _centralHeader.size || descriptor.crc !== _centralHeader.crc) {
+                throw new Error("ADM-ZIP: Descriptor data is malformed");
+            }
+            if (Utils.crc32(data) !== descriptor.crc) {
+                return false;
+            }
+
+            // @TODO: zip64 bit descriptor fields
+            // if bit 3 is set and any value in local header "zip64 Extended information" extra field are set 0 (place holder)
+            // then 64-bit descriptor format is used instead of 32-bit
+            // central header - "zip64 Extended information" extra field should store real values and not place holders
         }
         return true;
     }
