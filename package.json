@@ -42,7 +42,7 @@
   "devDependencies": {
     "chai": "^4.3.4",
     "mocha": "^10.2.0",
-    "prettier": "^2.2.1",
+    "prettier": "^3.3.2",
     "rimraf": "^3.0.2"
   }
 }
