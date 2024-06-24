@@ -166,7 +166,7 @@ describe("Multibyte Character Sets in Filename", () => {
         const zip2 = new Zip(pth.join(destination, "06-jp_name.zip"));
         const text1 = zip2.readAsText(file);
         assert(text1 === content, text1);
-        const entry2 = zip2.getEntry("test/" + file);
+        const entry2 = zip2.getEntry("./test/" + file);
         const text2 = zip2.readAsText(entry2);
         assert(text2 === content, text2);
         assert(entry2.header.flags_efs);
@@ -192,7 +192,7 @@ describe("Multibyte Character Sets in Filename", () => {
         let entry1 = zip2.getEntry(file);
         let bufdata1 = zip2.readFile(entry1);
         assert(bufdata1.equals(content));
-        let entry2 = zip2.getEntry("test/" + file);
+        let entry2 = zip2.getEntry("./test/" + file);
         let bufdata2 = zip2.readFile(entry2);
         assert(bufdata2.equals(content));
         assert(entry1.header.flags_efs === false);
@@ -237,7 +237,7 @@ describe("Multibyte Character Sets in Filename", () => {
         const zip2 = new Zip(pth.join(destination, "09-heb_name.zip"));
         const text1 = zip2.readAsText(file);
         assert(text1 === content, text1);
-        const entry2 = zip2.getEntry("test/" + file);
+        const entry2 = zip2.getEntry("./test/" + file);
         const text2 = zip2.readAsText(entry2);
         assert(text2 === content, text2);
         assert(entry2.header.flags_efs);
@@ -289,7 +289,7 @@ describe("Multibyte Character Sets in Filename", () => {
         let entry1 = zip2.getEntry(file);
         let text1 = zip2.readAsText(entry1, "utf16le");
         assert(text1 === content, text1);
-        let entry2 = zip2.getEntry("test/" + file);
+        let entry2 = zip2.getEntry("./test/" + file);
         let text2 = zip2.readAsText(entry2, "utf16le");
         assert(text2 === content, text2);
         assert(entry1.header.flags_efs === false);
@@ -312,7 +312,7 @@ describe("Multibyte Character Sets in Filename", () => {
         let entry1 = zip2.getEntry(file);
         let text1 = zip2.readAsText(entry1, "utf16le");
         assert(text1 === content, text1);
-        let entry2 = zip2.getEntry("test/" + file);
+        let entry2 = zip2.getEntry("./test/" + file);
         let text2 = zip2.readAsText(entry2, "utf16le");
         assert(text2 === content, text2);
         assert(entry1.header.flags_efs);

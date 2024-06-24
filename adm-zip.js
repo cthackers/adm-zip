@@ -72,7 +72,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
         if (entry && _zip) {
             var item;
             // If entry was given as a file name
-            if (typeof entry === "string") item = _zip.getEntry(entry);
+            if (typeof entry === "string") item = _zip.getEntry(pth.posix.normalize(entry));
             // if entry was given as a ZipEntry object
             if (typeof entry === "object" && typeof entry.entryName !== "undefined" && typeof entry.header !== "undefined") item = _zip.getEntry(entry.entryName);
 
