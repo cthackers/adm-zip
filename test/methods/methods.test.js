@@ -7,6 +7,7 @@ const rimraf = require("rimraf");
 const Utils = require("../../util/utils");
 
 describe("adm-zip.js - methods handling local files", () => {
+    const wrapList = (c) => pth.normalize(pth.join(destination, c));
     const destination = "./test/xxx";
     const testFileFolderList = [
         { name: "subfolder1/subfolder2/zipEntry1.txt", content: "zipEntry1" },
@@ -28,21 +29,21 @@ describe("adm-zip.js - methods handling local files", () => {
     afterEach((done) => rimraf(destination, done));
 
     describe(".extractAllTo() - sync", () => {
+        const ultrazip = [
+            "./attributes_test/asd/New Text Document.txt",
+            "./attributes_test/blank file.txt",
+            "./attributes_test/New folder/hidden.txt",
+            "./attributes_test/New folder/hidden_readonly.txt",
+            "./attributes_test/New folder/readonly.txt",
+            "./utes_test/New folder/somefile.txt"
+        ].map(wrapList);
+
         it("zip.extractAllTo(destination)", () => {
             const zip = new Zip("./test/assets/ultra.zip");
             zip.extractAllTo(destination);
             const files = walk(destination);
 
-            expect(files.sort()).to.deep.equal(
-                [
-                    pth.normalize("./test/xxx/attributes_test/asd/New Text Document.txt"),
-                    pth.normalize("./test/xxx/attributes_test/blank file.txt"),
-                    pth.normalize("./test/xxx/attributes_test/New folder/hidden.txt"),
-                    pth.normalize("./test/xxx/attributes_test/New folder/hidden_readonly.txt"),
-                    pth.normalize("./test/xxx/attributes_test/New folder/readonly.txt"),
-                    pth.normalize("./test/xxx/utes_test/New folder/somefile.txt")
-                ].sort()
-            );
+            expect(files.sort()).to.deep.equal(ultrazip.sort());
         });
 
         it("zip.extractAllTo(destination) - streamed file", () => {
@@ -55,20 +56,20 @@ describe("adm-zip.js - methods handling local files", () => {
     });
 
     describe(".extractAllToAsync - sync", () => {
+        const ultrazip = [
+            "./attributes_test/asd/New Text Document.txt",
+            "./attributes_test/blank file.txt",
+            "./attributes_test/New folder/hidden.txt",
+            "./attributes_test/New folder/hidden_readonly.txt",
+            "./attributes_test/New folder/readonly.txt",
+            "./utes_test/New folder/somefile.txt"
+        ].map(wrapList);
+
         it("zip.extractAllToAsync(destination)", (done) => {
             const zip = new Zip("./test/assets/ultra.zip");
             zip.extractAllToAsync(destination, (error) => {
                 const files = walk(destination);
-                expect(files.sort()).to.deep.equal(
-                    [
-                        pth.normalize("./test/xxx/attributes_test/asd/New Text Document.txt"),
-                        pth.normalize("./test/xxx/attributes_test/blank file.txt"),
-                        pth.normalize("./test/xxx/attributes_test/New folder/hidden.txt"),
-                        pth.normalize("./test/xxx/attributes_test/New folder/hidden_readonly.txt"),
-                        pth.normalize("./test/xxx/attributes_test/New folder/readonly.txt"),
-                        pth.normalize("./test/xxx/utes_test/New folder/somefile.txt")
-                    ].sort()
-                );
+                expect(files.sort()).to.deep.equal(ultrazip.sort());
                 done();
             });
         });
@@ -78,16 +79,7 @@ describe("adm-zip.js - methods handling local files", () => {
             // note the return
             return zip.extractAllToAsync(destination).then(function (data) {
                 const files = walk(destination);
-                expect(files.sort()).to.deep.equal(
-                    [
-                        pth.normalize("./test/xxx/attributes_test/asd/New Text Document.txt"),
-                        pth.normalize("./test/xxx/attributes_test/blank file.txt"),
-                        pth.normalize("./test/xxx/attributes_test/New folder/hidden.txt"),
-                        pth.normalize("./test/xxx/attributes_test/New folder/hidden_readonly.txt"),
-                        pth.normalize("./test/xxx/attributes_test/New folder/readonly.txt"),
-                        pth.normalize("./test/xxx/utes_test/New folder/somefile.txt")
-                    ].sort()
-                );
+                expect(files.sort()).to.deep.equal(ultrazip.sort());
             }); // no catch, it'll figure it out since the promise is rejected
         });
 
@@ -95,16 +87,7 @@ describe("adm-zip.js - methods handling local files", () => {
             const zip = new Zip("./test/assets/ultra.zip");
             zip.extractAllToAsync(destination, false, false, (error) => {
                 const files = walk(destination);
-                expect(files.sort()).to.deep.equal(
-                    [
-                        pth.normalize("./test/xxx/attributes_test/asd/New Text Document.txt"),
-                        pth.normalize("./test/xxx/attributes_test/blank file.txt"),
-                        pth.normalize("./test/xxx/attributes_test/New folder/hidden.txt"),
-                        pth.normalize("./test/xxx/attributes_test/New folder/hidden_readonly.txt"),
-                        pth.normalize("./test/xxx/attributes_test/New folder/readonly.txt"),
-                        pth.normalize("./test/xxx/utes_test/New folder/somefile.txt")
-                    ].sort()
-                );
+                expect(files.sort()).to.deep.equal(ultrazip.sort());
                 done();
             });
         });
@@ -114,16 +97,7 @@ describe("adm-zip.js - methods handling local files", () => {
             // note the return
             return zip.extractAllToAsync(destination, false, false).then(function (data) {
                 const files = walk(destination);
-                expect(files.sort()).to.deep.equal(
-                    [
-                        pth.normalize("./test/xxx/attributes_test/asd/New Text Document.txt"),
-                        pth.normalize("./test/xxx/attributes_test/blank file.txt"),
-                        pth.normalize("./test/xxx/attributes_test/New folder/hidden.txt"),
-                        pth.normalize("./test/xxx/attributes_test/New folder/hidden_readonly.txt"),
-                        pth.normalize("./test/xxx/attributes_test/New folder/readonly.txt"),
-                        pth.normalize("./test/xxx/utes_test/New folder/somefile.txt")
-                    ].sort()
-                );
+                expect(files.sort()).to.deep.equal(ultrazip.sort());
             }); // no catch, it'll figure it out since the promise is rejected
         });
 
@@ -131,16 +105,7 @@ describe("adm-zip.js - methods handling local files", () => {
             const zip = new Zip("./test/assets/ultra.zip");
             zip.extractAllToAsync(destination, false, (error) => {
                 const files = walk(destination);
-                expect(files.sort()).to.deep.equal(
-                    [
-                        pth.normalize("./test/xxx/attributes_test/asd/New Text Document.txt"),
-                        pth.normalize("./test/xxx/attributes_test/blank file.txt"),
-                        pth.normalize("./test/xxx/attributes_test/New folder/hidden.txt"),
-                        pth.normalize("./test/xxx/attributes_test/New folder/hidden_readonly.txt"),
-                        pth.normalize("./test/xxx/attributes_test/New folder/readonly.txt"),
-                        pth.normalize("./test/xxx/utes_test/New folder/somefile.txt")
-                    ].sort()
-                );
+                expect(files.sort()).to.deep.equal(ultrazip.sort());
                 done();
             });
         });
@@ -150,16 +115,7 @@ describe("adm-zip.js - methods handling local files", () => {
             // note the return
             return zip.extractAllToAsync(destination, false).then(function (data) {
                 const files = walk(destination);
-                expect(files.sort()).to.deep.equal(
-                    [
-                        pth.normalize("./test/xxx/attributes_test/asd/New Text Document.txt"),
-                        pth.normalize("./test/xxx/attributes_test/blank file.txt"),
-                        pth.normalize("./test/xxx/attributes_test/New folder/hidden.txt"),
-                        pth.normalize("./test/xxx/attributes_test/New folder/hidden_readonly.txt"),
-                        pth.normalize("./test/xxx/attributes_test/New folder/readonly.txt"),
-                        pth.normalize("./test/xxx/utes_test/New folder/somefile.txt")
-                    ].sort()
-                );
+                expect(files.sort()).to.deep.equal(ultrazip.sort());
             }); // no catch, it'll figure it out since the promise is rejected
         });
     });
@@ -171,16 +127,9 @@ describe("adm-zip.js - methods handling local files", () => {
             zipEntries.forEach((e) => zip.extractEntryTo(e, destination, false, true));
 
             const files = walk(destination);
-            expect(files.sort()).to.deep.equal(
-                [
-                    pth.normalize("./test/xxx/blank file.txt"),
-                    pth.normalize("./test/xxx/hidden.txt"),
-                    pth.normalize("./test/xxx/hidden_readonly.txt"),
-                    pth.normalize("./test/xxx/New Text Document.txt"),
-                    pth.normalize("./test/xxx/readonly.txt"),
-                    pth.normalize("./test/xxx/somefile.txt")
-                ].sort()
-            );
+            const ultrazip = ["blank file.txt", "hidden.txt", "hidden_readonly.txt", "New Text Document.txt", "readonly.txt", "somefile.txt"].map(wrapList);
+
+            expect(files.sort()).to.deep.equal(ultrazip.sort());
         });
 
         it("zip.extractEntryTo(entry, destination, true, true)", () => {
@@ -189,16 +138,16 @@ describe("adm-zip.js - methods handling local files", () => {
             zipEntries.forEach((e) => zip.extractEntryTo(e, destination, true, true));
 
             const files = walk(destination);
-            expect(files.sort()).to.deep.equal(
-                [
-                    pth.normalize("./test/xxx/attributes_test/asd/New Text Document.txt"),
-                    pth.normalize("./test/xxx/attributes_test/blank file.txt"),
-                    pth.normalize("./test/xxx/attributes_test/New folder/hidden.txt"),
-                    pth.normalize("./test/xxx/attributes_test/New folder/hidden_readonly.txt"),
-                    pth.normalize("./test/xxx/attributes_test/New folder/readonly.txt"),
-                    pth.normalize("./test/xxx/utes_test/New folder/somefile.txt")
-                ].sort()
-            );
+            const ultrazip = [
+                "./attributes_test/asd/New Text Document.txt",
+                "./attributes_test/blank file.txt",
+                "./attributes_test/New folder/hidden.txt",
+                "./attributes_test/New folder/hidden_readonly.txt",
+                "./attributes_test/New folder/readonly.txt",
+                "./utes_test/New folder/somefile.txt"
+            ].map(wrapList);
+
+            expect(files.sort()).to.deep.equal(ultrazip.sort());
         });
     });
 

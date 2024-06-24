@@ -1,6 +1,6 @@
 "use strict";
 const { expect } = require("chai");
-const { crc32, canonical, sanitize } = require("../util/utils");
+const { crc32, canonical, sanitize, zipnamefix } = require("../util/utils");
 const pth = require("path");
 
 describe("utils", () => {
@@ -80,6 +80,31 @@ describe("utils", () => {
                 { file: "./../file", result: "file" },
                 { file: "../../file", result: "file" },
                 { file: "../../file1/../file2", result: "file2" },
+                { file: "../subfolder/file2", result: pth.normalize("subfolder/file2") },
+                { file: "../subfolder2/file2", result: pth.normalize("subfolder2/file2") },
+                { file: "../subfolder/file2", result: pth.normalize("subfolder/file2") },
+                { file: "../../subfolder2/file2", result: pth.normalize("subfolder2/file2") }
+            ];
+
+            for (const { file, result } of Array.from(tests)) {
+                tests.push({ result, file: file.split("/").join("\\") });
+            }
+
+            for (let test of tests) {
+                expect(canonical(test.file)).to.equal(test.result);
+            }
+        });
+        it("function zipnamefix()", () => {
+            const tests = [
+                // no name
+                { file: "", result: "" },
+                // file has name
+                { file: "file", result: "file" },
+                { file: "../file", result: "file" },
+                { file: "../../../file", result: "file" },
+                { file: "./../file", result: "file" },
+                { file: "../../file", result: "file" },
+                { file: "../../file1/../file2", result: "file2" },
                 { file: "../subfolder/file2", result: "subfolder/file2" },
                 { file: "../subfolder2/file2", result: "subfolder2/file2" },
                 { file: "../subfolder/file2", result: "subfolder/file2" },
@@ -91,7 +116,7 @@ describe("utils", () => {
             }
 
             for (let test of tests) {
-                expect(canonical(test.file)).to.equal(test.result);
+                expect(zipnamefix(test.file)).to.equal(test.result);
             }
         });
     });

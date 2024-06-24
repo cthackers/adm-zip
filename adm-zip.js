@@ -3,8 +3,9 @@ const pth = require("path");
 const ZipEntry = require("./zipEntry");
 const ZipFile = require("./zipFile");
 
-const get_Bool = (val, def) => (typeof val === "boolean" ? val : def);
-const get_Str = (val, def) => (typeof val === "string" ? val : def);
+const get_Bool = (...val) => Utils.findLast(val, (c) => typeof c === "boolean");
+const get_Str = (...val) => Utils.findLast(val, (c) => typeof c === "string");
+const get_Fun = (...val) => Utils.findLast(val, (c) => typeof c === "function");
 
 const defaultOptions = {
     // option "noSort" : if true it disables files sorting
@@ -65,13 +66,13 @@ module.exports = function (/**String*/ input, /** object */ options) {
     // create variable
     const _zip = new ZipFile(inBuffer, opts);
 
-    const { canonical, sanitize } = Utils;
+    const { canonical, sanitize, zipnamefix } = Utils;
 
     function getEntry(/**Object*/ entry) {
         if (entry && _zip) {
             var item;
             // If entry was given as a file name
-            if (typeof entry === "string") item = _zip.getEntry(entry);
+            if (typeof entry === "string") item = _zip.getEntry(pth.posix.normalize(entry));
             // if entry was given as a ZipEntry object
             if (typeof entry === "object" && typeof entry.entryName !== "undefined" && typeof entry.header !== "undefined") item = _zip.getEntry(entry.entryName);
 
@@ -113,23 +114,23 @@ module.exports = function (/**String*/ input, /** object */ options) {
     return {
         /**
          * Extracts the given entry from the archive and returns the content as a Buffer object
-         * @param entry ZipEntry object or String with the full path of the entry
-         *
+         * @param {ZipEntry|string} entry ZipEntry object or String with the full path of the entry
+         * @param {Buffer|string} [pass] - password
          * @return Buffer or Null in case of error
          */
-        readFile: function (/**Object*/ entry, /*String, Buffer*/ pass) {
+        readFile: function (entry, pass) {
             var item = getEntry(entry);
             return (item && item.getData(pass)) || null;
         },
 
         /**
          * Asynchronous readFile
-         * @param entry ZipEntry object or String with the full path of the entry
-         * @param callback
+         * @param {ZipEntry|string} entry ZipEntry object or String with the full path of the entry
+         * @param {callback} callback
          *
          * @return Buffer or Null in case of error
          */
-        readFileAsync: function (/**Object*/ entry, /**Function*/ callback) {
+        readFileAsync: function (entry, callback) {
             var item = getEntry(entry);
             if (item) {
                 item.getDataAsync(callback);
@@ -140,12 +141,12 @@ module.exports = function (/**String*/ input, /** object */ options) {
 
         /**
          * Extracts the given entry from the archive and returns the content as plain text in the given encoding
-         * @param entry ZipEntry object or String with the full path of the entry
-         * @param encoding Optional. If no encoding is specified utf8 is used
+         * @param {ZipEntry|string} entry - ZipEntry object or String with the full path of the entry
+         * @param {string} encoding - Optional. If no encoding is specified utf8 is used
          *
          * @return String
          */
-        readAsText: function (/**Object*/ entry, /**String=*/ encoding) {
+        readAsText: function (entry, encoding) {
             var item = getEntry(entry);
             if (item) {
                 var data = item.getData();
@@ -158,13 +159,13 @@ module.exports = function (/**String*/ input, /** object */ options) {
 
         /**
          * Asynchronous readAsText
-         * @param entry ZipEntry object or String with the full path of the entry
-         * @param callback
-         * @param encoding Optional. If no encoding is specified utf8 is used
+         * @param {ZipEntry|string} entry ZipEntry object or String with the full path of the entry
+         * @param {callback} callback
+         * @param {string} [encoding] - Optional. If no encoding is specified utf8 is used
          *
          * @return String
          */
-        readAsTextAsync: function (/**Object*/ entry, /**Function*/ callback, /**String=*/ encoding) {
+        readAsTextAsync: function (entry, callback, encoding) {
             var item = getEntry(entry);
             if (item) {
                 item.getDataAsync(function (data, err) {
@@ -187,9 +188,9 @@ module.exports = function (/**String*/ input, /** object */ options) {
         /**
          * Remove the entry from the file or the entry and all it's nested directories and files if the given entry is a directory
          *
-         * @param entry
+         * @param {ZipEntry} entry
          */
-        deleteFile: function (/**Object*/ entry) {
+        deleteFile: function (entry) {
             // @TODO: test deleteFile
             var item = getEntry(entry);
             if (item) {
@@ -200,9 +201,9 @@ module.exports = function (/**String*/ input, /** object */ options) {
         /**
          * Adds a comment to the zip. The zip must be rewritten after adding the comment.
          *
-         * @param comment
+         * @param {string} comment
          */
-        addZipComment: function (/**String*/ comment) {
+        addZipComment: function (comment) {
             // @TODO: test addZipComment
             _zip.comment = comment;
         },
@@ -220,10 +221,10 @@ module.exports = function (/**String*/ input, /** object */ options) {
          * Adds a comment to a specified zipEntry. The zip must be rewritten after adding the comment
          * The comment cannot exceed 65535 characters in length
          *
-         * @param entry
-         * @param comment
+         * @param {ZipEntry} entry
+         * @param {string} comment
          */
-        addZipEntryComment: function (/**Object*/ entry, /**String*/ comment) {
+        addZipEntryComment: function (entry, comment) {
             var item = getEntry(entry);
             if (item) {
                 item.comment = comment;
@@ -233,10 +234,10 @@ module.exports = function (/**String*/ input, /** object */ options) {
         /**
          * Returns the comment of the specified entry
          *
-         * @param entry
+         * @param {ZipEntry} entry
          * @return String
          */
-        getZipEntryComment: function (/**Object*/ entry) {
+        getZipEntryComment: function (entry) {
             var item = getEntry(entry);
             if (item) {
                 return item.comment || "";
@@ -247,10 +248,10 @@ module.exports = function (/**String*/ input, /** object */ options) {
         /**
          * Updates the content of an existing entry inside the archive. The zip must be rewritten after updating the content
          *
-         * @param entry
-         * @param content
+         * @param {ZipEntry} entry
+         * @param {Buffer} content
          */
-        updateFile: function (/**Object*/ entry, /**Buffer*/ content) {
+        updateFile: function (entry, content) {
             var item = getEntry(entry);
             if (item) {
                 item.setData(content);
@@ -376,13 +377,13 @@ module.exports = function (/**String*/ input, /** object */ options) {
 
         /**
          * Asynchronous addLocalFolder
-         * @param localPath
-         * @param callback
-         * @param zipPath optional path inside zip
-         * @param filter optional RegExp or Function if files match will
+         * @param {string} localPath
+         * @param {callback} callback
+         * @param {string} [zipPath] optional path inside zip
+         * @param {RegExp|function} [filter] optional RegExp or Function if files match will
          *               be included.
          */
-        addLocalFolderAsync: function (/*String*/ localPath, /*Function*/ callback, /*String*/ zipPath, /*RegExp|Function*/ filter) {
+        addLocalFolderAsync: function (localPath, callback, zipPath, filter) {
             // Prepare filter
             filter = filenameFilter(filter);
 
@@ -454,7 +455,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
          * @param {doneCallback} callback - The callback that handles the response.
          *
          */
-        addLocalFolderAsync2: function (/*String*/ options, /*Function*/ callback) {
+        addLocalFolderAsync2: function (options, callback) {
             const self = this;
             options = typeof options === "object" ? options : { localPath: options };
             localPath = pth.resolve(fixPath(options.localPath));
@@ -531,7 +532,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
          * @param {RegExp|function} [props.filter] - optional RegExp or Function if files match will be included.
          * @param {function|string} [props.namefix] - optional function to help fix filename
          */
-        addLocalFolderPromise: function (/*String*/ localPath, /* object */ props) {
+        addLocalFolderPromise: function (localPath, props) {
             return new Promise((resolve, reject) => {
                 this.addLocalFolderAsync2(Object.assign({ localPath }, props), (err, done) => {
                     if (err) reject(err);
@@ -547,11 +548,11 @@ module.exports = function (/**String*/ input, /** object */ options) {
          *
          * @param {string} entryName
          * @param {Buffer | string} content - file content as buffer or utf8 coded string
-         * @param {string} comment - file comment
-         * @param {number | object} attr - number as unix file permissions, object as filesystem Stats object
+         * @param {string} [comment] - file comment
+         * @param {number | object} [attr] - number as unix file permissions, object as filesystem Stats object
          */
-        addFile: function (/**String*/ entryName, /**Buffer*/ content, /**String*/ comment, /**Number*/ attr) {
-            entryName = Utils.canonical(entryName);
+        addFile: function (entryName, content, comment, attr) {
+            entryName = zipnamefix(entryName);
             let entry = getEntry(entryName);
             const update = entry != null;
 
@@ -600,9 +601,10 @@ module.exports = function (/**String*/ input, /** object */ options) {
         /**
          * Returns an array of ZipEntry objects representing the files and folders inside the archive
          *
-         * @return Array
+         * @param {string} [password]
+         * @returns Array
          */
-        getEntries: function (/**String*/ password) {
+        getEntries: function (password) {
             _zip.password = password;
             return _zip ? _zip.entries : [];
         },
@@ -610,7 +612,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
         /**
          * Returns a ZipEntry object representing the file or folder specified by ``name``.
          *
-         * @param name
+         * @param {string} name
          * @return ZipEntry
          */
         getEntry: function (/**String*/ name) {
@@ -629,30 +631,20 @@ module.exports = function (/**String*/ input, /** object */ options) {
          * Extracts the given entry to the given targetPath
          * If the entry is a directory inside the archive, the entire directory and it's subdirectories will be extracted
          *
-         * @param entry ZipEntry object or String with the full path of the entry
-         * @param targetPath Target folder where to write the file
-         * @param maintainEntryPath If maintainEntryPath is true and the entry is inside a folder, the entry folder
-         *                          will be created in targetPath as well. Default is TRUE
-         * @param overwrite If the file already exists at the target path, the file will be overwriten if this is true.
-         *                  Default is FALSE
-         * @param keepOriginalPermission The file will be set as the permission from the entry if this is true.
-         *                  Default is FALSE
-         * @param outFileName String If set will override the filename of the extracted file (Only works if the entry is a file)
+         * @param {string|ZipEntry} entry - ZipEntry object or String with the full path of the entry
+         * @param {string} targetPath - Target folder where to write the file
+         * @param {boolean} [maintainEntryPath=true] - If maintainEntryPath is true and the entry is inside a folder, the entry folder will be created in targetPath as well. Default is TRUE
+         * @param {boolean} [overwrite=false] - If the file already exists at the target path, the file will be overwriten if this is true.
+         * @param {boolean} [keepOriginalPermission=false] - The file will be set as the permission from the entry if this is true.
+         * @param {string} [outFileName] - String If set will override the filename of the extracted file (Only works if the entry is a file)
          *
          * @return Boolean
          */
-        extractEntryTo: function (
-            /**Object*/ entry,
-            /**String*/ targetPath,
-            /**Boolean*/ maintainEntryPath,
-            /**Boolean*/ overwrite,
-            /**Boolean*/ keepOriginalPermission,
-            /**String**/ outFileName
-        ) {
-            overwrite = get_Bool(overwrite, false);
-            keepOriginalPermission = get_Bool(keepOriginalPermission, false);
-            maintainEntryPath = get_Bool(maintainEntryPath, true);
-            outFileName = get_Str(outFileName, get_Str(keepOriginalPermission, undefined));
+        extractEntryTo: function (entry, targetPath, maintainEntryPath, overwrite, keepOriginalPermission, outFileName) {
+            overwrite = get_Bool(false, overwrite);
+            keepOriginalPermission = get_Bool(false, keepOriginalPermission);
+            maintainEntryPath = get_Bool(true, maintainEntryPath);
+            outFileName = get_Str(keepOriginalPermission, outFileName);
 
             var item = getEntry(entry);
             if (!item) {
@@ -695,7 +687,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
 
         /**
          * Test the archive
-         *
+         * @param {string} [pass]
          */
         test: function (pass) {
             if (!_zip) {
@@ -721,16 +713,17 @@ module.exports = function (/**String*/ input, /** object */ options) {
         /**
          * Extracts the entire archive to the given location
          *
-         * @param targetPath Target location
-         * @param overwrite If the file already exists at the target path, the file will be overwriten if this is true.
+         * @param {string} targetPath Target location
+         * @param {boolean} [overwrite=false] If the file already exists at the target path, the file will be overwriten if this is true.
          *                  Default is FALSE
-         * @param keepOriginalPermission The file will be set as the permission from the entry if this is true.
+         * @param {boolean} [keepOriginalPermission=false] The file will be set as the permission from the entry if this is true.
          *                  Default is FALSE
+         * @param {string|Buffer} [pass] password
          */
-        extractAllTo: function (/**String*/ targetPath, /**Boolean*/ overwrite, /**Boolean*/ keepOriginalPermission, /*String, Buffer*/ pass) {
-            overwrite = get_Bool(overwrite, false);
+        extractAllTo: function (targetPath, overwrite, keepOriginalPermission, pass) {
+            keepOriginalPermission = get_Bool(false, keepOriginalPermission);
             pass = get_Str(keepOriginalPermission, pass);
-            keepOriginalPermission = get_Bool(keepOriginalPermission, false);
+            overwrite = get_Bool(false, overwrite);
             if (!_zip) {
                 throw new Error(Utils.Errors.NO_ZIP);
             }
@@ -758,18 +751,17 @@ module.exports = function (/**String*/ input, /** object */ options) {
         /**
          * Asynchronous extractAllTo
          *
-         * @param targetPath Target location
-         * @param overwrite If the file already exists at the target path, the file will be overwriten if this is true.
+         * @param {string} targetPath Target location
+         * @param {boolean} [overwrite=false] If the file already exists at the target path, the file will be overwriten if this is true.
          *                  Default is FALSE
-         * @param keepOriginalPermission The file will be set as the permission from the entry if this is true.
+         * @param {boolean} [keepOriginalPermission=false] The file will be set as the permission from the entry if this is true.
          *                  Default is FALSE
-         * @param callback The callback will be executed when all entries are extracted successfully or any error is thrown.
+         * @param {function} callback The callback will be executed when all entries are extracted successfully or any error is thrown.
          */
-        extractAllToAsync: function (/**String*/ targetPath, /**Boolean*/ overwrite, /**Boolean*/ keepOriginalPermission, /**Function*/ callback) {
-            if (typeof overwrite === "function" && !callback) callback = overwrite;
-            overwrite = get_Bool(overwrite, false);
-            if (typeof keepOriginalPermission === "function" && !callback) callback = keepOriginalPermission;
-            keepOriginalPermission = get_Bool(keepOriginalPermission, false);
+        extractAllToAsync: function (targetPath, overwrite, keepOriginalPermission, callback) {
+            callback = get_Fun(overwrite, keepOriginalPermission, callback);
+            keepOriginalPermission = get_Bool(false, keepOriginalPermission);
+            overwrite = get_Bool(false, overwrite);
             if (!callback) {
                 return new Promise((resolve, reject) => {
                     this.extractAllToAsync(targetPath, overwrite, keepOriginalPermission, function (err) {
@@ -855,10 +847,10 @@ module.exports = function (/**String*/ input, /** object */ options) {
         /**
          * Writes the newly created zip file to disk at the specified location or if a zip was opened and no ``targetFileName`` is provided, it will overwrite the opened zip
          *
-         * @param targetFileName
-         * @param callback
+         * @param {string} targetFileName
+         * @param {function} callback
          */
-        writeZip: function (/**String*/ targetFileName, /**Function*/ callback) {
+        writeZip: function (targetFileName, callback) {
             if (arguments.length === 1) {
                 if (typeof targetFileName === "function") {
                     callback = targetFileName;
@@ -878,6 +870,15 @@ module.exports = function (/**String*/ input, /** object */ options) {
             }
         },
 
+        /**
+         *
+         * @param {string} targetFileName
+         * @param {object} [props]
+         * @param {boolean} [props.overwrite=true] If the file already exists at the target path, the file will be overwriten if this is true.
+         * @param {boolean} [props.perm] The file will be set as the permission from the entry if this is true.
+
+         * @returns {Promise<void>}
+         */
         writeZipPromise: function (/**String*/ targetFileName, /* object */ props) {
             const { overwrite, perm } = Object.assign({ overwrite: true }, props);
 
@@ -893,6 +894,9 @@ module.exports = function (/**String*/ input, /** object */ options) {
             });
         },
 
+        /**
+         * @returns {Promise<Buffer>} A promise to the Buffer.
+         */
         toBufferPromise: function () {
             return new Promise((resolve, reject) => {
                 _zip.toAsyncBuffer(resolve, reject);
@@ -902,10 +906,13 @@ module.exports = function (/**String*/ input, /** object */ options) {
         /**
          * Returns the content of the entire zip file as a Buffer object
          *
-         * @return Buffer
+         * @prop {function} [onSuccess]
+         * @prop {function} [onFail]
+         * @prop {function} [onItemStart]
+         * @prop {function} [onItemEnd]
+         * @returns {Buffer}
          */
-        toBuffer: function (/**Function=*/ onSuccess, /**Function=*/ onFail, /**Function=*/ onItemStart, /**Function=*/ onItemEnd) {
-            this.valueOf = 2;
+        toBuffer: function (onSuccess, onFail, onItemStart, onItemEnd) {
             if (typeof onSuccess === "function") {
                 _zip.toAsyncBuffer(onSuccess, onFail, onItemStart, onItemEnd);
                 return null;

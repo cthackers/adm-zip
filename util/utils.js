@@ -4,7 +4,7 @@ const Constants = require("./constants");
 const Errors = require("./errors");
 const isWin = typeof process === "object" && "win32" === process.platform;
 
-const is_Obj = (obj) => obj && typeof obj === "object";
+const is_Obj = (obj) => typeof obj === "object" && obj !== null;
 
 // generate CRC32 lookup table
 const crcTable = new Uint32Array(256).map((t, c) => {
@@ -34,7 +34,7 @@ function Utils(opts) {
 
 module.exports = Utils;
 
-// INSTANCED functions
+// INSTANTIABLE functions
 
 Utils.prototype.makeDir = function (/*String*/ folder) {
     const self = this;
@@ -75,10 +75,10 @@ Utils.prototype.writeFileTo = function (/*String*/ path, /*Buffer*/ content, /*B
 
     var fd;
     try {
-        fd = self.fs.openSync(path, "w", 438); // 0666
+        fd = self.fs.openSync(path, "w", 0o666); // 0666
     } catch (e) {
-        self.fs.chmodSync(path, 438);
-        fd = self.fs.openSync(path, "w", 438);
+        self.fs.chmodSync(path, 0o666);
+        fd = self.fs.openSync(path, "w", 0o666);
     }
     if (fd) {
         try {
@@ -87,7 +87,7 @@ Utils.prototype.writeFileTo = function (/*String*/ path, /*Buffer*/ content, /*B
             self.fs.closeSync(fd);
         }
     }
-    self.fs.chmodSync(path, attr || 438);
+    self.fs.chmodSync(path, attr || 0o666);
     return true;
 };
 
@@ -111,13 +111,13 @@ Utils.prototype.writeFileToAsync = function (/*String*/ path, /*Buffer*/ content
             self.fs.exists(folder, function (exists) {
                 if (!exists) self.makeDir(folder);
 
-                self.fs.open(path, "w", 438, function (err, fd) {
+                self.fs.open(path, "w", 0o666, function (err, fd) {
                     if (err) {
-                        self.fs.chmod(path, 438, function () {
-                            self.fs.open(path, "w", 438, function (err, fd) {
+                        self.fs.chmod(path, 0o666, function () {
+                            self.fs.open(path, "w", 0o666, function (err, fd) {
                                 self.fs.write(fd, content, 0, content.length, 0, function () {
                                     self.fs.close(fd, function () {
-                                        self.fs.chmod(path, attr || 438, function () {
+                                        self.fs.chmod(path, attr || 0o666, function () {
                                             callback(true);
                                         });
                                     });
@@ -127,13 +127,13 @@ Utils.prototype.writeFileToAsync = function (/*String*/ path, /*Buffer*/ content
                     } else if (fd) {
                         self.fs.write(fd, content, 0, content.length, 0, function () {
                             self.fs.close(fd, function () {
-                                self.fs.chmod(path, attr || 438, function () {
+                                self.fs.chmod(path, attr || 0o666, function () {
                                     callback(true);
                                 });
                             });
                         });
                     } else {
-                        self.fs.chmod(path, attr || 438, function () {
+                        self.fs.chmod(path, attr || 0o666, function () {
                             callback(true);
                         });
                     }
@@ -224,8 +224,6 @@ Utils.crc32 = function (buf) {
     if (typeof buf === "string") {
         buf = Buffer.from(buf, "utf8");
     }
-    // Generate crcTable
-    if (!crcTable.length) genCRCTable();
 
     let len = buf.length;
     let crc = ~0;
@@ -245,12 +243,47 @@ Utils.methodToString = function (/*Number*/ method) {
     }
 };
 
-// removes ".." style path elements
+/**
+ * removes ".." style path elements
+ * @param {string} path - fixable path
+ * @returns string - fixed filepath
+ */
 Utils.canonical = function (/*string*/ path) {
     if (!path) return "";
     // trick normalize think path is absolute
-    var safeSuffix = pth.posix.normalize("/" + path.split("\\").join("/"));
+    const safeSuffix = pth.posix.normalize("/" + path.split("\\").join("/"));
+    return pth.join(".", safeSuffix);
+};
+
+/**
+ * fix file names in achive
+ * @param {string} path - fixable path
+ * @returns string - fixed filepath
+ */
+
+Utils.zipnamefix = function (path) {
+    if (!path) return "";
+    // trick normalize think path is absolute
+    const safeSuffix = pth.posix.normalize("/" + path.split("\\").join("/"));
     return pth.posix.join(".", safeSuffix);
+};
+
+/**
+ *
+ * @param {Array} arr
+ * @param {function} callback
+ * @returns
+ */
+Utils.findLast = function (arr, callback) {
+    if (!Array.isArray(arr)) throw new TypeError("arr is not array");
+
+    const len = arr.length >>> 0;
+    for (let i = len - 1; i >= 0; i--) {
+        if (callback(arr[i], i, arr)) {
+            return arr[i];
+        }
+    }
+    return void 0;
 };
 
 // make abolute paths taking prefix as root folder
