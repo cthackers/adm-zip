@@ -224,8 +224,6 @@ Utils.crc32 = function (buf) {
     if (typeof buf === "string") {
         buf = Buffer.from(buf, "utf8");
     }
-    // Generate crcTable
-    if (!crcTable.length) genCRCTable();
 
     let len = buf.length;
     let crc = ~0;
@@ -253,7 +251,20 @@ Utils.methodToString = function (/*Number*/ method) {
 Utils.canonical = function (/*string*/ path) {
     if (!path) return "";
     // trick normalize think path is absolute
-    var safeSuffix = pth.posix.normalize("/" + path.split("\\").join("/"));
+    const safeSuffix = pth.posix.normalize("/" + path.split("\\").join("/"));
+    return pth.join(".", safeSuffix);
+};
+
+/**
+ * fix file names in achive
+ * @param {string} path - fixable path
+ * @returns string - fixed filepath
+ */
+
+Utils.zipnamefix = function (path) {
+    if (!path) return "";
+    // trick normalize think path is absolute
+    const safeSuffix = pth.posix.normalize("/" + path.split("\\").join("/"));
     return pth.posix.join(".", safeSuffix);
 };
 

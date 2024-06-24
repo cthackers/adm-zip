@@ -66,7 +66,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
     // create variable
     const _zip = new ZipFile(inBuffer, opts);
 
-    const { canonical, sanitize } = Utils;
+    const { canonical, sanitize, zipnamefix } = Utils;
 
     function getEntry(/**Object*/ entry) {
         if (entry && _zip) {
@@ -552,7 +552,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
          * @param {number | object} [attr] - number as unix file permissions, object as filesystem Stats object
          */
         addFile: function (entryName, content, comment, attr) {
-            entryName = Utils.canonical(entryName);
+            entryName = zipnamefix(entryName);
             let entry = getEntry(entryName);
             const update = entry != null;
 
