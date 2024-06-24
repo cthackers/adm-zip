@@ -34,7 +34,7 @@ function Utils(opts) {
 
 module.exports = Utils;
 
-// INSTANCED functions
+// INSTANTIABLE functions
 
 Utils.prototype.makeDir = function (/*String*/ folder) {
     const self = this;
@@ -75,10 +75,10 @@ Utils.prototype.writeFileTo = function (/*String*/ path, /*Buffer*/ content, /*B
 
     var fd;
     try {
-        fd = self.fs.openSync(path, "w", 438); // 0666
+        fd = self.fs.openSync(path, "w", 0o666); // 0666
     } catch (e) {
-        self.fs.chmodSync(path, 438);
-        fd = self.fs.openSync(path, "w", 438);
+        self.fs.chmodSync(path, 0o666);
+        fd = self.fs.openSync(path, "w", 0o666);
     }
     if (fd) {
         try {
@@ -87,7 +87,7 @@ Utils.prototype.writeFileTo = function (/*String*/ path, /*Buffer*/ content, /*B
             self.fs.closeSync(fd);
         }
     }
-    self.fs.chmodSync(path, attr || 438);
+    self.fs.chmodSync(path, attr || 0o666);
     return true;
 };
 
@@ -111,13 +111,13 @@ Utils.prototype.writeFileToAsync = function (/*String*/ path, /*Buffer*/ content
             self.fs.exists(folder, function (exists) {
                 if (!exists) self.makeDir(folder);
 
-                self.fs.open(path, "w", 438, function (err, fd) {
+                self.fs.open(path, "w", 0o666, function (err, fd) {
                     if (err) {
-                        self.fs.chmod(path, 438, function () {
-                            self.fs.open(path, "w", 438, function (err, fd) {
+                        self.fs.chmod(path, 0o666, function () {
+                            self.fs.open(path, "w", 0o666, function (err, fd) {
                                 self.fs.write(fd, content, 0, content.length, 0, function () {
                                     self.fs.close(fd, function () {
-                                        self.fs.chmod(path, attr || 438, function () {
+                                        self.fs.chmod(path, attr || 0o666, function () {
                                             callback(true);
                                         });
                                     });
@@ -127,13 +127,13 @@ Utils.prototype.writeFileToAsync = function (/*String*/ path, /*Buffer*/ content
                     } else if (fd) {
                         self.fs.write(fd, content, 0, content.length, 0, function () {
                             self.fs.close(fd, function () {
-                                self.fs.chmod(path, attr || 438, function () {
+                                self.fs.chmod(path, attr || 0o666, function () {
                                     callback(true);
                                 });
                             });
                         });
                     } else {
-                        self.fs.chmod(path, attr || 438, function () {
+                        self.fs.chmod(path, attr || 0o666, function () {
                             callback(true);
                         });
                     }
