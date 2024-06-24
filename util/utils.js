@@ -4,7 +4,7 @@ const Constants = require("./constants");
 const Errors = require("./errors");
 const isWin = typeof process === "object" && "win32" === process.platform;
 
-const is_Obj = (obj) => obj && typeof obj === "object";
+const is_Obj = (obj) => typeof obj === "object" && obj !== null;
 
 // generate CRC32 lookup table
 const crcTable = new Uint32Array(256).map((t, c) => {
@@ -255,6 +255,24 @@ Utils.canonical = function (/*string*/ path) {
     // trick normalize think path is absolute
     var safeSuffix = pth.posix.normalize("/" + path.split("\\").join("/"));
     return pth.posix.join(".", safeSuffix);
+};
+
+/**
+ *
+ * @param {Array} arr
+ * @param {function} callback
+ * @returns
+ */
+Utils.findLast = function (arr, callback) {
+    if (!Array.isArray(arr)) throw new TypeError("arr is not array");
+
+    const len = arr.length >>> 0;
+    for (let i = len - 1; i >= 0; i--) {
+        if (callback(arr[i], i, arr)) {
+            return arr[i];
+        }
+    }
+    return void 0;
 };
 
 // make abolute paths taking prefix as root folder

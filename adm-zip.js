@@ -3,8 +3,9 @@ const pth = require("path");
 const ZipEntry = require("./zipEntry");
 const ZipFile = require("./zipFile");
 
-const get_Bool = (val, def) => (typeof val === "boolean" ? val : def);
-const get_Str = (val, def) => (typeof val === "string" ? val : def);
+const get_Bool = (...val) => Utils.findLast(val, (c) => typeof c === "boolean");
+const get_Str = (...val) => Utils.findLast(val, (c) => typeof c === "string");
+const get_Fun = (...val) => Utils.findLast(val, (c) => typeof c === "function");
 
 const defaultOptions = {
     // option "noSort" : if true it disables files sorting
@@ -640,10 +641,10 @@ module.exports = function (/**String*/ input, /** object */ options) {
          * @return Boolean
          */
         extractEntryTo: function (entry, targetPath, maintainEntryPath, overwrite, keepOriginalPermission, outFileName) {
-            overwrite = get_Bool(overwrite, false);
-            keepOriginalPermission = get_Bool(keepOriginalPermission, false);
-            maintainEntryPath = get_Bool(maintainEntryPath, true);
-            outFileName = get_Str(outFileName, get_Str(keepOriginalPermission, undefined));
+            overwrite = get_Bool(false, overwrite);
+            keepOriginalPermission = get_Bool(false, keepOriginalPermission);
+            maintainEntryPath = get_Bool(true, maintainEntryPath);
+            outFileName = get_Str(keepOriginalPermission, outFileName);
 
             var item = getEntry(entry);
             if (!item) {
@@ -720,9 +721,9 @@ module.exports = function (/**String*/ input, /** object */ options) {
          * @param {string|Buffer} [pass] password
          */
         extractAllTo: function (targetPath, overwrite, keepOriginalPermission, pass) {
-            overwrite = get_Bool(overwrite, false);
+            keepOriginalPermission = get_Bool(false, keepOriginalPermission);
             pass = get_Str(keepOriginalPermission, pass);
-            keepOriginalPermission = get_Bool(keepOriginalPermission, false);
+            overwrite = get_Bool(false, overwrite);
             if (!_zip) {
                 throw new Error(Utils.Errors.NO_ZIP);
             }
@@ -758,10 +759,9 @@ module.exports = function (/**String*/ input, /** object */ options) {
          * @param {function} callback The callback will be executed when all entries are extracted successfully or any error is thrown.
          */
         extractAllToAsync: function (targetPath, overwrite, keepOriginalPermission, callback) {
-            if (typeof overwrite === "function" && !callback) callback = overwrite;
-            overwrite = get_Bool(overwrite, false);
-            if (typeof keepOriginalPermission === "function" && !callback) callback = keepOriginalPermission;
-            keepOriginalPermission = get_Bool(keepOriginalPermission, false);
+            callback = get_Fun(overwrite, keepOriginalPermission, callback);
+            keepOriginalPermission = get_Bool(false, keepOriginalPermission);
+            overwrite = get_Bool(false, overwrite);
             if (!callback) {
                 return new Promise((resolve, reject) => {
                     this.extractAllToAsync(targetPath, overwrite, keepOriginalPermission, function (err) {
