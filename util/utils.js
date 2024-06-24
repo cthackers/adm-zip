@@ -245,7 +245,11 @@ Utils.methodToString = function (/*Number*/ method) {
     }
 };
 
-// removes ".." style path elements
+/**
+ * removes ".." style path elements
+ * @param {string} path - fixable path
+ * @returns string - fixed filepath
+ */
 Utils.canonical = function (/*string*/ path) {
     if (!path) return "";
     // trick normalize think path is absolute
