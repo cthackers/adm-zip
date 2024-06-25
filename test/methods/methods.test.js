@@ -121,6 +121,7 @@ describe("adm-zip.js - methods handling local files", () => {
     });
 
     describe(".extractEntryTo() - sync", () => {
+        // each entry one by one
         it("zip.extractEntryTo(entry, destination, false, true)", () => {
             const zip = new Zip("./test/assets/ultra.zip");
             var zipEntries = zip.getEntries();
@@ -132,6 +133,7 @@ describe("adm-zip.js - methods handling local files", () => {
             expect(files.sort()).to.deep.equal(ultrazip.sort());
         });
 
+        // each entry one by one
         it("zip.extractEntryTo(entry, destination, true, true)", () => {
             const zip = new Zip("./test/assets/ultra.zip");
             var zipEntries = zip.getEntries();
@@ -148,6 +150,58 @@ describe("adm-zip.js - methods handling local files", () => {
             ].map(wrapList);
 
             expect(files.sort()).to.deep.equal(ultrazip.sort());
+        });
+
+        it("zip.extractEntryTo(entry, destination, false, true) -  [ extract folder from file where folders exists ]", () => {
+            const zip = new Zip("./test/assets/maximum.zip");
+
+            zip.extractEntryTo("./attributes_test/New folder/", destination, false, true);
+
+            const files = walk(destination);
+            const maximumzip = ["hidden.txt", "hidden_readonly.txt", "readonly.txt", "somefile.txt"].map(wrapList);
+
+            expect(files.sort()).to.deep.equal(maximumzip.sort());
+        });
+
+        it("zip.extractEntryTo(entry, destination, false, true) -  [ extract folder from file where folders does not exists ]", () => {
+            const zip = new Zip("./test/assets/maximum3.zip");
+
+            zip.extractEntryTo("./attributes_test/New folder/", destination, false, true);
+
+            const files = walk(destination);
+            const maximumzip = ["hidden.txt", "hidden_readonly.txt", "readonly.txt", "somefile.txt"].map(wrapList);
+
+            expect(files.sort()).to.deep.equal(maximumzip.sort());
+        });
+
+        it("zip.extractEntryTo(entry, destination, true, true) -  [ extract folder from file where folders exists ]", () => {
+            const zip = new Zip("./test/assets/maximum.zip");
+
+            zip.extractEntryTo("./attributes_test/New folder/", destination, true, true);
+
+            const files = walk(destination);
+            const maximumzip = [
+                "./attributes_test/New folder/hidden.txt",
+                "./attributes_test/New folder/hidden_readonly.txt",
+                "./attributes_test/New folder/readonly.txt",
+                "./attributes_test/New folder/somefile.txt"
+            ].map(wrapList);
+            expect(files.sort()).to.deep.equal(maximumzip.sort());
+        });
+
+        it("zip.extractEntryTo(entry, destination, true, true) -  [ extract folder from file where folders does not exists ]", () => {
+            const zip = new Zip("./test/assets/maximum3.zip");
+
+            zip.extractEntryTo("./attributes_test/New folder/", destination, true, true);
+
+            const files = walk(destination);
+            const maximumzip = [
+                "./attributes_test/New folder/hidden.txt",
+                "./attributes_test/New folder/hidden_readonly.txt",
+                "./attributes_test/New folder/readonly.txt",
+                "./attributes_test/New folder/somefile.txt"
+            ].map(wrapList);
+            expect(files.sort()).to.deep.equal(maximumzip.sort());
         });
     });
 

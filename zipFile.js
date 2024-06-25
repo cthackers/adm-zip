@@ -9,6 +9,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
         mainHeader = new Headers.MainHeader(),
         loadedEntries = false;
     var password = null;
+    const temporary = new Set();
 
     // assign options
     const opts = options;
@@ -23,20 +24,31 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
         loadedEntries = true;
     }
 
-    function iterateEntries(callback) {
-        const totalEntries = mainHeader.diskEntries; // total number of entries
-        let index = mainHeader.offset; // offset of first CEN header
+    function makeTemporaryFolders() {
+        const foldersList = new Set();
 
-        for (let i = 0; i < totalEntries; i++) {
-            let tmp = index;
-            const entry = new ZipEntry(opts, inBuffer);
+        // Make list of all folders in file
+        for (const elem of Object.keys(entryTable)) {
+            const elements = elem.split("/");
+            elements.pop(); // filename
+            if (!elements.length) continue; // no folders
+            for (let i = 0; i < elements.length; i++) {
+                const sub = elements.slice(0, i + 1).join("/") + "/";
+                foldersList.add(sub);
+            }
+        }
 
-            entry.header = inBuffer.slice(tmp, (tmp += Utils.Constants.CENHDR));
-            entry.entryName = inBuffer.slice(tmp, (tmp += entry.header.fileNameLength));
-
-            index += entry.header.centralHeaderSize;
-
-            callback(entry);
+        // create missing folders as temporary
+        for (const elem of foldersList) {
+            if (!(elem in entryTable)) {
+                const tempfolder = new ZipEntry(opts);
+                tempfolder.entryName = elem;
+                tempfolder.attr = 0x10;
+                tempfolder.temporary = true;
+                entryList.push(tempfolder);
+                entryTable[tempfolder.entryName] = tempfolder;
+                temporary.add(tempfolder);
+            }
         }
     }
 
@@ -66,6 +78,8 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             entryList[i] = entry;
             entryTable[entry.entryName] = entry;
         }
+        temporary.clear();
+        makeTemporaryFolders();
     }
 
     function readMainHeader(/*Boolean*/ readNow) {
@@ -130,7 +144,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             if (!loadedEntries) {
                 readEntries();
             }
-            return entryList;
+            return entryList.filter((e) => !temporary.has(e));
         },
 
         /**
@@ -154,12 +168,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
         },
 
         forEach: function (callback) {
-            if (!loadedEntries) {
-                iterateEntries(callback);
-                return;
-            }
-
-            entryList.forEach(callback);
+            this.entries.forEach(callback);
         },
 
         /**
@@ -289,7 +298,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             mainHeader.offset = 0;
             totalEntries = 0;
 
-            for (const entry of entryList) {
+            for (const entry of this.entries) {
                 // compress data and set local and entry header accordingly. Reason why is called first
                 const compressedData = entry.getCompressedData();
                 entry.header.offset = dindex;
@@ -430,7 +439,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                     }
                 };
 
-                compress2Buffer(Array.from(entryList));
+                compress2Buffer(Array.from(this.entries));
             } catch (e) {
                 onFail(e);
             }
