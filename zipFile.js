@@ -190,12 +190,13 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
         },
 
         /**
-         * Removes the entry with the given name from the entry list.
+         * Removes the file with the given name from the entry list.
          *
          * If the entry is a directory, then all nested files and directories will be removed
          * @param entryName
+         * @returns {void}
          */
-        deleteEntry: function (/*String*/ entryName) {
+        deleteFile: function (/*String*/ entryName) {
             if (!loadedEntries) {
                 readEntries();
             }
@@ -204,10 +205,26 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                 var _self = this;
                 this.getEntryChildren(entry).forEach(function (child) {
                     if (child.entryName !== entryName) {
-                        _self.deleteEntry(child.entryName);
+                        _self.deleteFile(child.entryName);
                     }
                 });
             }
+            entryList.splice(entryList.indexOf(entry), 1);
+            delete entryTable[entryName];
+            mainHeader.totalEntries = entryList.length;
+        },
+
+        /**
+         * Removes the entry with the given name from the entry list.
+         *
+         * @param {string} entryName
+         * @returns {void}
+         */
+        deleteEntry: function (/*String*/ entryName) {
+            if (!loadedEntries) {
+                readEntries();
+            }
+            const entry = entryTable[entryName];
             entryList.splice(entryList.indexOf(entry), 1);
             delete entryTable[entryName];
             mainHeader.totalEntries = entryList.length;
@@ -236,6 +253,20 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                 return list;
             }
             return [];
+        },
+
+        /**
+         *  How many child elements entry has
+         *
+         * @param {ZipEntry} entry
+         * @return {integer}
+         */
+        getChildCount: function (entry) {
+            if (entry && entry.isDirectory) {
+                const list = this.getEntryChildren(entry);
+                return list.includes(entry) ? list.length - 1 : list.length;
+            }
+            return 0;
         },
 
         /**

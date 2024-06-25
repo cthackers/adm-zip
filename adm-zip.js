@@ -124,6 +124,18 @@ module.exports = function (/**String*/ input, /** object */ options) {
         },
 
         /**
+         * Returns how many child elements has on entry (directories) on files it is always 0
+         * @param {ZipEntry|string} entry ZipEntry object or String with the full path of the entry
+         * @returns {integer}
+         */
+        childCount: function (entry) {
+            const item = getEntry(entry);
+            if (item) {
+                return _zip.getChildCount(item);
+            }
+        },
+
+        /**
          * Asynchronous readFile
          * @param {ZipEntry|string} entry ZipEntry object or String with the full path of the entry
          * @param {callback} callback
@@ -188,10 +200,25 @@ module.exports = function (/**String*/ input, /** object */ options) {
         /**
          * Remove the entry from the file or the entry and all it's nested directories and files if the given entry is a directory
          *
-         * @param {ZipEntry} entry
+         * @param {ZipEntry|string} entry
+         * @returns {void}
          */
         deleteFile: function (entry) {
             // @TODO: test deleteFile
+            var item = getEntry(entry);
+            if (item) {
+                _zip.deleteFile(item.entryName);
+            }
+        },
+
+        /**
+         * Remove the entry from the file or directory without affecting any nested entries
+         *
+         * @param {ZipEntry|string} entry
+         * @returns {void}
+         */
+        deleteEntry: function (entry) {
+            // @TODO: test deleteEntry
             var item = getEntry(entry);
             if (item) {
                 _zip.deleteEntry(item.entryName);
