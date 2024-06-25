@@ -256,6 +256,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
 
             mainHeader.size = 0;
             mainHeader.offset = 0;
+            totalEntries = 0;
 
             for (const entry of entryList) {
                 // compress data and set local and entry header accordingly. Reason why is called first
@@ -279,11 +280,13 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                 // 5. update main header
                 mainHeader.size += centralHeader.length;
                 totalSize += dataLength + centralHeader.length;
+                totalEntries++;
             }
 
             totalSize += mainHeader.mainHeaderSize; // also includes zip file comment length
             // point to end of data and beginning of central directory first record
             mainHeader.offset = dindex;
+            mainHeader.totalEntries = totalEntries;
 
             dindex = 0;
             const outBuffer = Buffer.alloc(totalSize);
@@ -327,6 +330,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                 const centralHeaders = [];
                 let totalSize = 0;
                 let dindex = 0;
+                let totalEntries = 0;
 
                 mainHeader.size = 0;
                 mainHeader.offset = 0;
@@ -356,6 +360,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                             centralHeaders.push(centalHeader);
                             mainHeader.size += centalHeader.length;
                             totalSize += dataLength + centalHeader.length;
+                            totalEntries++;
 
                             compress2Buffer(entryLists);
                         });
@@ -363,6 +368,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                         totalSize += mainHeader.mainHeaderSize; // also includes zip file comment length
                         // point to end of data and beginning of central directory first record
                         mainHeader.offset = dindex;
+                        mainHeader.totalEntries = totalEntries;
 
                         dindex = 0;
                         const outBuffer = Buffer.alloc(totalSize);

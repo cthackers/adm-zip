@@ -10,6 +10,7 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
         _isDirectory = false,
         uncompressedData = null,
         _extra = Buffer.alloc(0),
+        _extralocal = Buffer.alloc(0),
         _efs = true;
 
     // assign options
@@ -23,7 +24,7 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
         if (!input || !(input instanceof Uint8Array)) {
             return Buffer.alloc(0);
         }
-        _centralHeader.loadLocalHeaderFromBinary(input);
+        _extralocal = _centralHeader.loadLocalHeaderFromBinary(input);
         return input.slice(_centralHeader.realDataOffset, _centralHeader.realDataOffset + _centralHeader.compressedSize);
     }
 
@@ -340,6 +341,7 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
 
         packCentralHeader: function () {
             _centralHeader.flags_efs = this.efs;
+            _centralHeader.extraLength = _extra.length;
             // 1. create header (buffer)
             var header = _centralHeader.centralHeaderToBinary();
             var addpos = Utils.Constants.CENHDR;
@@ -347,24 +349,21 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
             _entryName.copy(header, addpos);
             addpos += _entryName.length;
             // 3. add extra data
-            if (_centralHeader.extraLength) {
-                _extra.copy(header, addpos);
-                addpos += _centralHeader.extraLength;
-            }
+            _extra.copy(header, addpos);
+            addpos += _centralHeader.extraLength;
             // 4. add file comment
-            if (_centralHeader.commentLength) {
-                _comment.copy(header, addpos);
-            }
+            _comment.copy(header, addpos);
             return header;
         },
 
         packLocalHeader: function () {
             let addpos = 0;
             _centralHeader.flags_efs = this.efs;
+            _centralHeader.extraLocalLength = _extralocal.length;
             // 1. construct local header Buffer
             const localHeaderBuf = _centralHeader.localHeaderToBinary();
             // 2. localHeader - crate header buffer
-            const localHeader = Buffer.alloc(localHeaderBuf.length + _entryName.length + _extra.length);
+            const localHeader = Buffer.alloc(localHeaderBuf.length + _entryName.length + _centralHeader.extraLocalLength);
             // 2.1 add localheader
             localHeaderBuf.copy(localHeader, addpos);
             addpos += localHeaderBuf.length;
@@ -372,8 +371,8 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
             _entryName.copy(localHeader, addpos);
             addpos += _entryName.length;
             // 2.3 add extra field
-            _extra.copy(localHeader, addpos);
-            addpos += _extra.length;
+            _extralocal.copy(localHeader, addpos);
+            addpos += _extralocal.length;
 
             return localHeader;
         },

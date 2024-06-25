@@ -25,7 +25,9 @@ module.exports = function () {
     // Without it file names may be corrupted for other apps when file names use unicode chars
     _flags |= Constants.FLG_EFS;
 
-    var _localHeader = {};
+    const _localHeader = {
+        extraLen: 0
+    };
 
     function setTime(val) {
         val = new Date(val);
@@ -143,6 +145,13 @@ module.exports = function () {
             _extraLen = val;
         },
 
+        get extraLocalLength() {
+            return _localHeader.extraLen;
+        },
+        set extraLocalLength(val) {
+            _localHeader.extraLen = val;
+        },
+
         get commentLength() {
             return _comLen;
         },
@@ -205,26 +214,30 @@ module.exports = function () {
             if (data.readUInt32LE(0) !== Constants.LOCSIG) {
                 throw new Error(Utils.Errors.INVALID_LOC);
             }
-            _localHeader = {
-                // version needed to extract
-                version: data.readUInt16LE(Constants.LOCVER),
-                // general purpose bit flag
-                flags: data.readUInt16LE(Constants.LOCFLG),
-                // compression method
-                method: data.readUInt16LE(Constants.LOCHOW),
-                // modification time (2 bytes time, 2 bytes date)
-                time: data.readUInt32LE(Constants.LOCTIM),
-                // uncompressed file crc-32 value
-                crc: data.readUInt32LE(Constants.LOCCRC),
-                // compressed size
-                compressedSize: data.readUInt32LE(Constants.LOCSIZ),
-                // uncompressed size
-                size: data.readUInt32LE(Constants.LOCLEN),
-                // filename length
-                fnameLen: data.readUInt16LE(Constants.LOCNAM),
-                // extra field length
-                extraLen: data.readUInt16LE(Constants.LOCEXT)
-            };
+
+            // version needed to extract
+            _localHeader.version = data.readUInt16LE(Constants.LOCVER);
+            // general purpose bit flag
+            _localHeader.flags = data.readUInt16LE(Constants.LOCFLG);
+            // compression method
+            _localHeader.method = data.readUInt16LE(Constants.LOCHOW);
+            // modification time (2 bytes time, 2 bytes date)
+            _localHeader.time = data.readUInt32LE(Constants.LOCTIM);
+            // uncompressed file crc-32 valu
+            _localHeader.crc = data.readUInt32LE(Constants.LOCCRC);
+            // compressed size
+            _localHeader.compressedSize = data.readUInt32LE(Constants.LOCSIZ);
+            // uncompressed size
+            _localHeader.size = data.readUInt32LE(Constants.LOCLEN);
+            // filename length
+            _localHeader.fnameLen = data.readUInt16LE(Constants.LOCNAM);
+            // extra field length
+            _localHeader.extraLen = data.readUInt16LE(Constants.LOCEXT);
+
+            // read extra data
+            const extraStart = _offset + Constants.LOCHDR + _localHeader.fnameLen;
+            const extraEnd = extraStart + _localHeader.extraLen;
+            return input.slice(extraStart, extraEnd);
         },
 
         loadFromBinary: function (/*Buffer*/ data) {
@@ -286,7 +299,7 @@ module.exports = function () {
             // filename length
             data.writeUInt16LE(_fnameLen, Constants.LOCNAM);
             // extra field length
-            data.writeUInt16LE(_extraLen, Constants.LOCEXT);
+            data.writeUInt16LE(_localHeader.extraLen, Constants.LOCEXT);
             return data;
         },
 
