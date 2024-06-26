@@ -1,50 +1,54 @@
 "use strict";
 
-(function () {
-    var fs = require("fs");
-    var path = require("path");
-    var Zip = require("../../adm-zip");
+const assert = require("assert");
+const fs = require("fs");
+const pth = require("path");
+const Zip = require("../../adm-zip");
+const rimraf = require("rimraf");
 
-    // init the final zip file
-    var writeZip = new Zip();
+describe("ADM-ZIP - Issues", () => {
+    const destination = pth.resolve("./test/xxx");
+    const unzipped = pth.join(destination, "unzipped");
 
-    // file in root folder
-    writeZip.addFile("root_file.txt", "root");
+    // clean up folder content
+    afterEach((done) => rimraf(destination, done));
 
-    // add folder
-    writeZip.addFile("sub/", Buffer.alloc(0));
+    it("Issue 130 - Created zip's under Windows are corrupt", () => {
+        // init the final zip file
+        const writeZip = new Zip();
 
-    // file in sub folder
-    writeZip.addFile("sub/sub_file.txt", "sub");
+        // file in root folder
+        writeZip.addFile("root_file.txt", "root");
 
-    // files from local folder
-    writeZip.addLocalFolder("nested", "nested");
+        // add folder
+        writeZip.addFile("sub/", Buffer.alloc(0));
 
-    // write to disk
-    writeZip.writeZip("test.zip");
+        // file in sub folder
+        writeZip.addFile("sub/sub_file.txt", "sub");
 
-    // read zip from disk
-    var readZip = new Zip("test.zip");
+        // files from local folder
+        writeZip.addLocalFolder(pth.resolve("./test/issue_130", "nested"), "nested");
 
-    // unpack everything
-    readZip.extractAllTo("unzipped", true);
+        // write to disk
+        writeZip.writeZip(pth.join(destination, "test.zip"));
 
-    // assert the files
-    var assert = function (content, expectedContent, errMsg) {
-        if (content !== expectedContent) {
-            throw new Error(errMsg);
-        }
-    };
+        // read zip from disk
+        const readZip = new Zip(pth.join(destination, "test.zip"));
 
-    var fileRoot = fs.readFileSync(path.join("unzipped", "root_file.txt"), "utf8");
-    assert(fileRoot, "root", "root file not correct");
+        // unpack everything
+        readZip.extractAllTo(unzipped, true);
 
-    var fileSub = fs.readFileSync(path.join("unzipped", "sub", "sub_file.txt"), "utf8");
-    assert(fileSub, "sub", "sub file not correct");
+        // assert the files
+        const fileRoot = fs.readFileSync(pth.join(unzipped, "root_file.txt"), "utf8");
+        assert(fileRoot === "root", "root file not correct");
 
-    var fileNested = fs.readFileSync(path.join("unzipped", "nested", "nested_file.txt"), "utf8");
-    assert(fileNested, "nested", "nested file not correct");
+        const fileSub = fs.readFileSync(pth.join(unzipped, "sub/sub_file.txt"), "utf8");
+        assert(fileSub === "sub", "sub file not correct");
 
-    var fileDeeper = fs.readFileSync(path.join("unzipped", "nested", "deeper", "deeper_file.txt"), "utf8");
-    assert(fileDeeper, "deeper", "deeper file not correct");
-})();
+        const fileNested = fs.readFileSync(pth.join(unzipped, "nested/nested_file.txt"), "utf8");
+        assert(fileNested === "nested", "nested file not correct");
+
+        const fileDeeper = fs.readFileSync(pth.join(unzipped, "nested/deeper/deeper_file.txt"), "utf8");
+        assert(fileDeeper === "deeper", "deeper file not correct");
+    });
+});
