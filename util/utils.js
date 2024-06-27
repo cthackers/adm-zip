@@ -51,7 +51,7 @@ Utils.prototype.makeDir = function (/*String*/ folder) {
             } catch (e) {
                 self.fs.mkdirSync(resolvedPath);
             }
-            if (stat && stat.isFile()) throw Errors.FILE_IN_THE_WAY.replace("%s", resolvedPath);
+            if (stat && stat.isFile()) throw Errors.FILE_IN_THE_WAY(`"${resolvedPath}"`);
         });
     }
 

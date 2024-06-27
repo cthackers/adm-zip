@@ -3,6 +3,7 @@
 const assert = require("assert");
 const path = require("path");
 const Zip = require("../../adm-zip");
+const Errors = require("../../util/errors");
 
 describe("read zip file header with invalid large number of entries", () => {
     it("throws too large error", () => {
@@ -11,6 +12,6 @@ describe("read zip file header with invalid large number of entries", () => {
         // assert that the following call throws an exception
         assert.throws(() => {
             zip.getEntries();
-        }, new Error("Number of disk entries is too large"));
+        }, Errors.DISK_ENTRY_TOO_LARGE());
     });
 });
