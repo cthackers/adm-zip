@@ -56,7 +56,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
         loadedEntries = true;
         entryTable = {};
         if (mainHeader.diskEntries > (inBuffer.length - mainHeader.offset) / Utils.Constants.CENHDR) {
-            throw new Error(Utils.Errors.DISK_ENTRY_TOO_LARGE);
+            throw Utils.Errors.DISK_ENTRY_TOO_LARGE();
         }
         entryList = new Array(mainHeader.diskEntries); // total number of entries
         var index = mainHeader.offset; // offset of first CEN header
@@ -120,7 +120,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             }
         }
 
-        if (endOffset == -1) throw new Error(Utils.Errors.INVALID_FORMAT);
+        if (endOffset == -1) throw Utils.Errors.INVALID_FORMAT();
 
         mainHeader.loadFromBinary(inBuffer.slice(endOffset, endStart));
         if (mainHeader.commentLength) {

@@ -3,6 +3,7 @@
 // node crypt, we use it for generate salt
 // eslint-disable-next-line node/no-unsupported-features/node-builtins
 const { randomFillSync } = require("crypto");
+const Errors = require("../util/errors");
 
 // generate CRC32 lookup table
 const crctable = new Uint32Array(256).map((t, crc) => {
@@ -124,7 +125,7 @@ function decrypt(/*Buffer*/ data, /*Object*/ header, /*String, Buffer*/ pwd) {
 
     //3. does password meet expectations
     if (salt[11] !== verifyByte) {
-        throw "ADM-ZIP: Wrong Password";
+        throw Errors.WRONG_PASSWORD();
     }
 
     // 4. decode content

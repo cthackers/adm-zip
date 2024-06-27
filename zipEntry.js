@@ -39,7 +39,7 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
             const dataEndOffset = _centralHeader.realDataOffset + _centralHeader.compressedSize;
             // no descriptor after compressed data, instead new local header
             if (input.readUInt32LE(dataEndOffset) == Constants.LOCSIG || input.readUInt32LE(dataEndOffset) == Constants.CENSIG) {
-                throw new Error("ADM-ZIP: No descriptor present");
+                throw Utils.Errors.DESCRIPTOR_NOT_EXIST();
             }
 
             // get decriptor data
@@ -54,12 +54,12 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
                 descriptor.compressedSize = input.readUInt32LE(dataEndOffset + Constants.EXTSIZ - 4);
                 descriptor.size = input.readUInt32LE(dataEndOffset + Constants.EXTLEN - 4);
             } else {
-                throw new Error("ADM-ZIP: Unknown descriptor format");
+                throw Utils.Errors.DESCRIPTOR_UNKNOWN();
             }
 
             // check data integrity
             if (descriptor.compressedSize !== _centralHeader.compressedSize || descriptor.size !== _centralHeader.size || descriptor.crc !== _centralHeader.crc) {
-                throw new Error("ADM-ZIP: Descriptor data is malformed");
+                throw Utils.Errors.DESCRIPTOR_FAULTY();
             }
             if (Utils.crc32(data) !== descriptor.crc) {
                 return false;
@@ -80,7 +80,7 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
         }
         if (_isDirectory) {
             if (async && callback) {
-                callback(Buffer.alloc(0), Utils.Errors.DIRECTORY_CONTENT_ERROR); //si added error.
+                callback(Buffer.alloc(0), Utils.Errors.DIRECTORY_CONTENT_ERROR()); //si added error.
             }
             return Buffer.alloc(0);
         }
@@ -95,7 +95,7 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
 
         if (_centralHeader.encrypted) {
             if ("string" !== typeof pass && !Buffer.isBuffer(pass)) {
-                throw new Error("ADM-ZIP: Incompatible password parameter");
+                throw Utils.Errors.INVALID_PASS_PARAM();
             }
             compressedData = Methods.ZipCrypto.decrypt(compressedData, _centralHeader, pass);
         }
@@ -106,8 +106,8 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
             case Utils.Constants.STORED:
                 compressedData.copy(data);
                 if (!crc32OK(data)) {
-                    if (async && callback) callback(data, Utils.Errors.BAD_CRC); //si added error
-                    throw new Error(Utils.Errors.BAD_CRC);
+                    if (async && callback) callback(data, Utils.Errors.BAD_CRC()); //si added error
+                    throw Utils.Errors.BAD_CRC();
                 } else {
                     //si added otherwise did not seem to return data.
                     if (async && callback) callback(data);
@@ -119,7 +119,7 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
                     const result = inflater.inflate(data);
                     result.copy(data, 0);
                     if (!crc32OK(data)) {
-                        throw new Error(Utils.Errors.BAD_CRC + " " + _entryName.toString());
+                        throw Utils.Errors.BAD_CRC(`"${decoder.decode(_entryName)}"`);
                     }
                     return data;
                 } else {
@@ -127,7 +127,7 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
                         result.copy(result, 0);
                         if (callback) {
                             if (!crc32OK(result)) {
-                                callback(result, Utils.Errors.BAD_CRC); //si added error
+                                callback(result, Utils.Errors.BAD_CRC()); //si added error
                             } else {
                                 callback(result);
                             }
@@ -136,8 +136,8 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
                 }
                 break;
             default:
-                if (async && callback) callback(Buffer.alloc(0), Utils.Errors.UNKNOWN_METHOD);
-                throw new Error(Utils.Errors.UNKNOWN_METHOD);
+                if (async && callback) callback(Buffer.alloc(0), Utils.Errors.UNKNOWN_METHOD());
+                throw Utils.Errors.UNKNOWN_METHOD();
         }
     }
 
@@ -190,18 +190,22 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
     }
 
     function parseExtra(data) {
-        var offset = 0;
-        var signature, size, part;
-        while (offset < data.length) {
-            signature = data.readUInt16LE(offset);
-            offset += 2;
-            size = data.readUInt16LE(offset);
-            offset += 2;
-            part = data.slice(offset, offset + size);
-            offset += size;
-            if (Constants.ID_ZIP64 === signature) {
-                parseZip64ExtendedInformation(part);
+        try {
+            var offset = 0;
+            var signature, size, part;
+            while (offset < data.length) {
+                signature = data.readUInt16LE(offset);
+                offset += 2;
+                size = data.readUInt16LE(offset);
+                offset += 2;
+                part = data.slice(offset, offset + size);
+                offset += size;
+                if (Constants.ID_ZIP64 === signature) {
+                    parseZip64ExtendedInformation(part);
+                }
             }
+        } catch (error) {
+            throw Utils.Errors.EXTRA_FIELD_PARSE_ERROR();
         }
     }
 
@@ -272,10 +276,11 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
         set comment(val) {
             _comment = Utils.toBuffer(val, decoder.encode);
             _centralHeader.commentLength = _comment.length;
+            if (_comment.length > 0xffff) throw Utils.Errors.COMMENT_TOO_LONG();
         },
 
         get name() {
-            var n = _entryName.toString();
+            var n = decoder.decode(_entryName);
             return _isDirectory
                 ? n
                       .substr(n.length - 1)

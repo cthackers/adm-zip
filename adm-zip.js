@@ -59,7 +59,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
             opts.filename = input;
             inBuffer = filetools.fs.readFileSync(input);
         } else {
-            throw new Error(Utils.Errors.INVALID_FILENAME);
+            throw Utils.Errors.INVALID_FILENAME();
         }
     }
 
@@ -316,7 +316,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
                 // add file into zip file
                 this.addFile(zipPath, data, comment, _attr);
             } else {
-                throw new Error(Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath));
+                throw Utils.Errors.FILE_NOT_FOUND(localPath);
             }
         },
 
@@ -398,7 +398,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
                     }
                 }
             } else {
-                throw new Error(Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath));
+                throw Utils.Errors.FILE_NOT_FOUND(localPath);
             }
         },
 
@@ -423,7 +423,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
             var self = this;
             filetools.fs.open(localPath, "r", function (err) {
                 if (err && err.code === "ENOENT") {
-                    callback(undefined, Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath));
+                    callback(undefined, Utils.Errors.FILE_NOT_FOUND(localPath));
                 } else if (err) {
                     callback(undefined, err);
                 } else {
@@ -520,7 +520,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
 
             filetools.fs.open(localPath, "r", function (err) {
                 if (err && err.code === "ENOENT") {
-                    callback(undefined, Utils.Errors.FILE_NOT_FOUND.replace("%s", localPath));
+                    callback(undefined, Utils.Errors.FILE_NOT_FOUND(localPath));
                 } else if (err) {
                     callback(undefined, err);
                 } else {
@@ -675,7 +675,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
 
             var item = getEntry(entry);
             if (!item) {
-                throw new Error(Utils.Errors.NO_ENTRY);
+                throw Utils.Errors.NO_ENTRY();
             }
 
             var entryName = canonical(item.entryName);
@@ -688,7 +688,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
                     if (child.isDirectory) return;
                     var content = child.getData();
                     if (!content) {
-                        throw new Error(Utils.Errors.CANT_EXTRACT_FILE);
+                        throw Utils.Errors.CANT_EXTRACT_FILE();
                     }
                     var name = canonical(child.entryName);
                     var childName = sanitize(targetPath, maintainEntryPath ? name : pth.basename(name));
@@ -700,10 +700,10 @@ module.exports = function (/**String*/ input, /** object */ options) {
             }
 
             var content = item.getData(_zip.password);
-            if (!content) throw new Error(Utils.Errors.CANT_EXTRACT_FILE);
+            if (!content) throw Utils.Errors.CANT_EXTRACT_FILE();
 
             if (filetools.fs.existsSync(target) && !overwrite) {
-                throw new Error(Utils.Errors.CANT_OVERRIDE);
+                throw Utils.Errors.CANT_OVERRIDE();
             }
             // The reverse operation for attr depend on method addFile()
             const fileAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
@@ -751,9 +751,8 @@ module.exports = function (/**String*/ input, /** object */ options) {
             keepOriginalPermission = get_Bool(false, keepOriginalPermission);
             pass = get_Str(keepOriginalPermission, pass);
             overwrite = get_Bool(false, overwrite);
-            if (!_zip) {
-                throw new Error(Utils.Errors.NO_ZIP);
-            }
+            if (!_zip) throw Utils.Errors.NO_ZIP();
+
             _zip.entries.forEach(function (entry) {
                 var entryName = sanitize(targetPath, canonical(entry.entryName));
                 if (entry.isDirectory) {
@@ -762,7 +761,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
                 }
                 var content = entry.getData(pass);
                 if (!content) {
-                    throw new Error(Utils.Errors.CANT_EXTRACT_FILE);
+                    throw Utils.Errors.CANT_EXTRACT_FILE();
                 }
                 // The reverse operation for attr depend on method addFile()
                 const fileAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
@@ -770,7 +769,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
                 try {
                     filetools.fs.utimesSync(entryName, entry.header.time, entry.header.time);
                 } catch (err) {
-                    throw new Error(Utils.Errors.CANT_EXTRACT_FILE);
+                    throw Utils.Errors.CANT_EXTRACT_FILE();
                 }
             });
         },
@@ -801,7 +800,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
                 });
             }
             if (!_zip) {
-                callback(new Error(Utils.Errors.NO_ZIP));
+                callback(Utils.Errors.NO_ZIP());
                 return;
             }
 
@@ -846,9 +845,9 @@ module.exports = function (/**String*/ input, /** object */ options) {
                         const filePath = sanitize(targetPath, entryName);
                         entry.getDataAsync(function (content, err_1) {
                             if (err_1) {
-                                next(new Error(err_1));
+                                next(err_1);
                             } else if (!content) {
-                                next(new Error(Utils.Errors.CANT_EXTRACT_FILE));
+                                next(Utils.Errors.CANT_EXTRACT_FILE());
                             } else {
                                 // The reverse operation for attr depend on method addFile()
                                 const fileAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
