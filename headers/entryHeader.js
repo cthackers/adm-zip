@@ -29,19 +29,12 @@ module.exports = function () {
         extraLen: 0
     };
 
-    function setTime(val) {
-        val = new Date(val);
-        _time =
-            (((val.getFullYear() - 1980) & 0x7f) << 25) | // b09-16 years from 1980
-            ((val.getMonth() + 1) << 21) | // b05-08 month
-            (val.getDate() << 16) | // b00-04 hour
-            // 2 bytes time
-            (val.getHours() << 11) | // b11-15 hour
-            (val.getMinutes() << 5) | // b05-10 minute
-            (val.getSeconds() >> 1); // b00-04 seconds divided by 2
-    }
+    // casting
+    const uint32 = (val) => Math.max(0, val) >>> 0;
+    const uint16 = (val) => Math.max(0, val) & 0xffff;
+    const uint8 = (val) => Math.max(0, val) & 0xff;
 
-    setTime(+new Date());
+    _time = Utils.fromDate2DOS(new Date());
 
     return {
         get made() {
@@ -102,33 +95,41 @@ module.exports = function () {
         },
 
         get time() {
-            return new Date(((_time >> 25) & 0x7f) + 1980, ((_time >> 21) & 0x0f) - 1, (_time >> 16) & 0x1f, (_time >> 11) & 0x1f, (_time >> 5) & 0x3f, (_time & 0x1f) << 1);
+            return Utils.fromDOS2Date(this.timeval);
         },
         set time(val) {
-            setTime(val);
+            this.timeval = Utils.fromDate2DOS(val);
         },
+
+        get timeval() {
+            return _time;
+        },
+        set timeval(val) {
+            _time = uint32(val);
+        },
+
         get timeHighByte() {
-            return (_time >>> 8) & 0xff;
+            return uint8(_time >>> 8);
         },
         get crc() {
             return _crc;
         },
         set crc(val) {
-            _crc = Math.max(0, val) >>> 0;
+            _crc = uint32(val);
         },
 
         get compressedSize() {
             return _compressedSize;
         },
         set compressedSize(val) {
-            _compressedSize = Math.max(0, val) >>> 0;
+            _compressedSize = uint32(val);
         },
 
         get size() {
             return _size;
         },
         set size(val) {
-            _size = Math.max(0, val) >>> 0;
+            _size = uint32(val);
         },
 
         get fileNameLength() {
@@ -163,37 +164,37 @@ module.exports = function () {
             return _diskStart;
         },
         set diskNumStart(val) {
-            _diskStart = Math.max(0, val) >>> 0;
+            _diskStart = uint32(val);
         },
 
         get inAttr() {
             return _inattr;
         },
         set inAttr(val) {
-            _inattr = Math.max(0, val) >>> 0;
+            _inattr = uint32(val);
         },
 
         get attr() {
             return _attr;
         },
         set attr(val) {
-            _attr = Math.max(0, val) >>> 0;
+            _attr = uint32(val);
         },
 
         // get Unix file permissions
         get fileAttr() {
-            return _attr ? (((_attr >>> 0) | 0) >> 16) & 0xfff : 0;
+            return uint16(_attr >> 16) & 0xfff;
         },
 
         get offset() {
             return _offset;
         },
         set offset(val) {
-            _offset = Math.max(0, val) >>> 0;
+            _offset = uint32(val);
         },
 
         get encrypted() {
-            return (_flags & 1) === 1;
+            return (_flags & Constants.FLG_ENC) === Constants.FLG_ENC;
         },
 
         get centralHeaderSize() {
@@ -338,8 +339,6 @@ module.exports = function () {
             data.writeUInt32LE(_attr, Constants.CENATX);
             // LOC header offset
             data.writeUInt32LE(_offset, Constants.CENOFF);
-            // fill all with
-            data.fill(0x00, Constants.CENHDR);
             return data;
         },
 
