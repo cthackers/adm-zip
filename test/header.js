@@ -80,7 +80,7 @@ describe("headers", () => {
         });
     });
 
-    describe("entry-header", () => {
+    describe("central-header", () => {
         const centralHeader = require("../headers/entryHeader");
         const datestamp = [1981, 3, 1, 12, 10, 10];
         const readBuf = Buffer.from("504b0102140014000008080045618102efbeadde0001000000020000000000000000000000000000000000000000", "hex");
@@ -178,6 +178,26 @@ describe("headers", () => {
             head.extraLength = 100;
 
             expect(head.centralHeaderSize).to.equal(446);
+        });
+
+        it("centralHeader date if date is specified", () => {
+            const head = new centralHeader();
+            const times = [1978, 3, 1, 12, 10, 10];
+
+            head.time = new Date(...times);
+            expect(head.timeval).to.equal(0);
+
+            times[0] = 1979;
+            head.time = new Date(...times);
+            expect(head.timeval).to.equal(0);
+
+            times[0] = 1980;
+            head.time = new Date(...times);
+            expect(head.timeval).to.equal(0x00816145);
+
+            times[0] = 1981;
+            head.time = new Date(...times);
+            expect(head.timeval).to.equal(0x02816145);
         });
 
         describe("local-header", () => {

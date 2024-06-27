@@ -318,5 +318,19 @@ Utils.readBigUInt64LE = function (/*Buffer*/ buffer, /*int*/ index) {
     return parseInt(`0x${slice.toString("hex")}`);
 };
 
+Utils.fromDOS2Date = function (val) {
+    return new Date(((val >> 25) & 0x7f) + 1980, Math.max(((val >> 21) & 0x0f) - 1, 0), Math.max((val >> 16) & 0x1f, 1), (val >> 11) & 0x1f, (val >> 5) & 0x3f, (val & 0x1f) << 1);
+};
+
+Utils.fromDate2DOS = function (val) {
+    let date = 0;
+    let time = 0;
+    if (val.getFullYear() > 1979) {
+        date = (((val.getFullYear() - 1980) & 0x7f) << 9) | ((val.getMonth() + 1) << 5) | val.getDate();
+        time = (val.getHours() << 11) | (val.getMinutes() << 5) | (val.getSeconds() >> 1);
+    }
+    return (date << 16) | time;
+};
+
 Utils.isWin = isWin; // Do we have windows system
 Utils.crcTable = crcTable;
