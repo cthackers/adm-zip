@@ -193,7 +193,7 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
         try {
             var offset = 0;
             var signature, size, part;
-            while (offset < data.length) {
+            while (offset + 4 < data.length) {
                 signature = data.readUInt16LE(offset);
                 offset += 2;
                 size = data.readUInt16LE(offset);
