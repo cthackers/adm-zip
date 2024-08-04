@@ -203,11 +203,11 @@ module.exports = function (/**String*/ input, /** object */ options) {
          * @param {ZipEntry|string} entry
          * @returns {void}
          */
-        deleteFile: function (entry) {
+        deleteFile: function (entry, withsubfolders = true) {
             // @TODO: test deleteFile
             var item = getEntry(entry);
             if (item) {
-                _zip.deleteFile(item.entryName);
+                _zip.deleteFile(item.entryName, withsubfolders);
             }
         },
 
