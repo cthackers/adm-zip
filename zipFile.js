@@ -205,22 +205,14 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
          * @param entryName
          * @returns {void}
          */
-        deleteFile: function (/*String*/ entryName) {
+        deleteFile: function (/*String*/ entryName, withsubfolders = true) {
             if (!loadedEntries) {
                 readEntries();
             }
-            var entry = entryTable[entryName];
-            if (entry && entry.isDirectory) {
-                var _self = this;
-                this.getEntryChildren(entry).forEach(function (child) {
-                    if (child.entryName !== entryName) {
-                        _self.deleteFile(child.entryName);
-                    }
-                });
-            }
-            entryList.splice(entryList.indexOf(entry), 1);
-            delete entryTable[entryName];
-            mainHeader.totalEntries = entryList.length;
+            const entry = entryTable[entryName];
+            const list = this.getEntryChildren(entry, withsubfolders).map((child) => child.entryName);
+
+            list.forEach(this.deleteEntry);
         },
 
         /**
@@ -234,9 +226,12 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                 readEntries();
             }
             const entry = entryTable[entryName];
-            entryList.splice(entryList.indexOf(entry), 1);
-            delete entryTable[entryName];
-            mainHeader.totalEntries = entryList.length;
+            const index = entryList.indexOf(entry);
+            if (index >= 0) {
+                entryList.splice(index, 1);
+                delete entryTable[entryName];
+                mainHeader.totalEntries = entryList.length;
+            }
         },
 
         /**
@@ -245,21 +240,24 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
          * @param entry
          * @return Array
          */
-        getEntryChildren: function (/*ZipEntry*/ entry) {
+        getEntryChildren: function (/*ZipEntry*/ entry, subfolders = true) {
             if (!loadedEntries) {
                 readEntries();
             }
-            if (entry && entry.isDirectory) {
-                const list = [];
-                const name = entry.entryName;
-                const len = name.length;
+            if (typeof entry === "object") {
+                if (entry.isDirectory && subfolders) {
+                    const list = [];
+                    const name = entry.entryName;
 
-                entryList.forEach(function (zipEntry) {
-                    if (zipEntry.entryName.startsWith(name)) {
-                        list.push(zipEntry);
+                    for (const zipEntry of entryList) {
+                        if (zipEntry.entryName.startsWith(name)) {
+                            list.push(zipEntry);
+                        }
                     }
-                });
-                return list;
+                    return list;
+                } else {
+                    return [entry];
+                }
             }
             return [];
         },

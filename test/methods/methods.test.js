@@ -28,6 +28,87 @@ describe("adm-zip.js - methods handling local files", () => {
     // clean up folder content
     afterEach((done) => rimraf(destination, done));
 
+    describe(".deleteFile()", () => {
+        const ultrazip = [
+            "./attributes_test/asd/New Text Document.txt",
+            "./attributes_test/blank file.txt",
+            "./attributes_test/New folder/hidden.txt",
+            "./attributes_test/New folder/hidden_readonly.txt",
+            "./attributes_test/New folder/readonly.txt",
+            "./utes_test/New folder/somefile.txt"
+        ].map(wrapList);
+
+        // Issue 523 - deletes additional files
+        it("zip.deleteFile() - delete folder with subfolders", () => {
+            const content = "test";
+            const comment = "comment";
+            const zip1 = new Zip({ noSort: true });
+            zip1.addFile("test/");
+            zip1.addFile("test/path1/");
+            zip1.addFile("test/path1/file1.txt", content, comment);
+            zip1.addFile("test/path1/folder1/");
+            zip1.addFile("test/path1/folder1/file2.txt", content, comment);
+            zip1.addFile("test/path2/");
+            zip1.addFile("test/path2/file1.txt", content, comment);
+            zip1.addFile("test/path2/folder1/");
+            zip1.addFile("test/path2/folder1/file2.txt", content, comment);
+
+            zip1.deleteFile("test/path1/");
+
+            const zipEntries = zip1.getEntries().map((child) => child.entryName);
+
+            expect(zipEntries).to.deep.equal(["test/", "test/path2/", "test/path2/file1.txt", "test/path2/folder1/", "test/path2/folder1/file2.txt"]);
+        });
+
+        it("zip.deleteFile() - delete folder", () => {
+            const content = "test";
+            const comment = "comment";
+            const zip1 = new Zip({ noSort: true });
+            zip1.addFile("test/");
+            zip1.addFile("test/path1/");
+            zip1.addFile("test/path1/file1.txt", content, comment);
+            zip1.addFile("test/path1/folder1/");
+            zip1.addFile("test/path1/folder1/file2.txt", content, comment);
+            zip1.addFile("test/path2/");
+            zip1.addFile("test/path2/file1.txt", content, comment);
+            zip1.addFile("test/path2/folder1/");
+            zip1.addFile("test/path2/folder1/file2.txt", content, comment);
+
+            zip1.deleteFile("test/path1/", false);
+
+            const zipEntries = zip1.getEntries().map((child) => child.entryName);
+
+            expect(zipEntries).to.deep.equal([
+                "test/",
+                "test/path1/file1.txt",
+                "test/path1/folder1/",
+                "test/path1/folder1/file2.txt",
+                "test/path2/",
+                "test/path2/file1.txt",
+                "test/path2/folder1/",
+                "test/path2/folder1/file2.txt"
+            ]);
+        });
+
+        it("zip.deleteFile() - delete files", () => {
+            const content = "test";
+            const comment = "comment";
+            const zip1 = new Zip({ noSort: true });
+            zip1.addFile("test/");
+            zip1.addFile("test/path1/");
+            zip1.addFile("test/path1/file1.txt", content, comment);
+            zip1.addFile("test/path1/folder1/");
+            zip1.addFile("test/path1/folder1/file2.txt", content, comment);
+
+            zip1.deleteFile("test/path1/file1.txt", false);
+            zip1.deleteFile("test/path1/folder1/file2.txt", false);
+
+            const zipEntries = zip1.getEntries().map((child) => child.entryName);
+
+            expect(zipEntries).to.deep.equal(["test/", "test/path1/", "test/path1/folder1/"]);
+        });
+    });
+
     describe(".extractAllTo() - sync", () => {
         const ultrazip = [
             "./attributes_test/asd/New Text Document.txt",
