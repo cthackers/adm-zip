@@ -40,10 +40,10 @@
     "node": ">=12.0"
   },
   "devDependencies": {
-    "chai": "^4.3.4",
-    "iconv-lite": "^0.6.3",
-    "mocha": "^10.2.0",
-    "prettier": "^3.3.2",
-    "rimraf": "^3.0.2"
+    "chai": "^6.2.2",
+    "iconv-lite": "^0.7.2",
+    "mocha": "12.0.0-beta-10",
+    "prettier": "^3.8.1",
+    "rimraf": "^6.1.3"
   }
 }

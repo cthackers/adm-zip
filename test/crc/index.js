@@ -6,7 +6,7 @@ const rimraf = require("rimraf");
 describe("crc", () => {
     const destination = __dirname + "/xxx";
 
-    beforeEach((done) => rimraf(destination, done));
+    beforeEach(() => rimraf.sync(destination));
 
     it("Good CRC", (done) => {
         const goodZip = new Zip(path.join(__dirname, "good_crc.zip"));

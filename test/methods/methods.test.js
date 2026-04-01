@@ -26,7 +26,7 @@ describe("adm-zip.js - methods handling local files", () => {
     ];
 
     // clean up folder content
-    afterEach((done) => rimraf(destination, done));
+    afterEach(() => rimraf.sync(destination));
 
     describe(".deleteFile()", () => {
         const ultrazip = [

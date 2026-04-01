@@ -11,7 +11,7 @@ describe("ADM-ZIP - Issues", () => {
     const unzipped = pth.join(destination, "unzipped");
 
     // clean up folder content
-    afterEach((done) => rimraf(destination, done));
+    afterEach(() => rimraf.sync(destination));
 
     it("Issue 130 - Created zip's under Windows are corrupt", () => {
         // init the final zip file
