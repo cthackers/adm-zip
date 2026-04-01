@@ -1,6 +1,6 @@
 {
   "name": "adm-zip",
-  "version": "0.5.16",
+  "version": "0.5.17",
   "description": "Javascript implementation of zip for nodejs with support for electron original-fs. Allows user to create or extract zip files both in memory or to/from disk",
   "scripts": {
     "test": "mocha -R spec",
@@ -38,6 +38,11 @@
   },
   "engines": {
     "node": ">=12.0"
+  },
+  "overrides": {
+    "mocha": {
+      "chokidar": "^4.0.3"
+    }
   },
   "devDependencies": {
     "chai": "^6.2.2",
