@@ -49,7 +49,11 @@ Utils.prototype.makeDir = function (/*String*/ folder) {
             try {
                 stat = self.fs.statSync(resolvedPath);
             } catch (e) {
-                self.fs.mkdirSync(resolvedPath);
+                if (e.message && e.message.startsWith('ENOENT')) {
+                    self.fs.mkdirSync(resolvedPath);
+                } else {
+                    throw e;
+                }
             }
             if (stat && stat.isFile()) throw Errors.FILE_IN_THE_WAY(`"${resolvedPath}"`);
         });
