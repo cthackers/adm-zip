@@ -638,6 +638,26 @@ describe("adm-zip.js - methods handling local files", () => {
 
             expect(zip1Entries.sort()).to.deep.equal(expected.sort());
         });
+
+
+
+        it("zip.addLocalFolderPromise(destination, {zipPath}) with absolute path", async function () {
+            const zip = new Zip();
+            await zip.addLocalFolderPromise(pth.resolve(destination), { zipPath: "parent" });
+            const zip1Entries = zip.getEntries().map((e) => e.entryName);
+
+            const expected = [
+                "parent/subfolder1/",
+                "parent/subfolder1/subfolder2/",
+                "parent/subfolder1/subfolder2/subfolder3/",
+                "parent/subfolder1/subfolder2/zipEntry1.txt",
+                "parent/subfolder1/subfolder2/subfolder3/subfolder4/",
+                "parent/subfolder1/subfolder2/subfolder3/zipEntry2.txt",
+                "parent/subfolder1/subfolder2/subfolder3/zipEntry3.txt"
+            ];
+
+            expect(zip1Entries.sort()).to.deep.equal(expected.sort());
+        });
     });
 });
 
