@@ -186,7 +186,7 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
     }
 
     function readUInt64LE(buffer, offset) {
-        return (buffer.readUInt32LE(offset + 4) << 4) + buffer.readUInt32LE(offset);
+        return Utils.readBigUInt64LE(buffer, offset);
     }
 
     function parseExtra(data) {

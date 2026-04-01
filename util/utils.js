@@ -316,10 +316,9 @@ Utils.toBuffer = function toBuffer(/*buffer, Uint8Array, string*/ input, /* func
 };
 
 Utils.readBigUInt64LE = function (/*Buffer*/ buffer, /*int*/ index) {
-    var slice = Buffer.from(buffer.slice(index, index + 8));
-    slice.swap64();
-
-    return parseInt(`0x${slice.toString("hex")}`);
+    const lo = buffer.readUInt32LE(index);
+    const hi = buffer.readUInt32LE(index + 4);
+    return hi * 0x100000000 + lo;
 };
 
 Utils.fromDOS2Date = function (val) {
