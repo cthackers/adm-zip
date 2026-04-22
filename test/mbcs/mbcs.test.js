@@ -9,7 +9,7 @@ describe("Multibyte Character Sets in Filename", () => {
     const asset1 = pth.resolve("./test/mbcs/", "chs_name.zip");
 
     // clean up folder content
-    afterEach((done) => rimraf(destination, done));
+    afterEach(() => rimraf.sync(destination));
 
     // chinese
     it("ascii filename and chinese content", (done) => {

@@ -86,7 +86,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
     function fixPath(zipPath) {
         const { join, normalize, sep } = pth.posix;
         // convert windows file separators and normalize
-        return join(".", normalize(sep + zipPath.split("\\").join(sep) + sep));
+        return join(pth.isAbsolute(zipPath) ? "/": '.',  normalize(sep + zipPath.split("\\").join(sep) + sep));
     }
 
     function filenameFilter(filterfn) {

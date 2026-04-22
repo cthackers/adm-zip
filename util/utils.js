@@ -49,7 +49,11 @@ Utils.prototype.makeDir = function (/*String*/ folder) {
             try {
                 stat = self.fs.statSync(resolvedPath);
             } catch (e) {
-                self.fs.mkdirSync(resolvedPath);
+                if (e.message && e.message.startsWith('ENOENT')) {
+                    self.fs.mkdirSync(resolvedPath);
+                } else {
+                    throw e;
+                }
             }
             if (stat && stat.isFile()) throw Errors.FILE_IN_THE_WAY(`"${resolvedPath}"`);
         });
@@ -312,10 +316,9 @@ Utils.toBuffer = function toBuffer(/*buffer, Uint8Array, string*/ input, /* func
 };
 
 Utils.readBigUInt64LE = function (/*Buffer*/ buffer, /*int*/ index) {
-    var slice = Buffer.from(buffer.slice(index, index + 8));
-    slice.swap64();
-
-    return parseInt(`0x${slice.toString("hex")}`);
+    const lo = buffer.readUInt32LE(index);
+    const hi = buffer.readUInt32LE(index + 4);
+    return hi * 0x100000000 + lo;
 };
 
 Utils.fromDOS2Date = function (val) {

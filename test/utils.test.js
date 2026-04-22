@@ -1,9 +1,19 @@
 "use strict";
 const { expect } = require("chai");
-const { crc32, canonical, sanitize, zipnamefix } = require("../util/utils");
+const { crc32, canonical, sanitize, zipnamefix, readBigUInt64LE } = require("../util/utils");
 const pth = require("path");
 
 describe("utils", () => {
+    describe("readBigUInt64LE function", () => {
+        it("reads values above the 32-bit range", () => {
+            const buffer = Buffer.alloc(8);
+            buffer.writeUInt32LE(0, 0);
+            buffer.writeUInt32LE(1, 4);
+
+            expect(readBigUInt64LE(buffer, 0)).to.equal(0x100000000);
+        });
+    });
+
     describe("crc32 function", () => {
         // tests how crc32 function handles strings as input
         it("handle strings", () => {

@@ -9,7 +9,7 @@ describe("adm-zip", () => {
     const destination = "./test/xxx";
 
     // clean up folder content
-    afterEach((done) => rimraf(destination, done));
+    afterEach(() => rimraf.sync(destination));
 
     it("zip pathTraversal", () => {
         const target = pth.join(destination, "test");
