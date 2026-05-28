@@ -9,6 +9,8 @@ module.exports = function () {
         _offset = 0,
         _commentLength = 0;
 
+    const needsZip64 = () => _volumeEntries > Constants.EF_ZIP64_OR_16 || _totalEntries > Constants.EF_ZIP64_OR_16 || _size > Constants.EF_ZIP64_OR_32 || _offset > Constants.EF_ZIP64_OR_32;
+
     return {
         get diskEntries() {
             return _volumeEntries;
@@ -46,7 +48,7 @@ module.exports = function () {
         },
 
         get mainHeaderSize() {
-            return Constants.ENDHDR + _commentLength;
+            return (needsZip64() ? Constants.ZIP64HDR + Constants.END64HDR : 0) + Constants.ENDHDR + _commentLength;
         },
 
         loadFromBinary: function (/*Buffer*/ data) {
@@ -76,7 +78,7 @@ module.exports = function () {
                 // total number of entries
                 _totalEntries = Utils.readBigUInt64LE(data, Constants.ZIP64TOT);
                 // central directory size in bytes
-                _size = Utils.readBigUInt64LE(data, Constants.ZIP64SIZE);
+                _size = Utils.readBigUInt64LE(data, Constants.ZIP64SIZB);
                 // offset of first CEN header
                 _offset = Utils.readBigUInt64LE(data, Constants.ZIP64OFF);
 
@@ -85,22 +87,67 @@ module.exports = function () {
         },
 
         toBinary: function () {
-            var b = Buffer.alloc(Constants.ENDHDR + _commentLength);
+            if (!needsZip64()) {
+                var b = Buffer.alloc(Constants.ENDHDR + _commentLength);
+                // "PK 05 06" signature
+                b.writeUInt32LE(Constants.ENDSIG, 0);
+                b.writeUInt32LE(0, 4);
+                // number of entries on this volume
+                b.writeUInt16LE(_volumeEntries, Constants.ENDSUB);
+                // total number of entries
+                b.writeUInt16LE(_totalEntries, Constants.ENDTOT);
+                // central directory size in bytes
+                b.writeUInt32LE(_size, Constants.ENDSIZ);
+                // offset of first CEN header
+                b.writeUInt32LE(_offset, Constants.ENDOFF);
+                // zip file comment length
+                b.writeUInt16LE(_commentLength, Constants.ENDCOM);
+                // fill comment memory with spaces so no garbage is left there
+                b.fill(" ", Constants.ENDHDR);
+
+                return b;
+            }
+
+            var b = Buffer.alloc(this.mainHeaderSize);
+            let offset = 0;
+
+            // Zip64 end of central directory record.
+            b.writeUInt32LE(Constants.ZIP64SIG, offset);
+            Utils.writeBigUInt64LE(b, Constants.ZIP64HDR - Constants.ZIP64LEAD, offset + Constants.ZIP64SIZE);
+            b.writeUInt16LE(45, offset + Constants.ZIP64VEM);
+            b.writeUInt16LE(45, offset + Constants.ZIP64VER);
+            b.writeUInt32LE(0, offset + Constants.ZIP64DSK);
+            b.writeUInt32LE(0, offset + Constants.ZIP64DSKDIR);
+            Utils.writeBigUInt64LE(b, _volumeEntries, offset + Constants.ZIP64SUB);
+            Utils.writeBigUInt64LE(b, _totalEntries, offset + Constants.ZIP64TOT);
+            Utils.writeBigUInt64LE(b, _size, offset + Constants.ZIP64SIZB);
+            Utils.writeBigUInt64LE(b, _offset, offset + Constants.ZIP64OFF);
+
+            const zip64EndOffset = _offset + _size;
+            offset += Constants.ZIP64HDR;
+
+            // Zip64 end of central directory locator.
+            b.writeUInt32LE(Constants.END64SIG, offset);
+            b.writeUInt32LE(0, offset + Constants.END64START);
+            Utils.writeBigUInt64LE(b, zip64EndOffset, offset + Constants.END64OFF);
+            b.writeUInt32LE(1, offset + Constants.END64NUMDISKS);
+            offset += Constants.END64HDR;
+
             // "PK 05 06" signature
-            b.writeUInt32LE(Constants.ENDSIG, 0);
-            b.writeUInt32LE(0, 4);
+            b.writeUInt32LE(Constants.ENDSIG, offset);
+            b.writeUInt32LE(0, offset + 4);
             // number of entries on this volume
-            b.writeUInt16LE(_volumeEntries, Constants.ENDSUB);
+            b.writeUInt16LE(Math.min(_volumeEntries, Constants.EF_ZIP64_OR_16), offset + Constants.ENDSUB);
             // total number of entries
-            b.writeUInt16LE(_totalEntries, Constants.ENDTOT);
+            b.writeUInt16LE(Math.min(_totalEntries, Constants.EF_ZIP64_OR_16), offset + Constants.ENDTOT);
             // central directory size in bytes
-            b.writeUInt32LE(_size, Constants.ENDSIZ);
+            b.writeUInt32LE(Math.min(_size, Constants.EF_ZIP64_OR_32), offset + Constants.ENDSIZ);
             // offset of first CEN header
-            b.writeUInt32LE(_offset, Constants.ENDOFF);
+            b.writeUInt32LE(Math.min(_offset, Constants.EF_ZIP64_OR_32), offset + Constants.ENDOFF);
             // zip file comment length
-            b.writeUInt16LE(_commentLength, Constants.ENDCOM);
+            b.writeUInt16LE(_commentLength, offset + Constants.ENDCOM);
             // fill comment memory with spaces so no garbage is left there
-            b.fill(" ", Constants.ENDHDR);
+            b.fill(" ", offset + Constants.ENDHDR);
 
             return b;
         },

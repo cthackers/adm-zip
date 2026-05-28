@@ -343,7 +343,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             // write main header
             const mh = mainHeader.toBinary();
             if (_comment) {
-                _comment.copy(mh, Utils.Constants.ENDHDR); // add zip file comment
+                _comment.copy(mh, mh.length - _comment.length); // add zip file comment
             }
             mh.copy(outBuffer, dindex);
 
@@ -421,7 +421,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
 
                         const mh = mainHeader.toBinary();
                         if (_comment) {
-                            _comment.copy(mh, Utils.Constants.ENDHDR); // add zip file comment
+                            _comment.copy(mh, mh.length - _comment.length); // add zip file comment
                         }
 
                         mh.copy(outBuffer, dindex); // write main header

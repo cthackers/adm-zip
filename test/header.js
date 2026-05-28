@@ -4,6 +4,8 @@ const { expect } = require("chai");
 describe("headers", () => {
     describe("main-header", () => {
         const mainHeader = require("../headers/mainHeader");
+        const Constants = require("../util").Constants;
+        const Utils = require("../util");
         // empty zip file
         const empty = Buffer.from("504b0506000000000000000000000000000000000000", "hex");
         const readBuf = Buffer.from("504b050600000000cac0cefaed0b0000eeffc0000000", "hex");
@@ -57,6 +59,33 @@ describe("headers", () => {
 
             expect(mainh.commentLength).to.equal(5);
             expect(mainh.mainHeaderSize).to.equal(22 + 5);
+        });
+
+        it("writes zip64 end records when entry count exceeds classic zip limit", () => {
+            const mainh = new mainHeader();
+            mainh.totalEntries = 0x10000;
+            mainh.size = 123;
+            mainh.offset = 456;
+
+            const buf = mainh.toBinary();
+            const eocdOffset = Constants.ZIP64HDR + Constants.END64HDR;
+
+            expect(buf.length).to.equal(Constants.ZIP64HDR + Constants.END64HDR + Constants.ENDHDR);
+            expect(buf.readUInt32LE(0)).to.equal(Constants.ZIP64SIG);
+            expect(Utils.readBigUInt64LE(buf, Constants.ZIP64SIZE)).to.equal(Constants.ZIP64HDR - Constants.ZIP64LEAD);
+            expect(Utils.readBigUInt64LE(buf, Constants.ZIP64SUB)).to.equal(0x10000);
+            expect(Utils.readBigUInt64LE(buf, Constants.ZIP64TOT)).to.equal(0x10000);
+            expect(Utils.readBigUInt64LE(buf, Constants.ZIP64SIZB)).to.equal(123);
+            expect(Utils.readBigUInt64LE(buf, Constants.ZIP64OFF)).to.equal(456);
+
+            expect(buf.readUInt32LE(Constants.ZIP64HDR)).to.equal(Constants.END64SIG);
+            expect(Utils.readBigUInt64LE(buf, Constants.ZIP64HDR + Constants.END64OFF)).to.equal(579);
+
+            expect(buf.readUInt32LE(eocdOffset)).to.equal(Constants.ENDSIG);
+            expect(buf.readUInt16LE(eocdOffset + Constants.ENDSUB)).to.equal(Constants.EF_ZIP64_OR_16);
+            expect(buf.readUInt16LE(eocdOffset + Constants.ENDTOT)).to.equal(Constants.EF_ZIP64_OR_16);
+            expect(buf.readUInt32LE(eocdOffset + Constants.ENDSIZ)).to.equal(123);
+            expect(buf.readUInt32LE(eocdOffset + Constants.ENDOFF)).to.equal(456);
         });
 
         // try read empty file
