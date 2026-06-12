@@ -87,6 +87,7 @@ module.exports = function () {
             switch (val) {
                 case Constants.STORED:
                     this.version = 10;
+                    break;
                 case Constants.DEFLATED:
                 default:
                     this.version = 20;
