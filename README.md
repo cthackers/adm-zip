@@ -85,3 +85,6 @@ const zip = new AdmZip("./my_file.zip", { fs: OriginalFs });
 .
 .
 ```
+## Security
+
+Please report security vulnerabilities privately. See [SECURITY.md](./SECURITY.md).
