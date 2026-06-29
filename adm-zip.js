@@ -201,6 +201,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
          * Remove the entry from the file or the entry and all it's nested directories and files if the given entry is a directory
          *
          * @param {ZipEntry|string} entry
+         * @param {boolean} withsubfolders
          * @returns {void}
          */
         deleteFile: function (entry, withsubfolders = true) {
@@ -504,7 +505,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
             zipPath = zipPath ? fixPath(zipPath) : "";
 
             // Check Namefix function
-            if (namefix == "latin1") {
+            if (namefix === "latin1") {
                 namefix = (str) =>
                     str
                         .normalize("NFD")
