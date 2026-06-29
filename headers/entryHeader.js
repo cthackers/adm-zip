@@ -289,7 +289,11 @@ module.exports = function () {
             // version needed to extract
             data.writeUInt16LE(_version, Constants.LOCVER);
             // general purpose bit flag
-            data.writeUInt16LE(_flags, Constants.LOCFLG);
+            // clear bit 3 (data descriptor): we always write the real crc-32
+            // and sizes into this local header, so no trailing descriptor is
+            // emitted. Leaving the flag set would make the output unreadable
+            // (see issue #555).
+            data.writeUInt16LE(_flags & ~Constants.FLG_DESC, Constants.LOCFLG);
             // compression method
             data.writeUInt16LE(_method, Constants.LOCHOW);
             // modification time (2 bytes time, 2 bytes date)
@@ -317,7 +321,9 @@ module.exports = function () {
             // version needed to extract
             data.writeUInt16LE(_version, Constants.CENVER);
             // encrypt, decrypt flags
-            data.writeUInt16LE(_flags, Constants.CENFLG);
+            // clear bit 3 (data descriptor) to match the local header we emit
+            // (real crc/sizes are written, no descriptor follows the data) — issue #555
+            data.writeUInt16LE(_flags & ~Constants.FLG_DESC, Constants.CENFLG);
             // compression method
             data.writeUInt16LE(_method, Constants.CENHOW);
             // modification time (2 bytes time, 2 bytes date)
