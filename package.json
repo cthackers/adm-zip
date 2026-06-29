@@ -16,9 +16,9 @@
     "unzip"
   ],
   "homepage": "https://github.com/cthackers/adm-zip",
-  "author": "Nasca Iacob <sy@another-d-mention.ro> (https://github.com/cthackers)",
+  "author": "Nasca Iacob <adm-zip@pm.me> (https://github.com/cthackers)",
   "bugs": {
-    "email": "sy@another-d-mention.ro",
+    "email": "adm-zip@pm.me",
     "url": "https://github.com/cthackers/adm-zip/issues"
   },
   "license": "MIT",
