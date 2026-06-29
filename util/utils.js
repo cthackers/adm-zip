@@ -290,13 +290,13 @@ Utils.findLast = function (arr, callback) {
     return void 0;
 };
 
-// make abolute paths taking prefix as root folder
+// make absolute paths taking prefix as root folder
 Utils.sanitize = function (/*string*/ prefix, /*string*/ name) {
     prefix = pth.resolve(pth.normalize(prefix));
     var parts = name.split("/");
     for (var i = 0, l = parts.length; i < l; i++) {
         var path = pth.normalize(pth.join(prefix, parts.slice(i, l).join(pth.sep)));
-        if (path.indexOf(prefix) === 0) {
+        if (path === prefix || path.startsWith(prefix + pth.sep)) {
             return path;
         }
     }
