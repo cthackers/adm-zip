@@ -26,6 +26,15 @@ describe("adm-zip", () => {
         expect(files.sort()).to.deep.equal([pth.normalize("./test/xxx/test/test1.ext"), pth.normalize("./test/xxx/test/test2.ext"), pth.normalize("./test/xxx/test/test3.ext")]);
     });
 
+    it("test() returns true for a well-formed archive", () => {
+        const zip = new Zip();
+        zip.addFile("a.txt", Buffer.from("hello"));
+        zip.addFile("dir/b.txt", Buffer.from("world"));
+
+        const verify = new Zip(zip.toBuffer());
+        expect(verify.test()).to.equal(true);
+    });
+
     it("zip.addFile - add directory", () => {
         const zip1 = new Zip();
         zip1.addFile("dir11/", null);

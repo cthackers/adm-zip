@@ -727,7 +727,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
                     if (entry.isDirectory) {
                         continue;
                     }
-                    var content = _zip.entries[entry].getData(pass);
+                    var content = entry.getData(pass);
                     if (!content) {
                         return false;
                     }
