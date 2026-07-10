@@ -703,8 +703,12 @@ module.exports = function (/**String*/ input, /** object */ options) {
                     if (!content) {
                         throw Utils.Errors.CANT_EXTRACT_FILE();
                     }
-                    var name = canonical(child.entryName);
-                    var childName = sanitize(targetPath, maintainEntryPath ? name : pth.basename(name));
+                    // When not maintaining the full entry path, keep each child's path
+                    // relative to the extracted directory (drop the directory's own
+                    // prefix) instead of flattening every file to its basename, which
+                    // collapsed subdirectories together (issue #306).
+                    var name = canonical(maintainEntryPath ? child.entryName : child.entryName.substring(item.entryName.length));
+                    var childName = sanitize(targetPath, name);
                     // The reverse operation for attr depend on method addFile()
                     const fileAttr = keepOriginalPermission ? child.header.fileAttr : undefined;
                     filetools.writeFileTo(childName, content, overwrite, fileAttr);

@@ -209,7 +209,23 @@ describe("adm-zip.js - methods handling local files", () => {
             zipEntries.forEach((e) => zip.extractEntryTo(e, destination, false, true));
 
             const files = walk(destination);
-            const ultrazip = ["blank file.txt", "hidden.txt", "hidden_readonly.txt", "New Text Document.txt", "readonly.txt", "somefile.txt"].map(wrapList);
+            // With maintainEntryPath=false, file entries are written by basename while
+            // directory entries keep the structure *below* them (issue #306). Extracting
+            // every entry therefore yields both the flattened files and the nested files
+            // from the directory entries. Previously directories were flattened too, which
+            // collapsed "asd/New Text Document.txt" onto the top-level one (silent loss).
+            const ultrazip = [
+                "New Text Document.txt",
+                "asd/New Text Document.txt",
+                "blank file.txt",
+                "hidden.txt",
+                "hidden_readonly.txt",
+                "readonly.txt",
+                "somefile.txt",
+                "New folder/hidden.txt",
+                "New folder/hidden_readonly.txt",
+                "New folder/readonly.txt"
+            ].map(wrapList);
 
             expect(files.sort()).to.deep.equal(ultrazip.sort());
         });
