@@ -29,9 +29,11 @@
     "util",
     "zipEntry.js",
     "zipFile.js",
+    "types.d.ts",
     "LICENSE"
   ],
   "main": "adm-zip.js",
+  "types": "types.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/cthackers/adm-zip.git"
