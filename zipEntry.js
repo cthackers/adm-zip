@@ -100,10 +100,16 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
             compressedData = Methods.ZipCrypto.decrypt(compressedData, _centralHeader, pass);
         }
 
-        var data = Buffer.alloc(_centralHeader.size);
+        var data;
 
         switch (_centralHeader.method) {
             case Utils.Constants.STORED:
+                // STORED entries are not compressed, so the uncompressed output is
+                // exactly the bytes present in the archive. Allocate from the real
+                // data length rather than the attacker-declared central-directory
+                // size, otherwise a tiny archive can declare a huge size and force a
+                // multi-gigabyte allocation before any validation (CVE-2026-39244).
+                data = Buffer.alloc(compressedData.length);
                 compressedData.copy(data);
                 if (!crc32OK(data)) {
                     if (async && callback) callback(data, Utils.Errors.BAD_CRC()); //si added error
@@ -114,17 +120,19 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
                     return data;
                 }
             case Utils.Constants.DEFLATED:
+                // Do not pre-allocate the declared uncompressed size. The inflater
+                // grows its output buffer as zlib emits data and caps the total at
+                // the declared size (maxOutputLength), so a bogus size can no longer
+                // trigger an eager allocation before the data is read (CVE-2026-39244).
                 var inflater = new Methods.Inflater(compressedData, _centralHeader.size);
                 if (!async) {
-                    const result = inflater.inflate(data);
-                    result.copy(data, 0);
+                    data = inflater.inflate();
                     if (!crc32OK(data)) {
                         throw Utils.Errors.BAD_CRC(`"${decoder.decode(_entryName)}"`);
                     }
                     return data;
                 } else {
                     inflater.inflateAsync(function (result) {
-                        result.copy(result, 0);
                         if (callback) {
                             if (!crc32OK(result)) {
                                 callback(result, Utils.Errors.BAD_CRC()); //si added error
