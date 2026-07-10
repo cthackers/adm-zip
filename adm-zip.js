@@ -886,7 +886,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
                                 const fileAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
                                 filetools.writeFileToAsync(filePath, content, overwrite, fileAttr, function (succ) {
                                     if (!succ) {
-                                        next(getError("Unable to write file", filePath));
+                                        return next(getError("Unable to write file", filePath));
                                     }
                                     filetools.fs.utimes(filePath, entry.header.time, entry.header.time, function (err_2) {
                                         if (err_2) {
