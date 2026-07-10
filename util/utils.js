@@ -150,7 +150,7 @@ Utils.prototype.writeFileToAsync = function (/*String*/ path, /*Buffer*/ content
 Utils.prototype.findFiles = function (/*String*/ path) {
     const self = this;
 
-    function findSync(/*String*/ dir, /*RegExp*/ pattern, /*Boolean*/ recursive) {
+    function findSync(/*String*/ dir, /*RegExp*/ pattern, /*Boolean*/ recursive, /*Set*/ visited) {
         if (typeof pattern === "boolean") {
             recursive = pattern;
             pattern = undefined;
@@ -164,12 +164,22 @@ Utils.prototype.findFiles = function (/*String*/ path) {
                 files.push(pth.normalize(path) + (stat.isDirectory() ? self.sep : ""));
             }
 
-            if (stat.isDirectory() && recursive) files = files.concat(findSync(path, pattern, recursive));
+            if (stat.isDirectory() && recursive) {
+                // Descend by resolved real path and skip directories we have already
+                // visited. This stops a symlink that points back to an ancestor from
+                // recursing forever until the path fails with ELOOP / ENAMETOOLONG
+                // (issue #541).
+                const realDir = self.fs.realpathSync(path);
+                if (!visited.has(realDir)) {
+                    visited.add(realDir);
+                    files = files.concat(findSync(path, pattern, recursive, visited));
+                }
+            }
         });
         return files;
     }
 
-    return findSync(path, undefined, true);
+    return findSync(path, undefined, true, new Set([self.fs.realpathSync(path)]));
 };
 
 /**
@@ -187,29 +197,54 @@ Utils.prototype.findFiles = function (/*String*/ path) {
  */
 Utils.prototype.findFilesAsync = function (dir, cb) {
     const self = this;
-    let results = [];
-    self.fs.readdir(dir, function (err, list) {
-        if (err) return cb(err);
-        let list_length = list.length;
-        if (!list_length) return cb(null, results);
-        list.forEach(function (file) {
-            file = pth.join(dir, file);
-            self.fs.stat(file, function (err, stat) {
-                if (err) return cb(err);
-                if (stat) {
-                    results.push(pth.normalize(file) + (stat.isDirectory() ? self.sep : ""));
-                    if (stat.isDirectory()) {
-                        self.findFilesAsync(file, function (err, res) {
-                            if (err) return cb(err);
-                            results = results.concat(res);
-                            if (!--list_length) cb(null, results);
-                        });
-                    } else {
-                        if (!--list_length) cb(null, results);
+    const results = [];
+    let finished = false;
+    const finish = function (err) {
+        if (finished) return;
+        finished = true;
+        cb(err, err ? undefined : results);
+    };
+
+    // Descend by resolved real path and skip directories already visited, so a
+    // symlink pointing back to an ancestor cannot recurse forever (issue #541).
+    const walk = function (dir, visited, done) {
+        self.fs.readdir(dir, function (err, list) {
+            if (err) return done(err);
+            let pending = list.length;
+            if (!pending) return done();
+            list.forEach(function (name) {
+                const file = pth.join(dir, name);
+                self.fs.stat(file, function (err, stat) {
+                    if (err) return done(err);
+                    if (!stat) {
+                        if (!--pending) done();
+                        return;
                     }
-                }
+                    results.push(pth.normalize(file) + (stat.isDirectory() ? self.sep : ""));
+                    if (!stat.isDirectory()) {
+                        if (!--pending) done();
+                        return;
+                    }
+                    self.fs.realpath(file, function (err, realDir) {
+                        if (err) return done(err);
+                        if (visited.has(realDir)) {
+                            if (!--pending) done();
+                            return;
+                        }
+                        visited.add(realDir);
+                        walk(file, visited, function (err) {
+                            if (err) return done(err);
+                            if (!--pending) done();
+                        });
+                    });
+                });
             });
         });
+    };
+
+    self.fs.realpath(dir, function (err, realDir) {
+        if (err) return finish(err);
+        walk(dir, new Set([realDir]), finish);
     });
 };
 
