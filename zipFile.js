@@ -4,7 +4,10 @@ const Utils = require("./util");
 
 module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
     var entryList = [],
-        entryTable = {},
+        // prototype-less: entry names come from untrusted input, so keys like
+        // "__proto__" or "constructor" must be plain data, not touch the prototype
+        // chain (which otherwise crashes addFile and hides such entries)
+        entryTable = Object.create(null),
         _comment = Buffer.alloc(0),
         mainHeader = new Headers.MainHeader(),
         loadedEntries = false;
@@ -54,7 +57,7 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
 
     function readEntries() {
         loadedEntries = true;
-        entryTable = {};
+        entryTable = Object.create(null);
         if (mainHeader.diskEntries > (inBuffer.length - mainHeader.offset) / Utils.Constants.CENHDR) {
             throw Utils.Errors.DISK_ENTRY_TOO_LARGE();
         }
@@ -131,7 +134,14 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
 
     function sortEntries() {
         if (entryList.length > 1 && !noSort) {
-            entryList.sort((a, b) => a.entryName.toLowerCase().localeCompare(b.entryName.toLowerCase()));
+            // Decode + lowercase each name once rather than on every comparison:
+            // the entryName getter re-decodes the underlying buffer on each access,
+            // so the previous inline comparator did O(n log n) redundant decoding.
+            // Ordering is unchanged (same localeCompare on the same keys).
+            entryList = entryList
+                .map((entry) => ({ entry, key: entry.entryName.toLowerCase() }))
+                .sort((a, b) => a.key.localeCompare(b.key))
+                .map((pair) => pair.entry);
         }
     }
 

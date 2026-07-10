@@ -1,3 +1,30 @@
+0.6.0 / 2026-07-10
+==================
+
+Security
+* Fixed CVE-2026-39244: a crafted archive declaring a huge uncompressed size could force an unbounded `Buffer.alloc` (memory exhaustion / DoS) before any validation. Allocation is now bounded by the data actually present — STORED output is sized from the real bytes, DEFLATED output is grown by the inflater and capped at the declared size (#568)
+* Hardened the internal entry-name lookup table against object injection: entry names come from untrusted archives, and a name such as `__proto__` previously resolved to `Object.prototype`, crashing `addFile` and hiding the entry from `getEntry`/`readFile`. The table is now prototype-less
+
+Bug fixes
+* Fixed a regression (0.5.15) that rejected valid archives using a data descriptor (general-purpose bit 3). The payload is now validated against the authoritative central-directory CRC instead of requiring/parsing the trailing descriptor (#548, #533, #554)
+* Fixed `extractAllTo`/`extractAllToAsync` not restoring directory permissions with `keepOriginalPermission`; directory modes are applied after their contents are written, deepest path first, and no longer lock the extractor out of a restrictive directory (#530)
+* Fixed infinite recursion in `addLocalFolder` when a folder contains a symlink pointing back to an ancestor (e.g. workspace `node_modules`); the walk now tracks resolved real paths and skips already-visited directories (#541)
+* Fixed an uncaught exception (`ERR_INVALID_ARG_TYPE`) that crashed the process when `writeFileToAsync` could not open the target file (bad permissions, invalid filename, exhausted file descriptors); write failures are now reported through the callback and write errors are no longer silently swallowed (#470, #459, #402)
+* Fixed directory entries reporting an empty `name` (e.g. `a/b/c/` now returns `c`) (#466)
+* Fixed `extractEntryTo` flattening subdirectories when `maintainEntryPath` is false; the structure below the extracted directory is now preserved instead of collapsing (and overwriting) files by basename (#306)
+* Fixed a failed `utimes` aborting extraction; setting the modification time is now best-effort and never fails extraction of already-written content (#379)
+* Fixed `test()` always returning false for any archive containing a file (it indexed the entries array with an entry object instead of reading the entry); it now correctly verifies each entry's CRC
+
+Performance
+* Faster entry sorting when writing archives with many entries: names are decoded once instead of on every comparison (about 6× faster sort for large archives)
+
+Added
+* Bundled TypeScript type definitions (`types.d.ts`), so `@types/adm-zip` is no longer required
+
+Notes
+* Behavior change: `extractEntryTo(dir, target, /* maintainEntryPath */ false)` now preserves subdirectories beneath the extracted directory rather than flattening them
+* Behavior change: extraction no longer fails when the modification time cannot be set
+
 0.5.4 / 2021-03-08
 ==================
 * Fixed relative paths
