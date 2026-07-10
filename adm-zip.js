@@ -787,9 +787,11 @@ module.exports = function (/**String*/ input, /** object */ options) {
                 const fileAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
                 filetools.writeFileTo(entryName, content, overwrite, fileAttr);
                 try {
+                    // best-effort: an invalid date in the archive or a filesystem that
+                    // rejects utimes must not fail extraction of already-written content (issue #379)
                     filetools.fs.utimesSync(entryName, entry.header.time, entry.header.time);
                 } catch (err) {
-                    throw Utils.Errors.CANT_EXTRACT_FILE();
+                    /* ignore timestamp failures */
                 }
             });
 
@@ -851,13 +853,19 @@ module.exports = function (/**String*/ input, /** object */ options) {
                 const dirAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
                 try {
                     filetools.makeDir(dirPath);
-                    // defer restoring the directory permission until its files are written:
-                    // a restrictive mode applied now would block writing them
-                    if (dirAttr) deferredDirAttr.push({ path: dirPath, attr: dirAttr });
-                    // in unix timestamp will change if files are later added to folder, but still
-                    filetools.fs.utimesSync(dirPath, entry.header.time, entry.header.time);
                 } catch (er) {
                     callback(getError("Unable to create folder", dirPath));
+                    continue;
+                }
+                // defer restoring the directory permission until its files are written:
+                // a restrictive mode applied now would block writing them
+                if (dirAttr) deferredDirAttr.push({ path: dirPath, attr: dirAttr });
+                try {
+                    // in unix timestamp will change if files are later added to folder, but still.
+                    // best-effort: a utimes failure must not abort extraction (issue #379)
+                    filetools.fs.utimesSync(dirPath, entry.header.time, entry.header.time);
+                } catch (er) {
+                    /* ignore timestamp failures */
                 }
             }
 
@@ -892,12 +900,10 @@ module.exports = function (/**String*/ input, /** object */ options) {
                                     if (!succ) {
                                         return next(getError("Unable to write file", filePath));
                                     }
-                                    filetools.fs.utimes(filePath, entry.header.time, entry.header.time, function (err_2) {
-                                        if (err_2) {
-                                            next(getError("Unable to set times", filePath));
-                                        } else {
-                                            next();
-                                        }
+                                    filetools.fs.utimes(filePath, entry.header.time, entry.header.time, function () {
+                                        // best-effort: a utimes failure must not abort extraction
+                                        // of already-written content (issue #379)
+                                        next();
                                     });
                                 });
                             }
