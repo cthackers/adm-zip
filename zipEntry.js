@@ -263,10 +263,12 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
         },
 
         get name() {
-            var n = decoder.decode(_entryName);
+            const n = decoder.decode(_entryName);
+            // For directories the name is the last path segment; drop the trailing
+            // separator first so "a/b/c/" yields "c" and not "" (issue #466).
             return _isDirectory
                 ? n
-                      .substr(n.length - 1)
+                      .replace(/[/\\]$/, "")
                       .split("/")
                       .pop()
                 : n.split("/").pop();
