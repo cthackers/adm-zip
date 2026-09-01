@@ -39,6 +39,10 @@ module.exports = Utils;
 Utils.prototype.makeDir = function (/*String*/ folder) {
     const self = this;
 
+    function lstatSync(path) {
+        return typeof self.fs.lstatSync === "function" ? self.fs.lstatSync(path) : self.fs.statSync(path);
+    }
+
     // Sync - make directories tree
     function mkdirSync(/*String*/ fpath) {
         let resolvedPath = fpath.split(self.sep)[0];
@@ -47,14 +51,15 @@ Utils.prototype.makeDir = function (/*String*/ folder) {
             resolvedPath += self.sep + name;
             var stat;
             try {
-                stat = self.fs.statSync(resolvedPath);
+                stat = lstatSync(resolvedPath);
             } catch (e) {
-                if (e.message && e.message.startsWith('ENOENT')) {
+                if (e.message && e.message.startsWith("ENOENT")) {
                     self.fs.mkdirSync(resolvedPath);
                 } else {
                     throw e;
                 }
             }
+            if (stat && stat.isSymbolicLink && stat.isSymbolicLink()) throw Errors.FILE_IN_THE_WAY(`"${resolvedPath}"`);
             if (stat && stat.isFile()) throw Errors.FILE_IN_THE_WAY(`"${resolvedPath}"`);
         });
     }
@@ -64,10 +69,27 @@ Utils.prototype.makeDir = function (/*String*/ folder) {
 
 Utils.prototype.writeFileTo = function (/*String*/ path, /*Buffer*/ content, /*Boolean*/ overwrite, /*Number*/ attr) {
     const self = this;
+    const lstatSync = typeof self.fs.lstatSync === "function" ? self.fs.lstatSync.bind(self.fs) : self.fs.statSync.bind(self.fs);
+    let resolvedPath = pth.parse(path).root;
+    const pathParts = path.slice(resolvedPath.length).split(self.sep);
+
+    for (const part of pathParts) {
+        if (!part) continue;
+        resolvedPath = pth.join(resolvedPath, part);
+        try {
+            const stat = lstatSync(resolvedPath);
+            if (stat.isSymbolicLink && stat.isSymbolicLink()) throw Errors.FILE_IN_THE_WAY(`"${resolvedPath}"`);
+        } catch (e) {
+            if (e.code === "ENOENT" || (e.message && e.message.startsWith("ENOENT"))) break;
+            throw e;
+        }
+    }
+
     if (self.fs.existsSync(path)) {
         if (!overwrite) return false; // cannot overwrite
 
-        var stat = self.fs.statSync(path);
+        var stat = lstatSync(path);
+        if (stat.isSymbolicLink && stat.isSymbolicLink()) return false;
         if (stat.isDirectory()) {
             return false;
         }
@@ -102,57 +124,81 @@ Utils.prototype.writeFileToAsync = function (/*String*/ path, /*Buffer*/ content
     }
 
     const self = this;
+    const checkSymlink = function (done) {
+        if (typeof self.fs.lstat !== "function") return done(true);
 
-    self.fs.exists(path, function (exist) {
-        if (exist && !overwrite) return callback(false);
+        let resolvedPath = pth.parse(path).root;
+        const pathParts = path.slice(resolvedPath.length).split(self.sep);
+        const checkNext = function (index) {
+            if (index === pathParts.length) return done(true);
+            const part = pathParts[index];
+            if (!part) return checkNext(index + 1);
+            resolvedPath = pth.join(resolvedPath, part);
+            self.fs.lstat(resolvedPath, function (err, stat) {
+                if (err) {
+                    if (err.code === "ENOENT" || (err.message && err.message.startsWith("ENOENT"))) return done(true);
+                    return done(false);
+                }
+                if (stat.isSymbolicLink && stat.isSymbolicLink()) return done(false);
+                checkNext(index + 1);
+            });
+        };
+        checkNext(0);
+    };
 
-        self.fs.stat(path, function (err, stat) {
-            if (exist && stat && stat.isDirectory()) {
-                return callback(false);
-            }
+    checkSymlink(function (safe) {
+        if (!safe) return callback(false);
+        self.fs.exists(path, function (exist) {
+            if (exist && !overwrite) return callback(false);
 
-            var folder = pth.dirname(path);
-            self.fs.exists(folder, function (exists) {
-                if (!exists) {
-                    // makeDir is synchronous and can throw (e.g. EACCES); report failure
-                    // rather than letting it escape this callback as an uncaught exception
-                    try {
-                        self.makeDir(folder);
-                    } catch (e) {
-                        return callback(false);
-                    }
+            self.fs.stat(path, function (err, stat) {
+                if (exist && stat && stat.isDirectory()) {
+                    return callback(false);
                 }
 
-                // write the content to an open descriptor, then apply the attributes
-                const writeToFd = function (fd) {
-                    self.fs.write(fd, content, 0, content.length, 0, function (writeErr) {
-                        self.fs.close(fd, function () {
-                            // surface write failures instead of silently reporting success (issue #402)
-                            if (writeErr) return callback(false);
-                            self.fs.chmod(path, attr || 0o666, function () {
-                                callback(true);
-                            });
-                        });
-                    });
-                };
-
-                self.fs.open(path, "w", 0o666, function (err, fd) {
-                    if (err) {
-                        // the target may exist but be read-only: make it writable and retry once
-                        self.fs.chmod(path, 0o666, function () {
-                            self.fs.open(path, "w", 0o666, function (retryErr, fd) {
-                                // Previously the retry error was ignored and an undefined fd was
-                                // passed to fs.write, throwing an uncaught ERR_INVALID_ARG_TYPE that
-                                // crashed the process (issues #470, #459, #402). Report failure instead.
-                                if (retryErr || !fd) return callback(false);
-                                writeToFd(fd);
-                            });
-                        });
-                    } else if (fd) {
-                        writeToFd(fd);
-                    } else {
-                        callback(false);
+                var folder = pth.dirname(path);
+                self.fs.exists(folder, function (exists) {
+                    if (!exists) {
+                        // makeDir is synchronous and can throw (e.g. EACCES); report failure
+                        // rather than letting it escape this callback as an uncaught exception
+                        try {
+                            self.makeDir(folder);
+                        } catch (e) {
+                            return callback(false);
+                        }
                     }
+
+                    // write the content to an open descriptor, then apply the attributes
+                    const writeToFd = function (fd) {
+                        self.fs.write(fd, content, 0, content.length, 0, function (writeErr) {
+                            self.fs.close(fd, function () {
+                                // surface write failures instead of silently reporting success (issue #402)
+                                if (writeErr) return callback(false);
+                                self.fs.chmod(path, attr || 0o666, function () {
+                                    callback(true);
+                                });
+                            });
+                        });
+                    };
+
+                    self.fs.open(path, "w", 0o666, function (err, fd) {
+                        if (err) {
+                            // the target may exist but be read-only: make it writable and retry once
+                            self.fs.chmod(path, 0o666, function () {
+                                self.fs.open(path, "w", 0o666, function (retryErr, fd) {
+                                    // Previously the retry error was ignored and an undefined fd was
+                                    // passed to fs.write, throwing an uncaught ERR_INVALID_ARG_TYPE that
+                                    // crashed the process (issues #470, #459, #402). Report failure instead.
+                                    if (retryErr || !fd) return callback(false);
+                                    writeToFd(fd);
+                                });
+                            });
+                        } else if (fd) {
+                            writeToFd(fd);
+                        } else {
+                            callback(false);
+                        }
+                    });
                 });
             });
         });
