@@ -498,7 +498,11 @@ module.exports = function (/**String*/ input, /** object */ options) {
         addLocalFolderAsync2: function (options, callback) {
             const self = this;
             options = typeof options === "object" ? options : { localPath: options };
-            const localPath = pth.resolve(fixPath(options.localPath));
+            // Resolve the local filesystem path with the platform resolver. Do NOT
+            // run it through fixPath: that normalizes ZIP-internal paths to POSIX
+            // and prepends "/", which turns a Windows path like C:\dir into
+            // \C:\dir, so readdir finds nothing and the archive comes out empty.
+            const localPath = pth.resolve(options.localPath);
             let { zipPath, filter, namefix } = options;
 
             if (filter instanceof RegExp) {
