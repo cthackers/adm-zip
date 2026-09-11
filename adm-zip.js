@@ -709,6 +709,8 @@ module.exports = function (/**String*/ input, /** object */ options) {
                     // collapsed subdirectories together (issue #306).
                     var name = canonical(maintainEntryPath ? child.entryName : child.entryName.substring(item.entryName.length));
                     var childName = sanitize(targetPath, name);
+                    // reject writing through a pre-existing symlink inside the target
+                    filetools.assertPathSafe(targetPath, childName);
                     // The reverse operation for attr depend on method addFile()
                     const fileAttr = keepOriginalPermission ? child.header.fileAttr : undefined;
                     filetools.writeFileTo(childName, content, overwrite, fileAttr);
@@ -718,6 +720,9 @@ module.exports = function (/**String*/ input, /** object */ options) {
 
             var content = item.getData(_zip.password);
             if (!content) throw Utils.Errors.CANT_EXTRACT_FILE();
+
+            // reject writing through a pre-existing symlink inside the target
+            filetools.assertPathSafe(targetPath, target);
 
             if (filetools.fs.existsSync(target) && !overwrite) {
                 throw Utils.Errors.CANT_OVERRIDE();
@@ -775,6 +780,8 @@ module.exports = function (/**String*/ input, /** object */ options) {
             const dirEntries = [];
             _zip.entries.forEach(function (entry) {
                 var entryName = sanitize(targetPath, canonical(entry.entryName));
+                // reject writing through a pre-existing symlink inside the target
+                filetools.assertPathSafe(targetPath, entryName);
                 if (entry.isDirectory) {
                     filetools.makeDir(entryName);
                     // defer restoring the directory permission until its files are written
@@ -854,6 +861,8 @@ module.exports = function (/**String*/ input, /** object */ options) {
                 // The reverse operation for attr depend on method addFile()
                 const dirAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
                 try {
+                    // reject writing through a pre-existing symlink inside the target
+                    filetools.assertPathSafe(targetPath, dirPath);
                     filetools.makeDir(dirPath);
                 } catch (er) {
                     callback(getError("Unable to create folder", dirPath));
@@ -890,6 +899,12 @@ module.exports = function (/**String*/ input, /** object */ options) {
                     } else {
                         const entryName = pth.normalize(canonical(entry.entryName));
                         const filePath = sanitize(targetPath, entryName);
+                        try {
+                            // reject writing through a pre-existing symlink inside the target
+                            filetools.assertPathSafe(targetPath, filePath);
+                        } catch (er) {
+                            return next(er);
+                        }
                         entry.getDataAsync(function (content, err_1) {
                             if (err_1) {
                                 next(err_1);

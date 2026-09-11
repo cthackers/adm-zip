@@ -159,6 +159,39 @@ Utils.prototype.writeFileToAsync = function (/*String*/ path, /*Buffer*/ content
     });
 };
 
+// Guard extraction against writing through a symlink that already exists inside
+// the target directory. sanitize() only proves the textual path stays under the
+// root; it cannot see that a component on disk is a symlink pointing elsewhere,
+// so open()/mkdir() would follow it and write outside the root. Walk every path
+// component strictly below root and reject any that is a symlink. Components at
+// or above root are the caller's own choice and are left untouched, so a root
+// that itself lives under a symlink (e.g. /tmp on macOS) still extracts.
+Utils.prototype.assertPathSafe = function (/*String*/ root, /*String*/ target) {
+    const self = this;
+    if (typeof self.fs.lstatSync !== "function") return;
+
+    const resolvedRoot = pth.resolve(root);
+    const resolvedTarget = pth.resolve(target);
+    if (resolvedTarget === resolvedRoot) return;
+
+    const rel = pth.relative(resolvedRoot, resolvedTarget);
+    // Not under root: sanitize() is responsible for that case; nothing to walk.
+    if (!rel || rel === ".." || rel.startsWith(".." + pth.sep) || pth.isAbsolute(rel)) return;
+
+    let cur = resolvedRoot;
+    for (const part of rel.split(pth.sep)) {
+        if (!part || part === ".") continue;
+        cur = pth.join(cur, part);
+        let stat;
+        try {
+            stat = self.fs.lstatSync(cur);
+        } catch (e) {
+            break; // component does not exist yet: nothing below it can be a symlink
+        }
+        if (stat.isSymbolicLink()) throw Errors.FILE_IN_THE_WAY(`"${cur}"`);
+    }
+};
+
 Utils.prototype.findFiles = function (/*String*/ path) {
     const self = this;
     const canLstat = typeof self.fs.lstatSync === "function";
