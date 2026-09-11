@@ -78,6 +78,16 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
 
             index += entry.header.centralHeaderSize;
 
+            // Reject archives that declare the same entry name twice. adm-zip keeps
+            // every entry in entryList but only the last in entryTable, so getEntry()
+            // (table) and extractAllTo() (list) could resolve one name to different
+            // content: an app that validates entry bytes via getEntry() before
+            // extracting could approve one file while a different one lands on disk
+            // (GHSA-p634-w6r4-rjp2). Fail closed on the ambiguity.
+            if (entry.entryName in entryTable) {
+                throw Utils.Errors.DUPLICATE_ENTRY(`"${entry.entryName}"`);
+            }
+
             entryList[i] = entry;
             entryTable[entry.entryName] = entry;
         }

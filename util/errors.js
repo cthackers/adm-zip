@@ -34,6 +34,7 @@ const errors = {
     DISK_ENTRY_TOO_LARGE: "Number of disk entries is too large",
     NO_ZIP: "No zip file was loaded",
     NO_ENTRY: "Entry doesn't exist",
+    DUPLICATE_ENTRY: "Duplicate entry name {0}",
     DIRECTORY_CONTENT_ERROR: "A directory cannot have content",
     FILE_NOT_FOUND: 'File not found: "{0}"',
     NOT_IMPLEMENTED: "Not implemented",
