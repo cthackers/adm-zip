@@ -12,6 +12,7 @@ const errors = {
     /* ZipEntry error messages*/
     NO_DATA: "Nothing to decompress",
     BAD_CRC: "CRC32 checksum failed {0}",
+    MAX_OUTPUT_EXCEEDED: "Decompressed data exceeds the declared uncompressed size",
     FILE_IN_THE_WAY: "There is a file in the way: {0}",
     UNKNOWN_METHOD: "Invalid/unsupported compression method",
 
