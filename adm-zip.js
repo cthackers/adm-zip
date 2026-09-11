@@ -533,14 +533,21 @@ module.exports = function (/**String*/ input, /** object */ options) {
 
             filetools.fs.open(localPath, "r", function (err) {
                 if (err && err.code === "ENOENT") {
-                    callback(undefined, Utils.Errors.FILE_NOT_FOUND(localPath));
+                    // callback is (err, done); errors belong in the first argument,
+                    // otherwise addLocalFolderPromise treats the error as "done" and
+                    // resolves instead of rejecting.
+                    callback(Utils.Errors.FILE_NOT_FOUND(localPath), false);
                 } else if (err) {
-                    callback(undefined, err);
+                    callback(err, false);
                 } else {
                     filetools.findFilesAsync(localPath, function (err, fileEntries) {
-                        if (err) return callback(err);
+                        if (err) return callback(err, false);
                         fileEntries = fileEntries.filter((dir) => filter(relPathFix(dir)));
-                        if (!fileEntries.length) callback(undefined, false);
+                        // Nothing to add (empty folder or everything filtered out) is a
+                        // success, not an error. Report done and stop, otherwise the
+                        // reduce below runs and the callback fires a second time -- and
+                        // signalling done=false left addLocalFolderPromise hanging.
+                        if (!fileEntries.length) return callback(undefined, true);
 
                         setImmediate(
                             fileEntries.reverse().reduce(function (next, entry) {
@@ -575,7 +582,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
         addLocalFolderPromise: function (localPath, props) {
             return new Promise((resolve, reject) => {
                 this.addLocalFolderAsync2(Object.assign({ localPath }, props), (err, done) => {
-                    if (err) reject(err);
+                    if (err) return reject(err);
                     if (done) resolve(this);
                 });
             });
