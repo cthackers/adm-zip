@@ -446,7 +446,14 @@ Utils.toBuffer = function toBuffer(/*buffer, Uint8Array, string*/ input, /* func
 Utils.readBigUInt64LE = function (/*Buffer*/ buffer, /*int*/ index) {
     const lo = buffer.readUInt32LE(index);
     const hi = buffer.readUInt32LE(index + 4);
-    return hi * 0x100000000 + lo;
+    const value = hi * 0x100000000 + lo;
+    // The result is a JS number, so values above 2^53 - 1 cannot be represented
+    // exactly. These are zip64 sizes/offsets/counts used as buffer indices; a
+    // silently rounded value would misparse the archive. Reject instead.
+    if (value > Number.MAX_SAFE_INTEGER) {
+        throw Errors.ZIP64_VALUE_TOO_LARGE();
+    }
+    return value;
 };
 
 Utils.writeBigUInt64LE = function (/*Buffer*/ buffer, /*Number*/ value, /*int*/ index) {

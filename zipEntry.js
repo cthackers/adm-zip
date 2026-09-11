@@ -25,7 +25,16 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
             return Buffer.alloc(0);
         }
         _extralocal = _centralHeader.loadLocalHeaderFromBinary(input);
-        return input.slice(_centralHeader.realDataOffset, _centralHeader.realDataOffset + _centralHeader.compressedSize);
+        const dataOffset = _centralHeader.realDataOffset;
+        const dataEnd = dataOffset + _centralHeader.compressedSize;
+        // The offsets and sizes come from attacker-controlled headers. Require the
+        // declared compressed extent to be fully present rather than letting slice()
+        // silently clamp to a short buffer (which only surfaces later as a CRC
+        // failure). Fail loudly with a header error instead (GHSA-wwrv-q5gf-5843).
+        if (dataOffset < 0 || dataEnd < dataOffset || dataEnd > input.length) {
+            throw Utils.Errors.INVALID_LOC();
+        }
+        return input.slice(dataOffset, dataEnd);
     }
 
     function crc32OK(data) {

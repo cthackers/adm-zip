@@ -40,6 +40,7 @@ const errors = {
     NOT_IMPLEMENTED: "Not implemented",
     INVALID_FILENAME: "Invalid filename",
     INVALID_FORMAT: "Invalid or unsupported zip format. No END header found",
+    ZIP64_VALUE_TOO_LARGE: "Zip64 value exceeds the maximum safe integer",
     INVALID_PASS_PARAM: "Incompatible password parameter",
     WRONG_PASSWORD: "Wrong Password",
 
