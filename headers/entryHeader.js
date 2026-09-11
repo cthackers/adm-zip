@@ -217,6 +217,13 @@ module.exports = function () {
         },
 
         loadLocalHeaderFromBinary: function (/*Buffer*/ input) {
+            // The LOC offset comes from the central directory and is attacker
+            // controlled. Reject one that would read past the end of the buffer,
+            // otherwise readUInt32LE below throws a raw RangeError instead of a
+            // clean INVALID_LOC (and escapes the async error path).
+            if (_offset < 0 || _offset + Constants.LOCHDR > input.length) {
+                throw Utils.Errors.INVALID_LOC();
+            }
             var data = input.slice(_offset, _offset + Constants.LOCHDR);
             // 30 bytes and should start with "PK\003\004"
             if (data.readUInt32LE(0) !== Constants.LOCSIG) {

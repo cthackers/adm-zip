@@ -60,19 +60,32 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
             return Buffer.alloc(0);
         }
 
-        var compressedData = getCompressedDataFromZip();
+        var compressedData;
+        try {
+            compressedData = getCompressedDataFromZip();
 
-        if (compressedData.length === 0) {
-            // File is empty, nothing to decompress.
-            if (async && callback) callback(compressedData);
-            return compressedData;
-        }
-
-        if (_centralHeader.encrypted) {
-            if ("string" !== typeof pass && !Buffer.isBuffer(pass)) {
-                throw Utils.Errors.INVALID_PASS_PARAM();
+            if (compressedData.length === 0) {
+                // File is empty, nothing to decompress.
+                if (async && callback) callback(compressedData);
+                return compressedData;
             }
-            compressedData = Methods.ZipCrypto.decrypt(compressedData, _centralHeader, pass);
+
+            if (_centralHeader.encrypted) {
+                if ("string" !== typeof pass && !Buffer.isBuffer(pass)) {
+                    throw Utils.Errors.INVALID_PASS_PARAM();
+                }
+                compressedData = Methods.ZipCrypto.decrypt(compressedData, _centralHeader, pass);
+            }
+        } catch (err) {
+            // These synchronous parse/setup steps run before any callback fires.
+            // In async mode a malformed local header (e.g. a bad LOC offset) would
+            // otherwise throw out of getDataAsync and bypass the callback error
+            // channel, crashing the caller. Route it through the callback instead.
+            if (async && callback) {
+                callback(Buffer.alloc(0), err);
+                return Buffer.alloc(0);
+            }
+            throw err;
         }
 
         var data;
