@@ -11,8 +11,10 @@ jobs:
 
     strategy:
       matrix:
-        # mocha nolonger supports node 10
-        node-version: [18.x, 20.x, 22.x]
+        # The library itself supports Node >= 14 (see package.json engines), but
+        # the test tooling (mocha 12 / chai 6) requires Node ^20.19 || >=22.12,
+        # so the suite is only run on those versions.
+        node-version: [20.x, 22.x, 24.x]
 
     steps:
       - name: Clone repository
