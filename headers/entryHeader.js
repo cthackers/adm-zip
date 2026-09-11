@@ -185,7 +185,12 @@ module.exports = function () {
 
         // get Unix file permissions
         get fileAttr() {
-            return (_attr || 0) >> 16 & 0xfff;
+            // Mask to the 9 rwxrwxrwx bits only. The setuid (0o4000), setgid
+            // (0o2000) and sticky (0o1000) bits are attacker-controlled archive
+            // metadata; preserving them on extraction (keepOriginalPermission)
+            // lets a crafted zip plant a setuid-root binary when extracting as
+            // root, a local privilege escalation (GHSA-679w-jf3m-wh39).
+            return ((_attr || 0) >> 16) & 0o777;
         },
 
         get offset() {
