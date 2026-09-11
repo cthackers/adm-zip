@@ -107,13 +107,16 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
                     }
                     return data;
                 } else {
-                    inflater.inflateAsync(function (result) {
-                        if (callback) {
-                            if (!crc32OK(result)) {
-                                callback(result, Utils.Errors.BAD_CRC()); //si added error
-                            } else {
-                                callback(result);
-                            }
+                    inflater.inflateAsync(function (result, err) {
+                        if (!callback) return;
+                        if (err) {
+                            // surface inflater/stream failures instead of validating
+                            // the empty placeholder buffer against the CRC
+                            callback(Buffer.alloc(0), err);
+                        } else if (!crc32OK(result)) {
+                            callback(result, Utils.Errors.BAD_CRC()); //si added error
+                        } else {
+                            callback(result);
                         }
                     });
                 }
