@@ -161,6 +161,24 @@ Utils.prototype.writeFileToAsync = function (/*String*/ path, /*Buffer*/ content
 
 Utils.prototype.findFiles = function (/*String*/ path) {
     const self = this;
+    const canLstat = typeof self.fs.lstatSync === "function";
+    const rootReal = self.fs.realpathSync(path);
+
+    // A symlink whose target lies outside the folder being archived must not be
+    // followed: statSync would dereference it and copy the target's contents into
+    // the archive, disclosing files outside the root (GHSA-wx42-xcp7-pgr4). Allow
+    // symlinks that resolve to a location inside the root, reject any that escape.
+    function escapesRoot(/*String*/ p) {
+        if (!canLstat) return false;
+        if (!self.fs.lstatSync(p).isSymbolicLink()) return false;
+        let real;
+        try {
+            real = self.fs.realpathSync(p);
+        } catch (e) {
+            return true; // dangling or unresolvable symlink: do not follow
+        }
+        return !(real === rootReal || real.startsWith(rootReal + pth.sep));
+    }
 
     function findSync(/*String*/ dir, /*RegExp*/ pattern, /*Boolean*/ recursive, /*Set*/ visited) {
         if (typeof pattern === "boolean") {
@@ -170,6 +188,9 @@ Utils.prototype.findFiles = function (/*String*/ path) {
         let files = [];
         self.fs.readdirSync(dir).forEach(function (file) {
             const path = pth.join(dir, file);
+
+            if (escapesRoot(path)) return;
+
             const stat = self.fs.statSync(path);
 
             if (!pattern || pattern.test(path)) {
@@ -191,7 +212,7 @@ Utils.prototype.findFiles = function (/*String*/ path) {
         return files;
     }
 
-    return findSync(path, undefined, true, new Set([self.fs.realpathSync(path)]));
+    return findSync(path, undefined, true, new Set([rootReal]));
 };
 
 /**
@@ -217,6 +238,25 @@ Utils.prototype.findFilesAsync = function (dir, cb) {
         cb(err, err ? undefined : results);
     };
 
+    const canLstat = typeof self.fs.lstat === "function";
+    let rootReal = null;
+
+    // Reject a symlink whose target escapes the root being archived, so its
+    // contents are not dereferenced and copied into the archive
+    // (GHSA-wx42-xcp7-pgr4). A symlink resolving to a location inside the root is
+    // allowed; a dangling or escaping one is skipped. Calls back (err, escapes).
+    const escapesRoot = function (file, cb) {
+        if (!canLstat) return cb(null, false);
+        self.fs.lstat(file, function (err, lst) {
+            if (err) return cb(err);
+            if (!lst || !lst.isSymbolicLink()) return cb(null, false);
+            self.fs.realpath(file, function (err, real) {
+                if (err) return cb(null, true); // dangling: do not follow
+                cb(null, !(real === rootReal || real.startsWith(rootReal + pth.sep)));
+            });
+        });
+    };
+
     // Descend by resolved real path and skip directories already visited, so a
     // symlink pointing back to an ancestor cannot recurse forever (issue #541).
     const walk = function (dir, visited, done) {
@@ -226,27 +266,34 @@ Utils.prototype.findFilesAsync = function (dir, cb) {
             if (!pending) return done();
             list.forEach(function (name) {
                 const file = pth.join(dir, name);
-                self.fs.stat(file, function (err, stat) {
+                escapesRoot(file, function (err, escapes) {
                     if (err) return done(err);
-                    if (!stat) {
+                    if (escapes) {
                         if (!--pending) done();
                         return;
                     }
-                    results.push(pth.normalize(file) + (stat.isDirectory() ? self.sep : ""));
-                    if (!stat.isDirectory()) {
-                        if (!--pending) done();
-                        return;
-                    }
-                    self.fs.realpath(file, function (err, realDir) {
+                    self.fs.stat(file, function (err, stat) {
                         if (err) return done(err);
-                        if (visited.has(realDir)) {
+                        if (!stat) {
                             if (!--pending) done();
                             return;
                         }
-                        visited.add(realDir);
-                        walk(file, visited, function (err) {
-                            if (err) return done(err);
+                        results.push(pth.normalize(file) + (stat.isDirectory() ? self.sep : ""));
+                        if (!stat.isDirectory()) {
                             if (!--pending) done();
+                            return;
+                        }
+                        self.fs.realpath(file, function (err, realDir) {
+                            if (err) return done(err);
+                            if (visited.has(realDir)) {
+                                if (!--pending) done();
+                                return;
+                            }
+                            visited.add(realDir);
+                            walk(file, visited, function (err) {
+                                if (err) return done(err);
+                                if (!--pending) done();
+                            });
                         });
                     });
                 });
@@ -256,6 +303,7 @@ Utils.prototype.findFilesAsync = function (dir, cb) {
 
     self.fs.realpath(dir, function (err, realDir) {
         if (err) return finish(err);
+        rootReal = realDir;
         walk(dir, new Set([realDir]), finish);
     });
 };
