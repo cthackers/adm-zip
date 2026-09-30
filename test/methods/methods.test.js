@@ -3,6 +3,7 @@ const { expect } = require("chai");
 const Zip = require("../../adm-zip");
 const pth = require("path");
 const fs = require("fs");
+const { execFileSync } = require("child_process");
 const rimraf = require("rimraf");
 const Utils = require("../../util/utils");
 
@@ -673,6 +674,30 @@ describe("adm-zip.js - methods handling local files", () => {
             ];
 
             expect(zip1Entries.sort()).to.deep.equal(expected.sort());
+        });
+    });
+
+    (process.platform === "win32" ? describe.skip : describe)("special files (named pipes) - async", () => {
+        beforeEach(() => {
+            genFiles([{ name: "folder/zipEntry1.txt", content: "zipEntry1" }], destination);
+            execFileSync("mkfifo", [pth.join(destination, "folder/pipe")]);
+        });
+
+        it("zip.addLocalFileAsync(fifo, callback) calls back", (done) => {
+            const zip = new Zip();
+            zip.addLocalFileAsync(pth.join(destination, "folder/pipe"), (err, isDone) => {
+                expect(err).to.be.undefined;
+                expect(isDone).to.be.true;
+                expect(zip.getEntries().map((e) => e.entryName)).to.deep.equal(["pipe"]);
+                done();
+            });
+        });
+
+        it("zip.addLocalFolderPromise(folder) resolves", async function () {
+            const zip = new Zip();
+            await zip.addLocalFolderPromise(pth.join(destination, "folder"));
+            const zipEntries = zip.getEntries().map((e) => e.entryName);
+            expect(zipEntries.sort()).to.deep.equal(["pipe", "zipEntry1.txt"]);
         });
     });
 });

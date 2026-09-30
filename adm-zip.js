@@ -373,8 +373,10 @@ module.exports = function (/**String*/ input, /** object */ options) {
                         self.addFile(zipPath, data, comment, stats);
                         return setImmediate(callback, undefined, true);
                     });
-                } else if (stats.isDirectory()) {
-                    zipPath += filetools.sep;
+                } else {
+                    // like addLocalFile, directories and anything that is not a regular
+                    // file (e.g. a named pipe) are added without content
+                    if (stats.isDirectory()) zipPath += filetools.sep;
                     self.addFile(zipPath, Buffer.alloc(0), comment, stats);
                     return setImmediate(callback, undefined, true);
                 }
