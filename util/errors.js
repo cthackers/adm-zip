@@ -46,7 +46,8 @@ const errors = {
 
     /* ADM-ZIP */
     COMMENT_TOO_LONG: "Comment is too long", // Comment can be max 65535 bytes long (NOTE: some non-US characters may take more space)
-    EXTRA_FIELD_PARSE_ERROR: "Extra field parsing error"
+    EXTRA_FIELD_PARSE_ERROR: "Extra field parsing error",
+    INVALID_ZIP64_EXTRA: "Zip64 extended information extra field is missing a required value"
 };
 
 // template
