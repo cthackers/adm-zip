@@ -114,32 +114,46 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                 endOffset = i;
                 commentEnd = i;
                 endStart = i + Utils.Constants.ENDHDR;
-                // We already found a regular signature, let's look just a bit further to check if there's any zip64 signature
-                n = i - Utils.Constants.END64HDR;
-                continue;
-            }
-
-            if (inBuffer.readUInt32LE(i) === Utils.Constants.END64SIG) {
-                // Found a zip64 signature, let's continue reading the whole zip64 record
-                n = max;
-                continue;
-            }
-
-            if (inBuffer.readUInt32LE(i) === Utils.Constants.ZIP64SIG) {
-                // Found the zip64 record, let's determine it's size
-                endOffset = i;
-                endStart = i + Utils.readBigUInt64LE(inBuffer, i + Utils.Constants.ZIP64SIZE) + Utils.Constants.ZIP64LEAD;
                 break;
             }
         }
 
         if (endOffset == -1) throw Utils.Errors.INVALID_FORMAT();
 
+        // The zip64 end of central directory record is found through the locator that
+        // sits right before the classic record, not by searching backwards for its
+        // signature, which stored file data can contain too.
+        const zip64Offset = findZip64Record(commentEnd);
+        if (zip64Offset !== -1) {
+            endOffset = zip64Offset;
+            endStart = zip64Offset + Utils.readBigUInt64LE(inBuffer, zip64Offset + Utils.Constants.ZIP64SIZE) + Utils.Constants.ZIP64LEAD;
+        }
+
         mainHeader.loadFromBinary(inBuffer.slice(endOffset, endStart));
+        // the zip64 record has no comment, the classic record after it still does
+        if (endOffset !== commentEnd) {
+            mainHeader.commentLength = inBuffer.readUInt16LE(commentEnd + Utils.Constants.ENDCOM);
+        }
         if (mainHeader.commentLength) {
             _comment = inBuffer.slice(commentEnd + Utils.Constants.ENDHDR);
         }
         if (readNow) readEntries();
+    }
+
+    // Returns the offset of the zip64 end of central directory record for the classic
+    // record at `endOffset`, or -1 when the archive has none.
+    function findZip64Record(endOffset) {
+        const locator = endOffset - Utils.Constants.END64HDR;
+        if (locator < 0 || inBuffer.readUInt32LE(locator) !== Utils.Constants.END64SIG) {
+            return -1;
+        }
+        // the signature may also just be data at the end of the central directory, so
+        // anything that does not point at a zip64 record means there is none
+        const offset = inBuffer.readBigUInt64LE(locator + Utils.Constants.END64OFF);
+        if (offset + BigInt(Utils.Constants.ZIP64HDR) > BigInt(locator) || inBuffer.readUInt32LE(Number(offset)) !== Utils.Constants.ZIP64SIG) {
+            return -1;
+        }
+        return Number(offset);
     }
 
     function sortEntries() {

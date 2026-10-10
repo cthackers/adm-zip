@@ -31,6 +31,15 @@ module.exports = function () {
 
     // casting
     const uint32 = (val) => Math.max(0, val) >>> 0;
+    // sizes and offsets can exceed 32 bits in a zip64 archive, so they are not
+    // truncated; a value too large to be represented exactly is refused
+    const uint64 = (val) => {
+        const num = Math.max(0, Math.floor(Number(val))) || 0;
+        if (num > Number.MAX_SAFE_INTEGER) {
+            throw Utils.Errors.ZIP64_VALUE_TOO_LARGE();
+        }
+        return num;
+    };
     const uint16 = (val) => Math.max(0, val) & 0xffff;
     const uint8 = (val) => Math.max(0, val) & 0xff;
 
@@ -124,14 +133,14 @@ module.exports = function () {
             return _compressedSize;
         },
         set compressedSize(val) {
-            _compressedSize = uint32(val);
+            _compressedSize = uint64(val);
         },
 
         get size() {
             return _size;
         },
         set size(val) {
-            _size = uint32(val);
+            _size = uint64(val);
         },
 
         get fileNameLength() {
@@ -197,7 +206,45 @@ module.exports = function () {
             return _offset;
         },
         set offset(val) {
-            _offset = uint32(val);
+            _offset = uint64(val);
+        },
+
+        // APPNOTE 4.5.3: a value goes into the zip64 record when the header field
+        // cannot hold it; 0xFFFFFFFF itself is reserved to mean "see the record"
+        get zip64Fields() {
+            return {
+                size: _size >= Constants.EF_ZIP64_OR_32,
+                compressedSize: _compressedSize >= Constants.EF_ZIP64_OR_32,
+                offset: _offset >= Constants.EF_ZIP64_OR_32
+            };
+        },
+
+        get needsZip64() {
+            const fields = this.zip64Fields;
+            return fields.size || fields.compressedSize || fields.offset;
+        },
+
+        // Returns the zip64 extra field data for the central or local header, or null
+        // when none is needed. The local record holds both sizes whenever either one
+        // does not fit.
+        zip64ExtraData: function (/*Boolean*/ isLocal) {
+            const fields = this.zip64Fields;
+            const values = [];
+            if (isLocal) {
+                if (fields.size || fields.compressedSize) {
+                    values.push(_size, _compressedSize);
+                }
+            } else {
+                if (fields.size) values.push(_size);
+                if (fields.compressedSize) values.push(_compressedSize);
+                if (fields.offset) values.push(_offset);
+            }
+            if (!values.length) {
+                return null;
+            }
+            const data = Buffer.alloc(values.length * 8);
+            values.forEach((value, index) => Utils.writeBigUInt64LE(data, value, index * 8));
+            return data;
         },
 
         get encrypted() {
@@ -300,7 +347,7 @@ module.exports = function () {
             // "PK\003\004"
             data.writeUInt32LE(Constants.LOCSIG, 0);
             // version needed to extract
-            data.writeUInt16LE(_version, Constants.LOCVER);
+            data.writeUInt16LE(this.needsZip64 ? Math.max(_version, Constants.VERSION_ZIP64) : _version, Constants.LOCVER);
             // general purpose bit flag
             // clear bit 3 (data descriptor): we always write the real crc-32
             // and sizes into this local header, so no trailing descriptor is
@@ -313,10 +360,12 @@ module.exports = function () {
             data.writeUInt32LE(_time, Constants.LOCTIM);
             // uncompressed file crc-32 value
             data.writeUInt32LE(_crc, Constants.LOCCRC);
+            const zip64 = this.zip64Fields;
+            const localZip64 = zip64.size || zip64.compressedSize;
             // compressed size
-            data.writeUInt32LE(_compressedSize, Constants.LOCSIZ);
+            data.writeUInt32LE(localZip64 ? Constants.EF_ZIP64_OR_32 : _compressedSize, Constants.LOCSIZ);
             // uncompressed size
-            data.writeUInt32LE(_size, Constants.LOCLEN);
+            data.writeUInt32LE(localZip64 ? Constants.EF_ZIP64_OR_32 : _size, Constants.LOCLEN);
             // filename length
             data.writeUInt16LE(_fnameLen, Constants.LOCNAM);
             // extra field length
@@ -332,7 +381,7 @@ module.exports = function () {
             // version made by
             data.writeUInt16LE(_verMade, Constants.CENVEM);
             // version needed to extract
-            data.writeUInt16LE(_version, Constants.CENVER);
+            data.writeUInt16LE(this.needsZip64 ? Math.max(_version, Constants.VERSION_ZIP64) : _version, Constants.CENVER);
             // encrypt, decrypt flags
             // clear bit 3 (data descriptor) to match the local header we emit
             // (real crc/sizes are written, no descriptor follows the data) — issue #555
@@ -343,10 +392,11 @@ module.exports = function () {
             data.writeUInt32LE(_time, Constants.CENTIM);
             // uncompressed file crc-32 value
             data.writeUInt32LE(_crc, Constants.CENCRC);
+            const zip64 = this.zip64Fields;
             // compressed size
-            data.writeUInt32LE(_compressedSize, Constants.CENSIZ);
+            data.writeUInt32LE(zip64.compressedSize ? Constants.EF_ZIP64_OR_32 : _compressedSize, Constants.CENSIZ);
             // uncompressed size
-            data.writeUInt32LE(_size, Constants.CENLEN);
+            data.writeUInt32LE(zip64.size ? Constants.EF_ZIP64_OR_32 : _size, Constants.CENLEN);
             // filename length
             data.writeUInt16LE(_fnameLen, Constants.CENNAM);
             // extra field length
@@ -360,7 +410,7 @@ module.exports = function () {
             // external file attributes
             data.writeUInt32LE(_attr, Constants.CENATX);
             // LOC header offset
-            data.writeUInt32LE(_offset, Constants.CENOFF);
+            data.writeUInt32LE(zip64.offset ? Constants.EF_ZIP64_OR_32 : _offset, Constants.CENOFF);
             return data;
         },
 

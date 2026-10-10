@@ -11,6 +11,7 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
         uncompressedData = null,
         _extra = Buffer.alloc(0),
         _extralocal = Buffer.alloc(0),
+        _zip64Fields = {},
         _efs = true;
 
     // assign options
@@ -198,52 +199,41 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
     }
 
     function parseExtra(data) {
-        try {
-            var offset = 0;
-            var signature, size, part;
-            while (offset + 4 < data.length) {
-                signature = data.readUInt16LE(offset);
-                offset += 2;
-                size = data.readUInt16LE(offset);
-                offset += 2;
-                part = data.slice(offset, offset + size);
-                offset += size;
-                if (Constants.ID_ZIP64 === signature) {
-                    parseZip64ExtendedInformation(part);
-                }
+        for (const field of Utils.parseExtraFields(data)) {
+            if (Constants.ID_ZIP64 === field.id) {
+                parseZip64ExtendedInformation(field.data);
             }
-        } catch (error) {
-            throw Utils.Errors.EXTRA_FIELD_PARSE_ERROR();
         }
     }
 
-    //Override header field values with values from the ZIP64 extra field
+    // Override header field values with values from the ZIP64 extra field.
+    // APPNOTE 4.5.3: the fields always appear in the same order, but each one is
+    // present only when the matching header field holds 0xFFFFFFFF (0xFFFF for the
+    // disk number), so the record has to be read field by field rather than at
+    // fixed offsets. Bytes left over after those fields are ignored, as other
+    // readers do: some writers always store every field.
     function parseZip64ExtendedInformation(data) {
-        var size, compressedSize, offset, diskNumStart;
+        let cursor = 0;
+        const take = function (length) {
+            if (cursor + length > data.length) {
+                throw Utils.Errors.INVALID_ZIP64_EXTRA();
+            }
+            const value = length === 8 ? readUInt64LE(data, cursor) : data.readUInt32LE(cursor);
+            cursor += length;
+            return value;
+        };
 
-        if (data.length >= Constants.EF_ZIP64_SCOMP) {
-            size = readUInt64LE(data, Constants.EF_ZIP64_SUNCOMP);
-            if (_centralHeader.size === Constants.EF_ZIP64_OR_32) {
-                _centralHeader.size = size;
-            }
+        if (_zip64Fields.size) {
+            _centralHeader.size = take(8);
         }
-        if (data.length >= Constants.EF_ZIP64_RHO) {
-            compressedSize = readUInt64LE(data, Constants.EF_ZIP64_SCOMP);
-            if (_centralHeader.compressedSize === Constants.EF_ZIP64_OR_32) {
-                _centralHeader.compressedSize = compressedSize;
-            }
+        if (_zip64Fields.compressedSize) {
+            _centralHeader.compressedSize = take(8);
         }
-        if (data.length >= Constants.EF_ZIP64_DSN) {
-            offset = readUInt64LE(data, Constants.EF_ZIP64_RHO);
-            if (_centralHeader.offset === Constants.EF_ZIP64_OR_32) {
-                _centralHeader.offset = offset;
-            }
+        if (_zip64Fields.offset) {
+            _centralHeader.offset = take(8);
         }
-        if (data.length >= Constants.EF_ZIP64_DSN + 4) {
-            diskNumStart = data.readUInt32LE(Constants.EF_ZIP64_DSN);
-            if (_centralHeader.diskNumStart === Constants.EF_ZIP64_OR_16) {
-                _centralHeader.diskNumStart = diskNumStart;
-            }
+        if (_zip64Fields.diskNumStart) {
+            _centralHeader.diskNumStart = take(4);
         }
     }
 
@@ -348,6 +338,14 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
 
         set header(/*Buffer*/ data) {
             _centralHeader.loadFromBinary(data);
+            // remember which fields the zip64 record has to supply: once a field is
+            // filled in from the record, its value may itself be 0xFFFFFFFF
+            _zip64Fields = {
+                size: _centralHeader.size === Constants.EF_ZIP64_OR_32,
+                compressedSize: _centralHeader.compressedSize === Constants.EF_ZIP64_OR_32,
+                offset: _centralHeader.offset === Constants.EF_ZIP64_OR_32,
+                diskNumStart: _centralHeader.diskNumStart === Constants.EF_ZIP64_OR_16
+            };
         },
 
         get header() {
@@ -356,6 +354,9 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
 
         packCentralHeader: function () {
             _centralHeader.flags_efs = this.efs;
+            // rebuild the zip64 record from the values being written, so that a record
+            // copied from the input never describes fields that now fit in the header
+            _extra = Utils.replaceExtraField(_extra, Constants.ID_ZIP64, _centralHeader.zip64ExtraData(false));
             _centralHeader.extraLength = _extra.length;
             // 1. create header (buffer)
             var header = _centralHeader.centralHeaderToBinary();
@@ -374,6 +375,7 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
         packLocalHeader: function () {
             let addpos = 0;
             _centralHeader.flags_efs = this.efs;
+            _extralocal = Utils.replaceExtraField(_extralocal, Constants.ID_ZIP64, _centralHeader.zip64ExtraData(true));
             _centralHeader.extraLocalLength = _extralocal.length;
             // 1. construct local header Buffer
             const localHeaderBuf = _centralHeader.localHeaderToBinary();

@@ -9,7 +9,10 @@ module.exports = function () {
         _offset = 0,
         _commentLength = 0;
 
-    const needsZip64 = () => _volumeEntries > Constants.EF_ZIP64_OR_16 || _totalEntries > Constants.EF_ZIP64_OR_16 || _size > Constants.EF_ZIP64_OR_32 || _offset > Constants.EF_ZIP64_OR_32;
+    // 0xFFFF / 0xFFFFFFFF in the classic record mean "see the zip64 record", so a
+    // value equal to them has to be written there too
+    const needsZip64 = () =>
+        _volumeEntries >= Constants.EF_ZIP64_OR_16 || _totalEntries >= Constants.EF_ZIP64_OR_16 || _size >= Constants.EF_ZIP64_OR_32 || _offset >= Constants.EF_ZIP64_OR_32;
 
     return {
         get diskEntries() {

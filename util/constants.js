@@ -138,5 +138,7 @@ module.exports = {
     EF_ZIP64_SUNCOMP : 0,
     EF_ZIP64_SCOMP   : 8,
     EF_ZIP64_RHO     : 16,
-    EF_ZIP64_DSN     : 24
+    EF_ZIP64_DSN     : 24,
+    /* version needed to extract an entry that uses zip64 */
+    VERSION_ZIP64    : 45
 };
