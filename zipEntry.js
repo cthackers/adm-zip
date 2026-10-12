@@ -152,8 +152,11 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
     function compress(/*Boolean*/ async, /*Function*/ callback) {
         if ((!uncompressedData || !uncompressedData.length) && Buffer.isBuffer(input)) {
             // no data set or the data wasn't changed to require recompression
-            if (async && callback) callback(getCompressedDataFromZip());
-            return getCompressedDataFromZip();
+            // read once: the callback may change this entry's header offset, which
+            // would make a second read of the local header hit the wrong position
+            const zipData = getCompressedDataFromZip();
+            if (async && callback) callback(zipData);
+            return zipData;
         }
 
         if (uncompressedData.length && !_isDirectory) {

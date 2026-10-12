@@ -378,6 +378,15 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
         },
 
         toAsyncBuffer: function (/*Function*/ onSuccess, /*Function*/ onFail, /*Function*/ onItemStart, /*Function*/ onItemEnd) {
+            // onSuccess and onFail are mutually exclusive. Once onSuccess has been
+            // called an error is not ours to report, so it is rethrown instead.
+            let settled = false;
+            const fail = function (e) {
+                if (settled) throw e;
+                settled = true;
+                onFail(e);
+            };
+
             try {
                 if (!loadedEntries) {
                     readEntries();
@@ -394,42 +403,52 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
                 mainHeader.offset = 0;
 
                 const compress2Buffer = function (entryLists) {
-                    if (entryLists.length > 0) {
-                        const entry = entryLists.shift();
-                        const name = entry.entryName + entry.extra.toString();
-                        if (onItemStart) onItemStart(name);
-                        entry.getCompressedDataAsync(function (compressedData) {
-                            if (onItemEnd) onItemEnd(name);
-                            entry.header.offset = dindex;
+                    let outBuffer;
+                    try {
+                        if (entryLists.length > 0) {
+                            const entry = entryLists.shift();
+                            const name = entry.entryName + entry.extra.toString();
+                            if (onItemStart) onItemStart(name);
+                            entry.getCompressedDataAsync(function (compressedData) {
+                                try {
+                                    if (onItemEnd) onItemEnd(name);
+                                    entry.header.offset = dindex;
 
-                            // 1. construct local header
-                            const localHeader = entry.packLocalHeader();
+                                    // 1. construct local header
+                                    const localHeader = entry.packLocalHeader();
 
-                            // 2. offsets
-                            const dataLength = localHeader.length + compressedData.length;
-                            dindex += dataLength;
+                                    // 2. offsets
+                                    const dataLength = localHeader.length + compressedData.length;
+                                    dindex += dataLength;
 
-                            // 3. store values in sequence
-                            dataBlock.push(localHeader);
-                            dataBlock.push(compressedData);
+                                    // 3. store values in sequence
+                                    dataBlock.push(localHeader);
+                                    dataBlock.push(compressedData);
 
-                            // central header
-                            const centalHeader = entry.packCentralHeader();
-                            centralHeaders.push(centalHeader);
-                            mainHeader.size += centalHeader.length;
-                            totalSize += dataLength + centalHeader.length;
-                            totalEntries++;
+                                    // central header
+                                    const centalHeader = entry.packCentralHeader();
+                                    centralHeaders.push(centalHeader);
+                                    mainHeader.size += centalHeader.length;
+                                    totalSize += dataLength + centalHeader.length;
+                                    totalEntries++;
+                                } catch (e) {
+                                    return fail(e);
+                                }
 
-                            compress2Buffer(entryLists);
-                        });
-                    } else {
+                                // Entries that are not recompressed call back synchronously, so
+                                // continue on a fresh stack instead of recursing once per entry.
+                                setImmediate(compress2Buffer, entryLists);
+                            });
+                            return;
+                        }
+
                         totalSize += mainHeader.mainHeaderSize; // also includes zip file comment length
                         // point to end of data and beginning of central directory first record
                         mainHeader.offset = dindex;
                         mainHeader.totalEntries = totalEntries;
 
                         dindex = 0;
-                        const outBuffer = Buffer.alloc(totalSize);
+                        outBuffer = Buffer.alloc(totalSize);
                         dataBlock.forEach(function (content) {
                             content.copy(outBuffer, dindex); // write data blocks
                             dindex += content.length;
@@ -452,14 +471,17 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
 
                         inBuffer = outBuffer;
                         loadedEntries = false;
-
-                        onSuccess(outBuffer);
+                    } catch (e) {
+                        return fail(e);
                     }
+
+                    settled = true;
+                    onSuccess(outBuffer);
                 };
 
                 compress2Buffer(Array.from(this.entries));
             } catch (e) {
-                onFail(e);
+                fail(e);
             }
         }
     };
