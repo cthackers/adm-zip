@@ -88,3 +88,8 @@ const zip = new AdmZip("./my_file.zip", { fs: OriginalFs });
 ## Security
 
 Please report security vulnerabilities privately. See [SECURITY.md](./SECURITY.md).
+
+## Sponsors
+<a href="https://github.com/canonical">
+  <img src="https://github.com/canonical.png" width="48" height="48" alt="OWNER">
+</a>
