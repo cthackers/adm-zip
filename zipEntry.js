@@ -150,7 +150,7 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
     }
 
     function compress(/*Boolean*/ async, /*Function*/ callback) {
-        if ((!uncompressedData || !uncompressedData.length) && Buffer.isBuffer(input)) {
+        if (!_centralHeader.changed && Buffer.isBuffer(input)) {
             // no data set or the data wasn't changed to require recompression
             if (async && callback) callback(getCompressedDataFromZip());
             return getCompressedDataFromZip();
@@ -312,14 +312,15 @@ module.exports = function (/** object */ options, /*Buffer*/ input) {
 
         setData: function (value) {
             uncompressedData = Utils.toBuffer(value, Utils.decoder.encode);
+            _centralHeader.size = uncompressedData.length;
+            _centralHeader.crc = Utils.crc32(uncompressedData);
+            _centralHeader.changed = true;
             if (!_isDirectory && uncompressedData.length) {
-                _centralHeader.size = uncompressedData.length;
                 _centralHeader.method = Utils.Constants.DEFLATED;
-                _centralHeader.crc = Utils.crc32(value);
-                _centralHeader.changed = true;
             } else {
                 // folders and blank files should be stored
                 _centralHeader.method = Utils.Constants.STORED;
+                _centralHeader.compressedSize = 0;
             }
         },
 
