@@ -52,11 +52,13 @@ const errors = {
 // template
 function E(message) {
     return function (...args) {
-        if (args.length) { // Allow {0} .. {9} arguments in error message, based on argument number
-            message = message.replace(/\{(\d)\}/g, (_, n) => args[n] || '');
+        let text = message;
+        if (args.length) {
+            // Allow {0} .. {9} arguments in error message, based on argument number
+            text = message.replace(/\{(\d)\}/g, (_, n) => args[n] || "");
         }
 
-        return new Error('ADM-ZIP: ' + message);
+        return new Error("ADM-ZIP: " + text);
     };
 }
 
