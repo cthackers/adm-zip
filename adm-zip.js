@@ -145,6 +145,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
             if (item) {
                 return _zip.getChildCount(item);
             }
+            return 0;
         },
 
         /**
@@ -739,7 +740,8 @@ module.exports = function (/**String*/ input, /** object */ options) {
                 throw Utils.Errors.CANT_OVERRIDE();
             }
             // The reverse operation for attr depend on method addFile()
-            const fileAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
+            // `entry` may still be the caller's string name; `item` is the resolved ZipEntry.
+            const fileAttr = keepOriginalPermission ? item.header.fileAttr : undefined;
             filetools.writeFileTo(target, content, overwrite, fileAttr);
 
             return true;
