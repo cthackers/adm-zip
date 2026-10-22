@@ -457,6 +457,10 @@ Utils.readBigUInt64LE = function (/*Buffer*/ buffer, /*int*/ index) {
 };
 
 Utils.writeBigUInt64LE = function (/*Buffer*/ buffer, /*Number*/ value, /*int*/ index) {
+    // same rule as the reader: never split a value that is not represented exactly
+    if (!Number.isSafeInteger(value) || value < 0) {
+        throw Errors.ZIP64_VALUE_TOO_LARGE();
+    }
     const lo = value >>> 0;
     const hi = Math.floor(value / 0x100000000) >>> 0;
     buffer.writeUInt32LE(lo, index);
@@ -475,6 +479,52 @@ Utils.fromDate2DOS = function (val) {
         time = (val.getHours() << 11) | (val.getMinutes() << 5) | (val.getSeconds() >> 1);
     }
     return (date << 16) | time;
+};
+
+// Splits an extensible data field (APPNOTE 4.5) into its {id, data} records. A record
+// whose declared size runs past the end of the field ends the list.
+Utils.parseExtraFields = function (/*Buffer*/ data) {
+    const fields = [];
+    let offset = 0;
+    while (data && offset + 4 <= data.length) {
+        const id = data.readUInt16LE(offset + Constants.EF_ID);
+        const size = data.readUInt16LE(offset + Constants.EF_SIZE);
+        const start = offset + 4;
+        if (start + size > data.length) {
+            break;
+        }
+        fields.push({ id, data: data.slice(start, start + size) });
+        offset = start + size;
+    }
+    return fields;
+};
+
+// Returns the extensible data field with the record `id` replaced by `payload`, or
+// removed when `payload` is null. Other records are kept as they are and in order.
+Utils.replaceExtraField = function (/*Buffer*/ data, /*Number*/ id, /*Buffer*/ payload) {
+    const fields = Utils.parseExtraFields(data);
+    const parsedLength = fields.reduce((length, field) => length + 4 + field.data.length, 0);
+    if (!payload && !fields.some((field) => field.id === id)) {
+        return data;
+    }
+    const parts = [];
+    for (const field of fields) {
+        if (field.id !== id) {
+            const head = Buffer.alloc(4);
+            head.writeUInt16LE(field.id, 0);
+            head.writeUInt16LE(field.data.length, 2);
+            parts.push(head, field.data);
+        }
+    }
+    if (payload) {
+        const head = Buffer.alloc(4);
+        head.writeUInt16LE(id, 0);
+        head.writeUInt16LE(payload.length, 2);
+        parts.push(head, payload);
+    }
+    // keep any bytes after the last complete record (such as alignment padding)
+    parts.push(data.slice(parsedLength));
+    return Buffer.concat(parts);
 };
 
 Utils.isWin = isWin; // Do we have windows system
