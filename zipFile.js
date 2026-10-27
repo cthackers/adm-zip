@@ -62,6 +62,10 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             throw Utils.Errors.DISK_ENTRY_TOO_LARGE();
         }
         entryList = new Array(mainHeader.diskEntries); // total number of entries
+        // Names as they resolve on disk (after "." / ".." / "\\" normalisation and
+        // without a trailing slash), so "a/../x", "./x" and "x" are the same name
+        const resolvedNames = new Set();
+        const resolvedFiles = new Set();
         var index = mainHeader.offset; // offset of first CEN header
         for (var i = 0; i < entryList.length; i++) {
             var tmp = index,
@@ -84,12 +88,24 @@ module.exports = function (/*Buffer|null*/ inBuffer, /** object */ options) {
             // content: an app that validates entry bytes via getEntry() before
             // extracting could approve one file while a different one lands on disk
             // (GHSA-p634-w6r4-rjp2). Fail closed on the ambiguity.
-            if (entry.entryName in entryTable) {
+            const resolved = Utils.zipnamefix(entry.entryName).replace(/\/+$/, "");
+            if (entry.entryName in entryTable || resolvedNames.has(resolved)) {
                 throw Utils.Errors.DUPLICATE_ENTRY(`"${entry.entryName}"`);
             }
+            resolvedNames.add(resolved);
+            if (!entry.isDirectory) resolvedFiles.add(resolved);
 
             entryList[i] = entry;
             entryTable[entry.entryName] = entry;
+        }
+        // a file entry may not also be a parent directory of another entry
+        // ("a" together with "a/b" or "a/"): the outcome would depend on entry order
+        for (const name of resolvedNames) {
+            for (let i = name.indexOf("/"); i !== -1; i = name.indexOf("/", i + 1)) {
+                if (resolvedFiles.has(name.slice(0, i))) {
+                    throw Utils.Errors.FILE_IN_THE_WAY(`"${name}"`);
+                }
+            }
         }
         temporary.clear();
         makeTemporaryFolders();

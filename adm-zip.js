@@ -789,6 +789,11 @@ module.exports = function (/**String*/ input, /** object */ options) {
             if (!_zip) throw Utils.Errors.NO_ZIP();
 
             const dirEntries = [];
+            // files created by this call (dev:ino). Catches entries that reach the same
+            // file through different spellings the archive check cannot see, e.g. "A"
+            // and "a" on a case-insensitive filesystem or NFC/NFD names on macOS
+            const written = new Set();
+            const fileId = (st) => (st && st.ino ? st.dev + ":" + st.ino : null);
             _zip.entries.forEach(function (entry) {
                 var entryName = sanitize(targetPath, canonical(entry.entryName));
                 // reject writing through a pre-existing symlink inside the target
@@ -805,7 +810,25 @@ module.exports = function (/**String*/ input, /** object */ options) {
                 }
                 // The reverse operation for attr depend on method addFile()
                 const fileAttr = keepOriginalPermission ? entry.header.fileAttr : undefined;
-                filetools.writeFileTo(entryName, content, overwrite, fileAttr);
+                let existing = null;
+                try {
+                    existing = filetools.fs.statSync(entryName);
+                } catch (err) {
+                    /* does not exist yet */
+                }
+                if (existing) {
+                    if (existing.isDirectory()) throw Utils.Errors.FILE_IN_THE_WAY(`"${entryName}"`);
+                    // written earlier in this same extraction: two entries, one file
+                    if (written.has(fileId(existing))) throw Utils.Errors.DUPLICATE_ENTRY(`"${entry.entryName}"`);
+                }
+                // false means a file from before this call was kept (overwrite === false)
+                if (filetools.writeFileTo(entryName, content, overwrite, fileAttr)) {
+                    try {
+                        written.add(fileId(filetools.fs.statSync(entryName)));
+                    } catch (err) {
+                        /* custom fs without stat info */
+                    }
+                }
                 try {
                     // best-effort: an invalid date in the archive or a filesystem that
                     // rejects utimes must not fail extraction of already-written content (issue #379)
