@@ -106,6 +106,8 @@ module.exports = function (/**String*/ input, /** object */ options) {
             // if filter is RegExp wrap it
             return (function (rx) {
                 return function (filename) {
+                    // a global or sticky RegExp keeps lastIndex between calls
+                    rx.lastIndex = 0;
                     return rx.test(filename);
                 };
             })(filterfn);
@@ -505,17 +507,7 @@ module.exports = function (/**String*/ input, /** object */ options) {
             const localPath = pth.resolve(options.localPath);
             let { zipPath, filter, namefix } = options;
 
-            if (filter instanceof RegExp) {
-                filter = (function (rx) {
-                    return function (filename) {
-                        return rx.test(filename);
-                    };
-                })(filter);
-            } else if ("function" !== typeof filter) {
-                filter = function () {
-                    return true;
-                };
-            }
+            filter = filenameFilter(filter);
 
             // fix ZipPath
             zipPath = zipPath ? fixPath(zipPath) : "";
